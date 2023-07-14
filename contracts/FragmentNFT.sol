@@ -11,8 +11,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     string private constant NAME = "AllianceBlock DataTunel Fragment";
     string private constant SYMBOL = "ABDTF";
 
-    event FragmentPending(uint256 id);
-    event FragmentAccepted(uint256 id, uint256 parent, bytes32 tag);
+    event FragmentPending(uint256 id, bytes32 tag);
+    event FragmentAccepted(uint256 id);
     event FragmentDeclined(uint256 id);
 
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
@@ -20,7 +20,6 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     struct PendingFragment {
         address to; 
-        uint256 parent;
         bytes32 tag;
         bytes signature;
     }
@@ -29,7 +28,6 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     IDatasetNFT public dataset;
     uint256 public datasetId;
     mapping(uint256 id => PendingFragment fragment) public pendingFragments;
-    mapping(uint256 id => uint256 parent) public parents;
     mapping(uint256 id => bytes32 tag) public tags;
 
 
@@ -58,16 +56,14 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
      * @notice Adds a Fragment as Pending
      * @param id Fragment id to mint
      * @param to Fragment owner
-     * @param parent Id of parent Fragment or 0 if no parent
      * @param tag Hash of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
-    function propose(uint256 id, address to, uint256 parent, bytes32 tag, bytes calldata signature) external {
+    function propose(uint256 id, address to, bytes32 tag, bytes calldata signature) external {
         bytes32 msgHash = _mintMessageHash(id, to);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         _mint(to, id);
-        parents[id] = parent;
         emit FragmentPending(id, parent);
     }
 
