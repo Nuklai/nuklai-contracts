@@ -22,11 +22,15 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     error NOT_OWNER(uint256 id, address account);
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
 
-    event ConfigChange(uint256 id);
+    event ManagersConfigChange(uint256 id);
     event FragmentInstanceDeployement(uint256 id, address instance);
 
+
+
+
     address public fragmentImplementation;
-    mapping(uint256 id => DatasetConfig config) public configurations;
+    mapping(uint256 id => ManagersConfig config) public configurations;
+    mapping(uint256 id => ManagersConfig proxy) public proxies;
     mapping(uint256 id => IFragmentNFT fragment) public fragments;
 
     modifier onlyTokenOwner(uint256 id) {
@@ -54,9 +58,19 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
 
-    function setConfig(uint256 id, DatasetConfig calldata config) external onlyTokenOwner(id)  {
+    function setManagers(uint256 id, DatasetConfig calldata config) external onlyTokenOwner(id)  {
+        if(configurations[id].subscriptionManager != config.subscriptionManager) {
+            proxies.subscriptionManager = _cloneAndInitialize(config.subscriptionManager);
+        }
+        if(configurations[id].distributionManager != config.distributionManager) {
+            proxies.distributionManager = _cloneAndInitialize(config.distributionManager);
+        }
+        if(configurations[id].verifierManager != config.verifierManager) {
+            proxies.distributionManager = _cloneAndInitialize(config.verifierManager);
+        }
+
         configurations[id] = config;
-        emit ConfigChange(id);
+        emit ManagersConfigChange(id);
     }
 
     function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE){
@@ -67,9 +81,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns(address){
         require(fragmentImplementation != address(0), "fragment creation disabled");
         require(fragments[id] == address(0), "fragment instance already deployed");
-        IFragmentNFT instance = IFragmentNFT(Clones.clone(fragmentImplementation));
+        IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation));
         fragments[id] = instance;
-        instance.initialize(IDatasetNFT(address(this)), id);
         emit FragmentInstanceDeployement(id, address(instance));
     }
 
@@ -81,6 +94,13 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
+    function _cloneAndInitialize(address implementation) internal returns(address proxy)  {
+        proxy = Clones.clone(fragmentImplementation);
+        IDatasetLinkInitializable(proxy).initialize(IDatasetNFT(address(this)), id);
+    }
+
+
+
     function _mintMessageHash(uint256 id, address to) private pure returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
@@ -89,4 +109,5 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
             to
         ));
     }
+
 }

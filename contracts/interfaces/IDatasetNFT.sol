@@ -11,14 +11,15 @@ import "./IVerifierManager.sol";
  * @notice Defines function available for Dataset Admins and FragmentNFT contract
  */
 interface IDatasetNFT is IERC721 {
-    struct DatasetConfig {
-        ISubscriptionManager subscriptionManager;
-        IDistributionManager distributionManager;
-        IVerifierManager verifierManager;
+
+    struct ManagersConfig {
+        address subscriptionManager;
+        address distributionManager;
+        address verifierManager;
     }
 
     function mint(uint256 id, address to, bytes calldata signature) external;
-    function setConfig(uint256 id, DatasetConfig calldata config) external;
+    function setConfig(uint256 id, ManagersConfig calldata config) external;
     function deployFragmentInstance(uint256 id) external returns(address);
     function isSigner(address signer) external view returns(bool);
 }
