@@ -17,6 +17,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
     error NOT_ADMIN(address account);
+    error NOT_VERIFIER_MANAGER(address account);
 
     struct PendingFragment {
         address to; 
@@ -36,7 +37,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         _;
     }
 
-    modifier onlyVerifier() {
+    modifier onlyVerifierManager() {
+        if(dataset.verifierManager(datasetId) != _msgSender()) revert NOT_VERIFIER_MANAGER(_msgSender());
         _;
     }
 
@@ -63,34 +65,35 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         bytes32 msgHash = _mintMessageHash(id, to);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
-        _mint(to, id);
         emit FragmentPending(id, parent);
+        
+        // Here we call VeriferManager and EXPECT it to call accept() 
+        // during this call OR at any following transaction.
+        // DO NOT do any state changes after this point!
+        IVerifierManager(dataset.verifierManager(datasetId)).propose(this, id);
     }
 
-    function accept(uint256 id) external onlyVerifier {
-
+    function accept(uint256 id) external onlyVerifierManager {
+        _safeMint(to, id);
+        emit FragmentAccepted(id);
     }
 
     function remove(uint256 id) external onlyAdmin {
-
-    }
-
-    function findVerifier(bytes32 tag, uint256 parent) {
-        
+        _burn(id);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
         return interfaceId == type(IFragmentNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _mintMessageHash(uint256 id, address to, uint256 parent) private pure returns(bytes32) {
+    function _proposeMessageHash(uint256 id, address to, bytes32 tag) private pure returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
-            address(this),
+            address(dataset),
             datasetId,
             id,
             to,
-            parent
+            tag
         ));
     }
 }

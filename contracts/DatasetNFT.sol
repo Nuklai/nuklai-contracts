@@ -86,8 +86,19 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         emit FragmentInstanceDeployement(id, address(instance));
     }
 
-    function isSigner(address signer) external view returns(bool) {
-        return hasRole(SIGNER_ROLE, signer);
+    function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external {
+        IFragmentNFT fragmentInstance = fragments[datasetId];
+        require(address(fragmentInstance) != address(0), "No fragment instance deployed");
+        fragmentInstance.propose(fragmentId, to, tag, signature);
+    }
+
+
+    function isSigner(address account) external view returns(bool) {
+        return hasRole(SIGNER_ROLE, account);
+    }
+
+    function verifierManager(uint256 id) public view returns(address) {
+        return configurations[id].verifierManager;
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721, AccessControl) returns (bool) {
