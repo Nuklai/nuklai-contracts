@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "./IDatasetLinkInitializable.sol";
 import "./IFragmentNFT.sol";
 
-interface IVerifierManager is IDatasetLinkInitializable {
+interface IVerifierManager /*is IDatasetLinkInitializable */{
 
     /**
      * @notice Should 

@@ -58,15 +58,15 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
 
-    function setManagers(uint256 id, DatasetConfig calldata config) external onlyTokenOwner(id)  {
+    function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id)  {
         if(configurations[id].subscriptionManager != config.subscriptionManager) {
-            proxies.subscriptionManager = _cloneAndInitialize(config.subscriptionManager);
+            proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
         }
         if(configurations[id].distributionManager != config.distributionManager) {
-            proxies.distributionManager = _cloneAndInitialize(config.distributionManager);
+            proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
         }
         if(configurations[id].verifierManager != config.verifierManager) {
-            proxies.distributionManager = _cloneAndInitialize(config.verifierManager);
+            proxies[id].distributionManager = _cloneAndInitialize(config.verifierManager, id);
         }
 
         configurations[id] = config;
@@ -80,8 +80,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
     function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns(address){
         require(fragmentImplementation != address(0), "fragment creation disabled");
-        require(fragments[id] == address(0), "fragment instance already deployed");
-        IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation));
+        require(address(fragments[id]) == address(0), "fragment instance already deployed");
+        IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
         fragments[id] = instance;
         emit FragmentInstanceDeployement(id, address(instance));
     }
@@ -105,9 +105,9 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _cloneAndInitialize(address implementation) internal returns(address proxy)  {
+    function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns(address proxy)  {
         proxy = Clones.clone(fragmentImplementation);
-        IDatasetLinkInitializable(proxy).initialize(IDatasetNFT(address(this)), id);
+        IDatasetLinkInitializable(proxy).initialize(IDatasetNFT(address(this)), datasetId);
     }
 
 

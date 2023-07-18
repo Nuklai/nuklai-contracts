@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./IDatasetLinkInitializable.sol";
 import "./IDatasetNFT.sol";
 
-interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
+interface IFragmentNFT is /*IDatasetLinkInitializable, */ IERC721 {
 
     /**
      * @notice Adds a Fragment as Pending

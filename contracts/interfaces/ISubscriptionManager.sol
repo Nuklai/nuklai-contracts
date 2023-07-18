@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "./IDatasetLinkInitializable.sol";
 
-interface ISubscriptionManager is IERC721, IDatasetLinkInitializable {
+interface ISubscriptionManager is IERC721/*, IDatasetLinkInitializable */{
     /**
      * @notice Verivies if subscription is paid for a consumer
      * @param dataset Id of the dataset to access
