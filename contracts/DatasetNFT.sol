@@ -112,7 +112,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
 
 
-    function _mintMessageHash(uint256 id, address to) private pure returns(bytes32) {
+    function _mintMessageHash(uint256 id, address to) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),

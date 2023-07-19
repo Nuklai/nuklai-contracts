@@ -86,7 +86,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         return interfaceId == type(IFragmentNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _proposeMessageHash(uint256 id, address to, bytes32 tag) private pure returns(bytes32) {
+    function _proposeMessageHash(uint256 id, address to, bytes32 tag) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(dataset),

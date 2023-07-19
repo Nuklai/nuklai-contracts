@@ -99,8 +99,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(sd.validTill > block.timestamp, "Subcription not valid");
         uint256 duration = sd.validTill - sd.validSince;
-        uint256 currentFee = calculateFee(duration, sd.paidConsumers);
-        uint256 newFee = calculateFee(duration, sd.paidConsumers+extraConsumers);
+        (,uint256 currentFee) = calculateFee(duration, sd.paidConsumers);
+        (,uint256 newFee) = calculateFee(duration, sd.paidConsumers+extraConsumers);
         return (newFee > currentFee)?(newFee - currentFee):0;
     }
 
@@ -118,7 +118,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         require(duration > 0, "Duration is too low");
         require(consumers > 0, "Should be at least 1 consumer");
 
-        uint256 fee = calculateFee(duration, consumers);
+        (,uint256 fee) = calculateFee(duration, consumers);
         charge(_msgSender(), fee);
 
         uint256 sid = ++mintCounter;
@@ -126,7 +126,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         sd.validSince = start;
         sd.validTill = start+duration;
         sd.paidConsumers = consumers;
-        _safeMint(sid, _msgSender());
+        _safeMint(_msgSender(), sid);
         emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);
     }
 
@@ -146,7 +146,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         if(sd.validTill > block.timestamp) {
             // Subscription is still valid
             uint256 currentDuration = sd.validTill - sd.validSince;
-            currentFee = calculateFee(currentDuration, sd.paidConsumers);
+            (,currentFee) = calculateFee(currentDuration, sd.paidConsumers);
             newValidSince = sd.validSince;
             newDuration = currentDuration+extraDuration;
         }else{
@@ -156,7 +156,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
             newDuration = extraDuration;
         }
         uint256 newConsumers = sd.paidConsumers+extraConsumers;
-        uint256 newFee = calculateFee(newDuration, newConsumers);
+        (,uint256 newFee) = calculateFee(newDuration, newConsumers);
         require(newFee > currentFee, "Nothing to pay");
 
         charge(_msgSender(), newFee - currentFee);
@@ -171,7 +171,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     function addConsumers(uint256 subscription, address[] calldata consumers) external {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
-        require(sd.consumers.length() + consumers.length <= subscription.paidConsumers, "Too many consumers to add");
+        require(sd.consumers.length() + consumers.length <= sd.paidConsumers, "Too many consumers to add");
         for(uint256 i; i < consumers.length; i++){
             address consumer = consumers[i];
             bool added = sd.consumers.add(consumer);
@@ -223,7 +223,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
 
 
-    function _requireCorrectDataset(uint256 _datasetId) internal {
+    function _requireCorrectDataset(uint256 _datasetId) internal view {
         if(datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
     }
 
