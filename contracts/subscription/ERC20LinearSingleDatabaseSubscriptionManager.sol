@@ -37,7 +37,7 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
      * @param duration of subscription
      * @param consumers for the subscription (including owner)
      */
-    function calculateFee(uint256 duration, uint256 consumers) internal view override returns(uint256) {
+    function calculateFee(uint256 duration, uint256 consumers) internal view override returns(address, uint256) {
         return (address(token), feePerConsumerPerSecond * duration * consumers);
     }
 
