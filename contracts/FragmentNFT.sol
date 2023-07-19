@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./interfaces/IFragmentNFT.sol";
+import "./interfaces/IVerifierManager.sol";
 
 contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     string private constant NAME = "AllianceBlock DataTunel Fragment";
@@ -13,22 +14,15 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     event FragmentPending(uint256 id, bytes32 tag);
     event FragmentAccepted(uint256 id);
-    event FragmentDeclined(uint256 id);
+    event FragmentRemoved(uint256 id);
 
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
     error NOT_ADMIN(address account);
     error NOT_VERIFIER_MANAGER(address account);
 
-    struct PendingFragment {
-        address to; 
-        bytes32 tag;
-        bytes signature;
-    }
-
-
     IDatasetNFT public dataset;
     uint256 public datasetId;
-    mapping(uint256 id => PendingFragment fragment) public pendingFragments;
+    mapping(uint256 id => address owner) public pendingFragmentOwners;
     mapping(uint256 id => bytes32 tag) public tags;
 
 
@@ -62,10 +56,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
     function propose(uint256 id, address to, bytes32 tag, bytes calldata signature) external {
-        bytes32 msgHash = _mintMessageHash(id, to);
+        bytes32 msgHash = _proposeMessageHash(id, to, tag);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
-        emit FragmentPending(id, parent);
+        pendingFragmentOwners[id] = to;
+        emit FragmentPending(id, tag);
         
         // Here we call VeriferManager and EXPECT it to call accept() 
         // during this call OR at any following transaction.
@@ -74,12 +69,17 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function accept(uint256 id) external onlyVerifierManager {
+        address to = pendingFragmentOwners[id];
+        delete pendingFragmentOwners[id];
         _safeMint(to, id);
         emit FragmentAccepted(id);
     }
 
     function remove(uint256 id) external onlyAdmin {
+        delete pendingFragmentOwners[id]; // in case we are deliting pending one
+        delete tags[id];
         _burn(id);
+        emit FragmentRemoved(id);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {

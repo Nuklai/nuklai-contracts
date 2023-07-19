@@ -20,7 +20,7 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
 
 
     function initialize(IDatasetNFT dataset_, uint256 datasetId_, address owner) external initializer() {
-        __GenericSubscriptionManager_init_unchained(datset, datasetId_);
+        __GenericSubscriptionManager_init_unchained(dataset, datasetId_);
         _transferOwnership(owner);
     }
 

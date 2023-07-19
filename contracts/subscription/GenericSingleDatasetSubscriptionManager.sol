@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../interfaces/ISubscriptionManager.sol";
-
+import "../interfaces/IDatasetNFT.sol";
 
 abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, Ownable, ERC721 {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -93,12 +93,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @param extraConsumers Count of new consumers
      */
     function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns(uint256 amount){
-        require(consumers > 0, "Should add at least 1 consumer");
-        SubscriptionDetails storage sd = subscriptions[subscription];
+        require(extraConsumers > 0, "Should add at least 1 consumer");
+        SubscriptionDetails memory sd = subscriptions[subscription];
         require(sd.validTill > block.timestamp, "Subcription not valid");
         uint256 duration = sd.validTill - sd.validSince;
         uint256 currentFee = calculateFee(duration, sd.paidConsumers);
-        uint256 newFee = calculateFee(duration, currenConsumers+extraConsumers);
+        uint256 newFee = calculateFee(duration, sd.paidConsumers+extraConsumers);
         return (newFee > currentFee)?(newFee - currentFee):0;
     }
 
@@ -162,7 +162,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         sd.validSince = newValidSince;
         sd.validTill = newValidSince+newDuration;
         sd.paidConsumers = newConsumers;        
-        emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);
+        emit SubscriptionPaid(subscription, sd.validSince, sd.validTill, sd.paidConsumers);
     }
 
 
@@ -202,7 +202,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(oldConsumers.length == newConsumers.length, "Array length missmatch");
-        for(uint256 i; i < consumers.length; i++){
+        for(uint256 i; i < oldConsumers.length; i++){
             address consumer = oldConsumers[i];
             bool removed = sd.consumers.remove(consumer);
             if(removed) {
