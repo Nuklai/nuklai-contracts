@@ -40,15 +40,17 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @notice Calculates subscription fee
      * @param duration of subscription
      * @param consumers for the subscription (including owner)
+     * @return Payment token, zero address for native coin
+     * @return amount to pay
      */
-    function calculateFee(uint256 duration, uint256 consumers) internal view returns(uint256);
+    function calculateFee(uint256 duration, uint256 consumers) internal view virtual returns(address, uint256);
 
     /**
      * @notice Should charge the subscriber or revert
      * @param subscriber Who to charge
      * @param amount Amount to charge
      */
-    function charge(address subscriber, uint256 amount) internal;
+    function charge(address subscriber, uint256 amount) internal virtual;
 
 
 
@@ -94,7 +96,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      */
     function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns(uint256 amount){
         require(extraConsumers > 0, "Should add at least 1 consumer");
-        SubscriptionDetails memory sd = subscriptions[subscription];
+        SubscriptionDetails storage sd = subscriptions[subscription];
         require(sd.validTill > block.timestamp, "Subcription not valid");
         uint256 duration = sd.validTill - sd.validSince;
         uint256 currentFee = calculateFee(duration, sd.paidConsumers);

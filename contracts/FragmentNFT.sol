@@ -65,7 +65,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         // Here we call VeriferManager and EXPECT it to call accept() 
         // during this call OR at any following transaction.
         // DO NOT do any state changes after this point!
-        IVerifierManager(dataset.verifierManager(datasetId)).propose(this, id);
+        IVerifierManager(dataset.verifierManager(datasetId)).propose(this, id, tag);
     }
 
     function accept(uint256 id) external onlyVerifierManager {

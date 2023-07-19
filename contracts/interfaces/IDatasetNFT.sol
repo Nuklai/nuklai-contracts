@@ -19,7 +19,7 @@ interface IDatasetNFT is IERC721 {
     }
 
     function mint(uint256 id, address to, bytes calldata signature) external;
-    function setConfig(uint256 id, ManagersConfig calldata config) external;
+    function setManagers(uint256 id, ManagersConfig calldata config) external;
     function deployFragmentInstance(uint256 id) external returns(address);
     function isSigner(address account) external view returns(bool);
 

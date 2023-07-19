@@ -10,11 +10,14 @@ import "./GenericSingleDatasetSubscriptionManager.sol";
 
 contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable, GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
- 
+
+    string internal constant TOKEN_NAME = "DataTunel Subscription";
+    string internal constant TOKEN_SYMBOL = "DTSUB";
+
     IERC20 public token;
     uint256 public feePerConsumerPerSecond;
 
-    constructor() {
+    constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
         _disableInitializers();
     }
 
@@ -34,8 +37,8 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
      * @param duration of subscription
      * @param consumers for the subscription (including owner)
      */
-    function calculateFee(uint256 duration, uint256 consumers) internal view returns(uint256) {
-        return feePerConsumerPerSecond * duration * consumers;
+    function calculateFee(uint256 duration, uint256 consumers) internal view override returns(uint256) {
+        return (address(token), feePerConsumerPerSecond * duration * consumers);
     }
 
     /**
@@ -43,7 +46,7 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
      * @param subscriber Who to charge
      * @param amount Amount to charge
      */
-    function charge(address subscriber, uint256 amount) internal {
+    function charge(address subscriber, uint256 amount) internal override {
         token.safeTransferFrom(subscriber, owner(), amount);
     }
 
