@@ -84,6 +84,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
         fragments[id] = instance;
         emit FragmentInstanceDeployement(id, address(instance));
+        return address(instance);
     }
 
     function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external {
@@ -106,8 +107,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns(address proxy)  {
-        proxy = Clones.clone(fragmentImplementation);
-        IDatasetLinkInitializable(proxy).initialize(IDatasetNFT(address(this)), datasetId);
+        proxy = Clones.clone(implementation);
+        IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
     }
 
 

@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./GenericSingleDatasetSubscriptionManager.sol";
 
 
-contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable, GenericSingleDatasetSubscriptionManager {
+contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
 
     string internal constant TOKEN_NAME = "DataTunel Subscription";
@@ -16,20 +16,27 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
 
     IERC20 public token;
     uint256 public feePerConsumerPerSecond;
+    address beneficiary;
+
+    modifier onlyDatasetOwner() {
+        require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
+        _;
+    }
+
 
     constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
         _disableInitializers();
     }
 
 
-    function initialize(IDatasetNFT dataset_, uint256 datasetId_, address owner) external initializer() {
-        __GenericSubscriptionManager_init_unchained(dataset, datasetId_);
-        _transferOwnership(owner);
+    function initialize(address dataset_, uint256 datasetId_) external initializer() {
+        __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
     }
 
-    function setFee(IERC20 token_, uint256 feePerConsumerPerSecond_) external onlyOwner {
+    function setFee(IERC20 token_, uint256 feePerConsumerPerSecond_, address beneficiary_) external onlyDatasetOwner {
         token = token_;
         feePerConsumerPerSecond = feePerConsumerPerSecond_;
+        beneficiary = beneficiary_;
     }
 
     /**
@@ -47,7 +54,7 @@ contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable, Ownable,
      * @param amount Amount to charge
      */
     function charge(address subscriber, uint256 amount) internal override {
-        token.safeTransferFrom(subscriber, owner(), amount);
+        token.safeTransferFrom(subscriber, beneficiary, amount);
     }
 
 }

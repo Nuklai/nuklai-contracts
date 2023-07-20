@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "../interfaces/ISubscriptionManager.sol";
 import "../interfaces/IDatasetNFT.sol";
 
-abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, Ownable, ERC721 {
+abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, ERC721 {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
     
@@ -54,8 +54,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
 
 
-    function __GenericSubscriptionManager_init_unchained(IDatasetNFT dataset_, uint256 datasetId_) internal onlyInitializing() {
-        dataset = dataset_;
+    function __GenericSubscriptionManager_init_unchained(address dataset_, uint256 datasetId_) internal onlyInitializing() {
+        dataset = IDatasetNFT(dataset_);
         datasetId = datasetId_;
     }
 
@@ -110,9 +110,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @param start Subscription start timestamp
      * @param duration Duration of subscription
      * @param consumers Liast of consumers who have access to the data with this subscription
-     * @return id of subscription
+     * @return sid of subscription
      */
-    function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 id){
+    function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid){
         _requireCorrectDataset(ds);
         require(start >= block.timestamp, "Start timestamp already passed");
         require(duration > 0, "Duration is too low");
@@ -121,7 +121,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         (,uint256 fee) = calculateFee(duration, consumers);
         charge(_msgSender(), fee);
 
-        uint256 sid = ++mintCounter;
+        sid = ++mintCounter;
         SubscriptionDetails storage sd = subscriptions[sid];
         sd.validSince = start;
         sd.validTill = start+duration;

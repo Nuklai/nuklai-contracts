@@ -41,8 +41,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
 
-    function initialize(IDatasetNFT dataset_, uint256 datasetId_) external initializer() {
-        dataset = dataset_;
+    function initialize(address dataset_, uint256 datasetId_) external initializer() {
+        dataset = IDatasetNFT(dataset_);
         datasetId = datasetId_;
     }
 
