@@ -67,6 +67,28 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         return snapshots.length - 1;
     }
 
+    function currentSnapshotId() external view returns(uint256) {
+        return snapshots.length - 1;
+    }
+
+    function tagCountAt(uint256 snapshotId) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+        require(snapshotId < snapshots.length, "bad snapshot id");
+        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
+        tags_ = tagCount.keys();
+        for(uint256 i; i < tagCount.length(); i++) {
+            counts[i] = tagCount.get(tags_[i]);
+        }
+    }
+
+    function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+        require(snapshotId < snapshots.length, "bad snapshot id");
+        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].accountTagCount[account];
+        tags_ = tagCount.keys();
+        for(uint256 i; i < tagCount.length(); i++) {
+            counts[i] = tagCount.get(tags_[i]);
+        }
+    }
+
     /**
      * @notice Adds a Fragment as Pending
      * @param id Fragment id to mint
