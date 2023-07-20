@@ -46,12 +46,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
     /**
      * @notice Should charge the subscriber or revert
+     * @dev Should call IDistributionManager.receivePayment() to distribute the payment
      * @param subscriber Who to charge
      * @param amount Amount to charge
      */
     function charge(address subscriber, uint256 amount) internal virtual;
-
-
 
     function __GenericSubscriptionManager_init_unchained(address dataset_, uint256 datasetId_) internal onlyInitializing() {
         dataset = IDatasetNFT(dataset_);

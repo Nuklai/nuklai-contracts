@@ -15,7 +15,6 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
 
     IERC20 public token;
     uint256 public feePerConsumerPerSecond;
-    address beneficiary;
 
     modifier onlyDatasetOwner() {
         require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
@@ -32,10 +31,9 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
         __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
     }
 
-    function setFee(IERC20 token_, uint256 feePerConsumerPerSecond_, address beneficiary_) external onlyDatasetOwner {
+    function setFee(IERC20 token_, uint256 feePerConsumerPerSecond_) external onlyDatasetOwner {
         token = token_;
         feePerConsumerPerSecond = feePerConsumerPerSecond_;
-        beneficiary = beneficiary_;
     }
 
     /**
@@ -49,11 +47,15 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
 
     /**
      * @notice Should charge the subscriber or revert
+     * @dev Should call IDistributionManager.receivePayment() to distribute the payment
      * @param subscriber Who to charge
      * @param amount Amount to charge
      */
     function charge(address subscriber, uint256 amount) internal override {
-        token.safeTransferFrom(subscriber, beneficiary, amount);
+        token.safeTransferFrom(subscriber, address(this), amount);
+        address distributionManager = dataset.distributionManager(datasetId);
+        token.approve(distributionManager, amount);
+        IDistributionManager(distributionManager).receivePayment(address(token), amount);
     }
 
 }

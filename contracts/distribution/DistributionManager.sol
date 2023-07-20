@@ -21,16 +21,17 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
 
     struct Payment {
         address token;
-        uint256 amount;
+        uint256 distributionAmount;
         uint256 snapshotId;
     }
 
     IDatasetNFT public dataset;
     uint256 public datasetId;
     IFragmentNFT public fragmentNFT;
-    Payment[] internal payments;
-    mapping(address => uint256) firstUnclaimed;
-    EnumerableMap.Bytes32ToUintMap tagWeights;
+    uint256 public datasetOwnerPercentage; // 100% = 1e18
+    Payment[] public payments;
+    EnumerableMap.Bytes32ToUintMap internal tagWeights;
+    mapping(address => uint256) internal firstUnclaimed;
 
     modifier onlyDatasetOwner() {
         require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
@@ -64,6 +65,15 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
     /**
+     * @notice Set percentage of each payment that should be sent to the Dataset Owner
+     * @param percentage Percentage encoded in a way that 100% = 1e18
+     */
+    function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
+        require(percentage <= 1e18, "Can't be higher than 100%");
+        datasetOwnerPercentage = percentage;
+    }
+
+    /**
      * @notice Called by SubscriptionManager to initiate payment
      * @dev if token is address(0) - native currency, the amount should match the msg.value
      * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender
@@ -78,9 +88,12 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         }
         uint256 snapshotId = fragmentNFT.snapshot();
         
+        uint256 ownerAmount = amount * datasetOwnerPercentage / 1e18;
+        _sendPayout(token, ownerAmount, dataset.ownerOf(datasetId));
+
         payments.push(Payment({
             token: token,
-            amount: amount,
+            distributionAmount: amount - ownerAmount,
             snapshotId: snapshotId
         }));
 
@@ -110,7 +123,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
-        uint256 paymentAmount = p.amount;
+        uint256 paymentAmount = p.distributionAmount;
         bytes32[] memory tags = tagWeights.keys();
         uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
         for(uint256 i; i < tags.length; i++) {
