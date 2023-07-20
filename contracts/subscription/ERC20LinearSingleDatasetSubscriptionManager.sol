@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./GenericSingleDatasetSubscriptionManager.sol";
 
 
-contract ERC20LinearSingleDatabaseSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
+contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
 
     string internal constant TOKEN_NAME = "DataTunel Subscription";
