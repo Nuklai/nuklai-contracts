@@ -199,6 +199,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
         uint256 currentSnapshot = snapshots.length - 1;
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[currentSnapshot].totalTagCount;
+        uint256 lastSnapshot = lastSnapshots[address(this)];
+        if(lastSnapshot < currentSnapshot) {
+            _copy(snapshots[lastSnapshot].totalTagCount, totalTagCount);
+            lastSnapshots[address(this)] = currentSnapshot;
+        }        
         for(uint256 i; i < batchSize; i++) {
             uint256 id = firstTokenId+i;
             bytes32 tag = tags[id];
