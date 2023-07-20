@@ -89,6 +89,23 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns(uint256[] memory percentages) {
+        require(snapshotId < snapshots.length, "bad snapshot id");
+        EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[snapshotId].totalTagCount;
+        EnumerableMap.Bytes32ToUintMap storage accountTagCount = snapshots[snapshotId].accountTagCount[account];
+        percentages = new uint256[](tags_.length);
+
+        for(uint256 i; i<tags_.length; i++) {
+            bytes32 tag = tags_[i];
+            uint256 totalCount = totalTagCount.get(tag);
+            if(totalCount != 0) {
+                uint256 accountCount = accountTagCount.get(tag);
+                percentages[i] = 1e18 * accountCount / totalCount;
+            }
+            // else:  percentages[i] = 0, but we skip it because percentages is initialized with zeroes
+        }
+    }
+
     /**
      * @notice Adds a Fragment as Pending
      * @param id Fragment id to mint

@@ -57,4 +57,14 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
      * @param snapshotId Snapshot id
      */
     function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags, uint256[] memory counts);
+
+    /**
+     * @notice Calculates a percentage of fragments owned by an account to the total amount of fragments
+     * with requested tags
+     * @param snapshotId Snapshot to use for calculation
+     * @param tags Array of tags to calculate
+     * param account Account to calculate
+     * @return percentages Array of calculated percentages, 100% = 1e18
+     */
+    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags) external view returns(uint256[] memory percentages);
 }
