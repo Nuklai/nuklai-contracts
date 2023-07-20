@@ -5,10 +5,13 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "./interfaces/IFragmentNFT.sol";
 import "./interfaces/IVerifierManager.sol";
 
 contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
+    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
+
     string private constant NAME = "AllianceBlock DataTunel Fragment";
     string private constant SYMBOL = "ABDTF";
 
@@ -21,33 +24,48 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     error NOT_ADMIN(address account);
     error NOT_VERIFIER_MANAGER(address account);
 
+    struct Snapshot {
+        EnumerableMap.Bytes32ToUintMap totalTagCount;
+        mapping(address account => EnumerableMap.Bytes32ToUintMap) accountTagCount;
+    }
+
     IDatasetNFT public dataset;
     uint256 public datasetId;
     mapping(uint256 id => address owner) public pendingFragmentOwners;
     mapping(uint256 id => bytes32 tag) public tags;
-
+    Snapshot[] internal snapshots;
+    mapping(address account => uint256 lastUpdatedSnapshot) internal lastSnapshots;
 
     modifier onlyAdmin() {
-        if(dataset.ownerOf(datasetId) != _msgSender()) revert NOT_ADMIN(_msgSender());
+        if (dataset.ownerOf(datasetId) != _msgSender())
+            revert NOT_ADMIN(_msgSender());
         _;
     }
 
     modifier onlyVerifierManager() {
-        if(dataset.verifierManager(datasetId) != _msgSender()) revert NOT_VERIFIER_MANAGER(_msgSender());
+        if (dataset.verifierManager(datasetId) != _msgSender())
+            revert NOT_VERIFIER_MANAGER(_msgSender());
         _;
     }
 
-    constructor() ERC721(NAME, SYMBOL){
+    constructor() ERC721(NAME, SYMBOL) {
         _disableInitializers();
     }
 
-
-    function initialize(address dataset_, uint256 datasetId_) external initializer() {
+    function initialize(
+        address dataset_,
+        uint256 datasetId_
+    ) external initializer {
         dataset = IDatasetNFT(dataset_);
         datasetId = datasetId_;
     }
 
     //TODO handle metadata URI stuff
+
+    function snapshot() external override returns (uint256) {
+        snapshots.push();
+        return snapshots.length - 1;
+    }
 
     /**
      * @notice Adds a Fragment as Pending
@@ -56,15 +74,20 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
      * @param tag Hash of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
-    function propose(uint256 id, address to, bytes32 tag, bytes calldata signature) external {
+    function propose(
+        uint256 id,
+        address to,
+        bytes32 tag,
+        bytes calldata signature
+    ) external {
         bytes32 msgHash = _proposeMessageHash(id, to, tag);
         address signer = ECDSA.recover(msgHash, signature);
-        if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
+        if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         pendingFragmentOwners[id] = to;
         tags[id] = tag;
         emit FragmentPending(id, tag);
-        
-        // Here we call VeriferManager and EXPECT it to call accept() 
+
+        // Here we call VeriferManager and EXPECT it to call accept()
         // during this call OR at any following transaction.
         // DO NOT do any state changes after this point!
         IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
@@ -92,18 +115,84 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         emit FragmentRemoved(id);
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
-        return interfaceId == type(IFragmentNFT).interfaceId || super.supportsInterface(interfaceId);
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(IERC165, ERC721) returns (bool) {
+        return
+            interfaceId == type(IFragmentNFT).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
-    function _proposeMessageHash(uint256 id, address to, bytes32 tag) private view returns(bytes32) {
-        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
-            block.chainid,
-            address(dataset),
-            datasetId,
-            id,
-            to,
-            tag
-        ));
+    function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal override {
+        super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
+
+        // Update snapshot data
+        if(from != address(0)) {
+            _updateAccountSnapshot(from, firstTokenId, batchSize, false);
+        } else { // Mint
+            _updateTotalSnapshot(firstTokenId, batchSize, true);
+        }
+
+        if(to != address(0)) {
+            _updateAccountSnapshot(to, firstTokenId, batchSize, true);
+        } else { // Burn
+            _updateTotalSnapshot(firstTokenId, batchSize, false);
+        }
+
     }
+
+    function _updateAccountSnapshot(address account, uint256 firstTokenId, uint256 batchSize, bool add) private {
+        uint256 currentSnapshot = snapshots.length - 1;
+        EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = snapshots[currentSnapshot].accountTagCount[account];
+        uint256 lastAccountSnapshot = lastSnapshots[account];
+        if(lastAccountSnapshot < currentSnapshot) {
+            _copy(snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
+            lastSnapshots[account] = currentSnapshot;
+        }
+        for(uint256 i; i < batchSize; i++) {
+            uint256 id = firstTokenId+i;
+            bytes32 tag = tags[id];
+            uint256 currentCount = currentAccountTagCount.get(tag);
+            currentAccountTagCount.set(tag, add ? (currentCount+1):(currentCount-1));
+        }
+    }
+
+    function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
+        uint256 currentSnapshot = snapshots.length - 1;
+        EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[currentSnapshot].totalTagCount;
+        for(uint256 i; i < batchSize; i++) {
+            uint256 id = firstTokenId+i;
+            bytes32 tag = tags[id];
+            uint256 currentCount = totalTagCount.get(tag);
+            totalTagCount.set(tag, add ? (currentCount+1):(currentCount-1));
+        }
+    }
+
+    function _proposeMessageHash(
+        uint256 id,
+        address to,
+        bytes32 tag
+    ) private view returns (bytes32) {
+        return
+            ECDSA.toEthSignedMessageHash(
+                abi.encodePacked(
+                    block.chainid,
+                    address(dataset),
+                    datasetId,
+                    id,
+                    to,
+                    tag
+                )
+            );
+    }
+
+    function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
+        require(to.length() == 0, "target should be empty");
+        uint256 length = from.length();
+        for(uint256 i; i < length; i++) {
+            (bytes32 k, uint256 v) = from.at(i);
+            to.set(k, v);
+        }
+    }
+
 }

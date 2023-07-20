@@ -33,4 +33,11 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
      */
     function reject(uint256 id) external;
 
+    /**
+     * Creates a Snapshot of:
+     * - count of existing ids for each tag
+     * - count of existing ids per tag per address
+     */
+    function snapshot() external returns(uint256);
+
 }

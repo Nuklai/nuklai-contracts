@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "../interfaces/IVerifier.sol";
 import "./VerifierManager.sol";
 
-contract AcceptManuallyVerifier {
+contract AcceptManuallyVerifier is IVerifier {
     using EnumerableSet for EnumerableSet.UintSet;
 
     event FragmentPending(address fragmentNFT, uint256 id);
