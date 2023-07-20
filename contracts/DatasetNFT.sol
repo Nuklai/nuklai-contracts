@@ -98,8 +98,12 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return hasRole(SIGNER_ROLE, account);
     }
 
+
     function verifierManager(uint256 id) public view returns(address) {
         return configurations[id].verifierManager;
+    }
+    function fragmentNFT(uint256 id) external view returns(address) {
+        return address(fragments[id]);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721, AccessControl) returns (bool) {

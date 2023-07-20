@@ -7,10 +7,10 @@ import "./IFragmentNFT.sol";
 interface IVerifierManager is IDatasetLinkInitializable {
 
     /**
-     * @notice Should 
-     * @param fragmentNFT Fragment contract dedicated to the dataset
+     * @notice Adds the fragment id to the verification queue
+     * @dev it's expected that `fragmentNFT.accept()` or `fragmentNFT.reject()` will be called by the manager when decision is made
      * @param id Id of the fragment
      * @param tag Tag to verify
      */
-    function propose(IFragmentNFT fragmentNFT, uint256 id, bytes32 tag) external;
+    function propose(uint256 id, bytes32 tag) external;
 }

@@ -7,6 +7,9 @@ import "./IDatasetNFT.sol";
 
 interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
 
+    function dataset() external returns(IDatasetNFT);
+    function datasetId() external returns(uint256);
+
     /**
      * @notice Adds a Fragment as Pending
      * @param id Fragment id to mint
@@ -22,5 +25,12 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
      * @param id of the fragment
      */
     function accept(uint256 id) external;
+
+    /**
+     * @notice Rejects the fragment (verification failed)
+     * @dev This function should be called by VerifierManager
+     * @param id of the fragment
+     */
+    function reject(uint256 id) external;
 
 }

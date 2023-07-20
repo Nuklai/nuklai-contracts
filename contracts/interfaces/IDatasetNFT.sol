@@ -25,6 +25,7 @@ interface IDatasetNFT is IERC721 {
     function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external;
 
     function verifierManager(uint256 id) external view returns(address);
+    function fragmentNFT(uint256 id) external view returns(address);
 
     function isSigner(address account) external view returns(bool);
 }

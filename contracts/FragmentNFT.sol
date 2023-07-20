@@ -14,6 +14,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     event FragmentPending(uint256 id, bytes32 tag);
     event FragmentAccepted(uint256 id);
+    event FragmentRejected(uint256 id);
     event FragmentRemoved(uint256 id);
 
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
@@ -60,19 +61,28 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         pendingFragmentOwners[id] = to;
+        tags[id] = tag;
         emit FragmentPending(id, tag);
         
         // Here we call VeriferManager and EXPECT it to call accept() 
         // during this call OR at any following transaction.
         // DO NOT do any state changes after this point!
-        IVerifierManager(dataset.verifierManager(datasetId)).propose(this, id, tag);
+        IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
     }
 
     function accept(uint256 id) external onlyVerifierManager {
+        require(!_exists(id), "Not a pending fragment");
         address to = pendingFragmentOwners[id];
         delete pendingFragmentOwners[id];
         _safeMint(to, id);
         emit FragmentAccepted(id);
+    }
+
+    function reject(uint256 id) external onlyVerifierManager {
+        require(!_exists(id), "Not a pending fragment");
+        delete pendingFragmentOwners[id];
+        delete tags[id];
+        emit FragmentRejected(id);
     }
 
     function remove(uint256 id) external onlyAdmin {
