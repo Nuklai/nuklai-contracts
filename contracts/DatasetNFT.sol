@@ -66,7 +66,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
             proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
         }
         if(configurations[id].verifierManager != config.verifierManager) {
-            proxies[id].distributionManager = _cloneAndInitialize(config.verifierManager, id);
+            proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
         }
 
         configurations[id] = config;
@@ -98,9 +98,14 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return hasRole(SIGNER_ROLE, account);
     }
 
-
+    function subscriptionManager(uint256 id) external view returns(address) {
+        return proxies[id].subscriptionManager;
+    }
+    function distributionManager(uint256 id) external view returns(address) {
+        return proxies[id].distributionManager;
+    }
     function verifierManager(uint256 id) public view returns(address) {
-        return configurations[id].verifierManager;
+        return proxies[id].verifierManager;
     }
     function fragmentNFT(uint256 id) external view returns(address) {
         return address(fragments[id]);
