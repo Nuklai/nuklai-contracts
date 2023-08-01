@@ -116,6 +116,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns(address proxy)  {
+        require(implementation != address(0), "bad implementation address");
         proxy = Clones.clone(implementation);
         IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
     }
