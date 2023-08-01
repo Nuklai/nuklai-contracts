@@ -58,6 +58,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     ) external initializer {
         dataset = IDatasetNFT(dataset_);
         datasetId = datasetId_;
+        snapshots.push();
     }
 
     //TODO handle metadata URI stuff

@@ -4,7 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "build": "yarn hardhat compile"
+    "build": "yarn hardhat compile",
+    "typechain": "yarn hardhat typechain",
+    "test": "yarn build && TEST=true mocha 'tests/**/*.spec.ts'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -12,13 +14,16 @@
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^1.0.0",
+    "@nomiclabs/hardhat-ethers": "npm:hardhat-deploy-ethers",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
     "@types/chai": "^4.2.0",
     "@types/mocha": ">=9.1.0",
     "chai": "^4.2.0",
-    "hardhat": "^2.16.1",
+    "ethers": "^6.6.4",
+    "hardhat": "^2.17.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "mocha": "^10.2.0",
     "solidity-coverage": "^0.8.1",
     "ts-node": "^10.9.1",
     "typechain": "^8.2.0",
