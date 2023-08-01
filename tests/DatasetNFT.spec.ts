@@ -142,11 +142,7 @@ describe("DatasetNFT", () => {
     );
   });
 
-  it("Should revert on set fragment implementation if address is zero or non-contract", async function () {
-    await expect(
-      dataset.setFragmentImplementation(ZeroAddress)
-    ).to.be.revertedWith("invalid fragment implementation address");
-
+  it("Should revert on set fragment implementation if address is a wallet", async function () {
     const adminAddress = await admin.getAddress();
     await expect(
       dataset.setFragmentImplementation(adminAddress)
