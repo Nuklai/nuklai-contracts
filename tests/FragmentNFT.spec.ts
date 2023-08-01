@@ -149,12 +149,16 @@ describe("FragmentNFT", () => {
       .withArgs(fragmentId);
   });
 
-  it("Should revert reject fragment propose if fragment id does not exists", async function () {
+  it("Should revert accept/reject fragment propose if fragment id does not exists", async function () {
     const fragmentAddress = await dataset.fragments(datasetId);
     const wrongFragmentId = 1232131231;
 
     await expect(
       manuallyVerifierManager.resolve(fragmentAddress, wrongFragmentId, false)
+    ).to.be.revertedWith("Wrong verifier");
+
+    await expect(
+      manuallyVerifierManager.resolve(fragmentAddress, wrongFragmentId, true)
     ).to.be.revertedWith("Wrong verifier");
   });
 });
