@@ -4,7 +4,6 @@ import {
   DistributionManager,
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
-  GenericSingleDatasetSubscriptionManager,
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
@@ -12,8 +11,6 @@ import {
   AddressLike,
   BytesLike,
   Signer,
-  getBytes,
-  solidityPacked,
   solidityPackedKeccak256,
 } from "ethers";
 import { ethers, network } from "hardhat";
@@ -21,14 +18,11 @@ import {
   getDatasetFragmentProposeMessage,
   getDatasetMintMessage,
 } from "./utils/signature";
+import { SIGNER_ROLE } from "./utils/constants";
 
 describe("FragmentNFT", () => {
   const datasetId = 1;
   const fragmentId = 1;
-  const SIGNER_ROLE: BytesLike = solidityPackedKeccak256(
-    ["string"],
-    ["SIGNER_ROLE"]
-  );
 
   let dataset: DatasetNFT;
   let fragmentImplementation: FragmentNFT;
@@ -46,7 +40,7 @@ describe("FragmentNFT", () => {
   let userAddress: AddressLike;
   let fragmentImplementationAddress: AddressLike;
 
-  before(async () => {
+  beforeEach(async () => {
     dataset = await ethers.deployContract("DatasetNFT");
     fragmentImplementation = await ethers.deployContract("FragmentNFT");
 
@@ -68,7 +62,6 @@ describe("FragmentNFT", () => {
     fragmentImplementationAddress = await fragmentImplementation.getAddress();
 
     await dataset.setFragmentImplementation(fragmentImplementationAddress);
-    await dataset.fragmentImplementation();
 
     const signature = await admin.signMessage(
       getDatasetMintMessage(
@@ -88,9 +81,7 @@ describe("FragmentNFT", () => {
       distributionManager,
       verifierManager,
     });
-  });
 
-  beforeEach(async () => {
     const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
 
     manuallyVerifierManager = await ethers.deployContract(
