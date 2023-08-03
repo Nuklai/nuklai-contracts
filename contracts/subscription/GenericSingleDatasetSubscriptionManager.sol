@@ -35,6 +35,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     mapping(address consumer => EnumerableSet.UintSet subscriptions) internal consumerSupscribsions;
 
 
+    modifier onlySubscriptionOwner(uint256 subscription) {
+        require(ownerOf(subscription) == _msgSender(), "Not a subscription owner");
+        _;
+    }
+
     /**
      * @notice Calculates subscription fee
      * @param duration of subscription
@@ -166,7 +171,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
 
-    function addConsumers(uint256 subscription, address[] calldata consumers) external {
+    function addConsumers(uint256 subscription, address[] calldata consumers) external onlySubscriptionOwner(subscription) {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(sd.consumers.length() + consumers.length <= sd.paidConsumers, "Too many consumers to add");
@@ -185,7 +190,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @param subscription Id of subscription
      * @param consumers List of consumers to remove
      */
-    function removeConsumers(uint256 subscription, address[] calldata consumers) external {
+    function removeConsumers(uint256 subscription, address[] calldata consumers) external  onlySubscriptionOwner(subscription) {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         for(uint256 i; i < consumers.length; i++){
@@ -198,7 +203,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
 
-    function replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) external {
+    function replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) external onlySubscriptionOwner(subscription) {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(oldConsumers.length == newConsumers.length, "Array length missmatch");
