@@ -1,73 +1,58 @@
 import {
-  AcceptManuallyVerifier,
   DatasetNFT,
   DistributionManager,
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
-  TestToken,
-  VerifierManager,
 } from "@typechained";
 import {
   AddressLike,
-  BytesLike,
+  MaxUint256,
   Signer,
   parseUnits,
   solidityPackedKeccak256,
 } from "ethers";
 import { ethers, network } from "hardhat";
-import {
-  getDatasetFragmentProposeMessage,
-  getDatasetMintMessage,
-} from "./utils/signature";
 import { expect } from "chai";
+import { constants, signature } from "./utils";
 
 describe("DistributionManager", () => {
   const datasetId = 1;
-  const fragmentId = 1;
-  const SIGNER_ROLE: BytesLike = solidityPackedKeccak256(
-    ["string"],
-    ["SIGNER_ROLE"]
-  );
 
   let dataset: DatasetNFT;
   let fragmentImplementation: FragmentNFT;
 
   let admin: Signer;
   let user: Signer;
+  let subscriber: Signer;
 
   let datasetDistributionManager: DistributionManager;
-  let token: TestToken;
+  let datasetSubscriptionManager: ERC20LinearSingleDatasetSubscriptionManager;
 
   let datasetAddress: AddressLike;
   let adminAddress: AddressLike;
-  let userAddress: AddressLike;
   let fragmentImplementationAddress: AddressLike;
   let datasetDistributionManagerAddress: AddressLike;
-  let tokenAddress: AddressLike;
+  let datasetSubscriptionManagerAddress: AddressLike;
 
-  before(async () => {
+  beforeEach(async () => {
     dataset = await ethers.deployContract("DatasetNFT");
     fragmentImplementation = await ethers.deployContract("FragmentNFT");
 
     admin = (await ethers.getSigners())[0];
     user = (await ethers.getSigners())[1];
+    subscriber = (await ethers.getSigners())[2];
 
-    await dataset.grantRole(SIGNER_ROLE, await admin.getAddress());
-    await dataset.grantRole(SIGNER_ROLE, await user.getAddress());
+    adminAddress = await admin.getAddress();
 
-    token = await ethers.deployContract("TestToken", user);
+    await dataset.grantRole(constants.SIGNER_ROLE, adminAddress);
 
     datasetAddress = await dataset.getAddress();
-    adminAddress = await admin.getAddress();
-    userAddress = await user.getAddress();
+
     fragmentImplementationAddress = await fragmentImplementation.getAddress();
-    tokenAddress = await token.getAddress();
-
     await dataset.setFragmentImplementation(fragmentImplementationAddress);
-    await dataset.fragmentImplementation();
 
-    const signature = await admin.signMessage(
-      getDatasetMintMessage(
+    const signedMessage = await admin.signMessage(
+      signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
@@ -75,7 +60,7 @@ describe("DistributionManager", () => {
       )
     );
 
-    await dataset.mint(datasetId, adminAddress, signature);
+    await dataset.mint(datasetId, adminAddress, signedMessage);
 
     await dataset.deployFragmentInstance(datasetId);
 
@@ -86,24 +71,28 @@ describe("DistributionManager", () => {
       "DistributionManager"
     );
     const verifierManager = await ethers.deployContract("VerifierManager");
-
     await dataset.setManagers(datasetId, {
       subscriptionManager,
       distributionManager,
       verifierManager,
     });
 
+    datasetSubscriptionManagerAddress = await dataset.subscriptionManager(
+      datasetId
+    );
+    datasetSubscriptionManager = await ethers.getContractAt(
+      "ERC20LinearSingleDatasetSubscriptionManager",
+      datasetSubscriptionManagerAddress
+    );
+
     datasetDistributionManagerAddress = await dataset.distributionManager(
       datasetId
     );
-
     datasetDistributionManager = await ethers.getContractAt(
       "DistributionManager",
       datasetDistributionManagerAddress
     );
   });
-
-  beforeEach(async () => {});
 
   it("Should set data set owner percentage to be sent on each payment", async function () {
     const percentage = parseUnits("0.01", 18);
@@ -133,7 +122,77 @@ describe("DistributionManager", () => {
     ).to.be.revertedWith("Not a Dataset owner");
   });
 
-  it("Should set data set tag weights", async function () {});
-  it("Should revert set tag weights if weights sum is not equal to 1^18", async function () {});
-  it("Should user claim revenue", async function () {});
+  it("Should set data set tag weights", async function () {
+    const datasetSchemasTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.schemas"]
+    );
+    const datasetRowsTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.rows"]
+    );
+
+    await datasetDistributionManager.setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+  });
+
+  it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
+    const datasetSchemasTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.schemas"]
+    );
+    const datasetRowsTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.rows"]
+    );
+
+    await expect(
+      datasetDistributionManager.setTagWeights(
+        [datasetSchemasTag, datasetRowsTag],
+        [parseUnits("0.4", 18), parseUnits("0.8", 18)]
+      )
+    ).to.be.revertedWith("Invalid weights summ");
+  });
+
+  it("Should user claim revenue", async function () {
+    const datasetSchemasTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.schemas"]
+    );
+    const datasetRowsTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.rows"]
+    );
+
+    await datasetDistributionManager.setDatasetOwnerPercentage(
+      ethers.parseUnits("0.5", 18)
+    );
+
+    const token = await ethers.deployContract("TestToken", subscriber);
+    const tokenAddress = await token.getAddress();
+    await token
+      .connect(subscriber)
+      .approve(datasetSubscriptionManager, MaxUint256);
+
+    await datasetDistributionManager.setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+
+    const feeAmount = parseUnits("0.1", 18);
+
+    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+
+    const subscriptionStart = Date.now();
+
+    await datasetSubscriptionManager
+      .connect(subscriber)
+      .subscribe(datasetId, subscriptionStart, constants.ONE_WEEK, 1);
+
+    await expect(datasetDistributionManager.claimPayouts())
+      .to.emit(datasetDistributionManager, "PayoutSent")
+      .withArgs(adminAddress, tokenAddress, 1);
+  });
 });

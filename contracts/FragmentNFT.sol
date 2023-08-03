@@ -98,7 +98,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
         for(uint256 i; i<tags_.length; i++) {
             bytes32 tag = tags_[i];
-            uint256 totalCount = totalTagCount.get(tag);
+            (, uint256 totalCount) = totalTagCount.tryGet(tag);
             if(totalCount != 0) {
                 uint256 accountCount = accountTagCount.get(tag);
                 percentages[i] = 1e18 * accountCount / totalCount;

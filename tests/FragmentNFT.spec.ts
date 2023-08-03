@@ -9,16 +9,12 @@ import {
 import { expect } from "chai";
 import {
   AddressLike,
-  BytesLike,
   Signer,
+  ZeroAddress,
   solidityPackedKeccak256,
 } from "ethers";
 import { ethers, network } from "hardhat";
-import {
-  getDatasetFragmentProposeMessage,
-  getDatasetMintMessage,
-} from "./utils/signature";
-import { SIGNER_ROLE } from "./utils/constants";
+import { constants, signature } from "./utils";
 
 describe("FragmentNFT", () => {
   const datasetId = 1;
@@ -47,8 +43,8 @@ describe("FragmentNFT", () => {
     admin = (await ethers.getSigners())[0];
     user = (await ethers.getSigners())[1];
 
-    await dataset.grantRole(SIGNER_ROLE, await admin.getAddress());
-    await dataset.grantRole(SIGNER_ROLE, await user.getAddress());
+    await dataset.grantRole(constants.SIGNER_ROLE, await admin.getAddress());
+    await dataset.grantRole(constants.SIGNER_ROLE, await user.getAddress());
 
     subscriptionManager = await ethers.deployContract(
       "ERC20LinearSingleDatasetSubscriptionManager"
@@ -63,8 +59,8 @@ describe("FragmentNFT", () => {
 
     await dataset.setFragmentImplementation(fragmentImplementationAddress);
 
-    const signature = await admin.signMessage(
-      getDatasetMintMessage(
+    const signedMessage = await admin.signMessage(
+      signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
@@ -72,7 +68,7 @@ describe("FragmentNFT", () => {
       )
     );
 
-    await dataset.mint(datasetId, adminAddress, signature);
+    await dataset.mint(datasetId, adminAddress, signedMessage);
 
     await dataset.deployFragmentInstance(datasetId);
 
@@ -81,8 +77,6 @@ describe("FragmentNFT", () => {
       distributionManager,
       verifierManager,
     });
-
-    const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
 
     manuallyVerifierManager = await ethers.deployContract(
       "AcceptManuallyVerifier"
@@ -97,16 +91,21 @@ describe("FragmentNFT", () => {
       verifierManagerAddress
     );
 
-    verifier.setTagVerifier(tag, manuallyVerifierAddress);
+    const datasetSchemasTag = solidityPackedKeccak256(
+      ["string"],
+      ["dataset.schemas"]
+    );
 
-    const proposeSignature = await admin.signMessage(
-      getDatasetFragmentProposeMessage(
+    verifier.setTagVerifier(datasetSchemasTag, manuallyVerifierAddress);
+
+    const proposeSignatureSchemas = await admin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
         fragmentId,
         userAddress,
-        tag
+        datasetSchemasTag
       )
     );
 
@@ -116,8 +115,8 @@ describe("FragmentNFT", () => {
         datasetId,
         fragmentId,
         userAddress,
-        tag,
-        proposeSignature
+        datasetSchemasTag,
+        proposeSignatureSchemas
       );
   });
 
@@ -131,6 +130,8 @@ describe("FragmentNFT", () => {
     await expect(
       manuallyVerifierManager.resolve(fragmentAddress, fragmentId, true)
     )
+      .to.emit(datasetFragment, "Transfer")
+      .withArgs(ZeroAddress, userAddress, fragmentId)
       .to.emit(datasetFragment, "FragmentAccepted")
       .withArgs(fragmentId);
   });
@@ -160,5 +161,33 @@ describe("FragmentNFT", () => {
     await expect(
       manuallyVerifierManager.resolve(fragmentAddress, wrongFragmentId, true)
     ).to.be.revertedWith("Wrong verifier");
+  });
+
+  it("Should admin remove a fragment", async function () {
+    const fragmentAddress = await dataset.fragments(datasetId);
+    const datasetFragment = await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    );
+
+    await manuallyVerifierManager.resolve(fragmentAddress, fragmentId, true);
+
+    await expect(datasetFragment.remove(fragmentId))
+      .to.emit(datasetFragment, "FragmentRemoved")
+      .withArgs(fragmentId);
+  });
+
+  it("Should revert if user tries to remove a fragment", async function () {
+    const fragmentAddress = await dataset.fragments(datasetId);
+    const datasetFragment = await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    );
+
+    await manuallyVerifierManager.resolve(fragmentAddress, fragmentId, true);
+
+    await expect(
+      datasetFragment.connect(user).remove(fragmentId)
+    ).to.be.revertedWithCustomError(datasetFragment, "NOT_ADMIN");
   });
 });
