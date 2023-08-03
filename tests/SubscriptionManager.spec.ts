@@ -181,6 +181,7 @@ describe("SubscriptionManager", () => {
     const subscriptionId = 1;
 
     let consumer: Signer;
+    let secondConsumer: Signer;
 
     beforeEach(async () => {
       await datasetDistributionManager.setDatasetOwnerPercentage(
@@ -200,18 +201,36 @@ describe("SubscriptionManager", () => {
       const subscriptionStart = Date.now();
       const consumers = 1;
       consumer = (await ethers.getSigners())[2];
+      secondConsumer = (await ethers.getSigners())[3];
 
       await datasetSubscriptionManager
         .connect(subscriber)
         .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, consumers);
     });
 
-    it("Should add consumers to the subscription", async () => {
+    it("Should subscription owner add consumers to the subscription", async () => {
       const consumerAddress = await consumer.getAddress();
 
       await datasetSubscriptionManager
         .connect(subscriber)
         .addConsumers(subscriptionId, [consumerAddress]);
+
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          consumerAddress
+        )
+      ).to.be.true;
+    });
+
+    it("Should revert add consumers to the subscription if not the subscription owner", async () => {
+      const consumerAddress = await consumer.getAddress();
+
+      await expect(
+        datasetSubscriptionManager.addConsumers(subscriptionId, [
+          consumerAddress,
+        ])
+      ).to.be.revertedWith("Not a subscription owner");
     });
 
     it("Should revert add consumers to the subscription with wrong id", async function () {
@@ -233,6 +252,85 @@ describe("SubscriptionManager", () => {
           .connect(subscriber)
           .addConsumers(subscriptionId, [consumerAddress, consumerAddress])
       ).to.be.revertedWith("Too many consumers to add");
+    });
+
+    it("Should subscription owner remove consumers to the subscription", async () => {
+      const consumerAddress = await consumer.getAddress();
+
+      await datasetSubscriptionManager
+        .connect(subscriber)
+        .addConsumers(subscriptionId, [consumerAddress]);
+
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          consumerAddress
+        )
+      ).to.be.true;
+
+      await datasetSubscriptionManager
+        .connect(subscriber)
+        .removeConsumers(subscriptionId, [consumerAddress]);
+
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          consumerAddress
+        )
+      ).to.be.false;
+    });
+
+    it("Should subscription owner remove consumers to the subscription", async () => {
+      const consumerAddress = await consumer.getAddress();
+
+      await expect(
+        datasetSubscriptionManager.removeConsumers(subscriptionId, [
+          consumerAddress,
+        ])
+      ).to.be.rejectedWith("Not a subscription owner");
+    });
+
+    it("Should subscription owner replace consumers to the subscription", async () => {
+      const consumerAddress = await consumer.getAddress();
+      const secondConsumerAddress = await secondConsumer.getAddress();
+
+      await datasetSubscriptionManager
+        .connect(subscriber)
+        .addConsumers(subscriptionId, [consumerAddress]);
+
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          consumerAddress
+        )
+      ).to.be.true;
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          secondConsumerAddress
+        )
+      ).to.be.false;
+
+      await datasetSubscriptionManager
+        .connect(subscriber)
+        .replaceConsumers(
+          subscriptionId,
+          [consumerAddress],
+          [secondConsumerAddress]
+        );
+
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          consumerAddress
+        )
+      ).to.be.false;
+      expect(
+        await datasetSubscriptionManager.isSubscriptionPaidFor(
+          datasetId,
+          secondConsumerAddress
+        )
+      ).to.be.true;
     });
 
     it("Should subscription be paid if consumer was added", async function () {
