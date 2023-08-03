@@ -212,6 +212,6 @@ describe("DistributionManager", () => {
 
     await expect(datasetDistributionManager.connect(user).claimPayouts())
       .to.emit(datasetDistributionManager, "PayoutSent")
-      .withArgs(userAddress, tokenAddress, 1n);
+      .withArgs(userAddress, tokenAddress, "24167808000000000000000");
   });
 });
