@@ -9,11 +9,10 @@ import {
   MaxUint256,
   Signer,
   parseUnits,
-  solidityPackedKeccak256,
 } from "ethers";
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
-import { constants, signature } from "./utils";
+import { constants, signature, utils } from "./utils";
 
 describe("DistributionManager", () => {
   const datasetId = 1;
@@ -123,14 +122,8 @@ describe("DistributionManager", () => {
   });
 
   it("Should set data set tag weights", async function () {
-    const datasetSchemasTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.schemas"]
-    );
-    const datasetRowsTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.rows"]
-    );
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
 
     await datasetDistributionManager.setTagWeights(
       [datasetSchemasTag, datasetRowsTag],
@@ -139,14 +132,8 @@ describe("DistributionManager", () => {
   });
 
   it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
-    const datasetSchemasTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.schemas"]
-    );
-    const datasetRowsTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.rows"]
-    );
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
 
     await expect(
       datasetDistributionManager.setTagWeights(
@@ -157,14 +144,8 @@ describe("DistributionManager", () => {
   });
 
   it("Should user claim revenue", async function () {
-    const datasetSchemasTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.schemas"]
-    );
-    const datasetRowsTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.rows"]
-    );
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
 
     await datasetDistributionManager.setDatasetOwnerPercentage(
       ethers.parseUnits("0.5", 18)

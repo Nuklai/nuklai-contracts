@@ -7,14 +7,9 @@ import {
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import {
-  AddressLike,
-  Signer,
-  ZeroAddress,
-  solidityPackedKeccak256,
-} from "ethers";
+import { AddressLike, Signer, ZeroAddress } from "ethers";
 import { ethers, network } from "hardhat";
-import { constants, signature } from "./utils";
+import { constants, signature, utils } from "./utils";
 
 describe("FragmentNFT", () => {
   const datasetId = 1;
@@ -91,10 +86,7 @@ describe("FragmentNFT", () => {
       verifierManagerAddress
     );
 
-    const datasetSchemasTag = solidityPackedKeccak256(
-      ["string"],
-      ["dataset.schemas"]
-    );
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
 
     verifier.setTagVerifier(datasetSchemasTag, manuallyVerifierAddress);
 

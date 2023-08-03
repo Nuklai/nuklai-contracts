@@ -11,17 +11,12 @@ import {
 } from "@typechained";
 import {
   Signer,
-  solidityPacked,
   getBytes,
   ZeroAddress,
   solidityPackedKeccak256,
   AddressLike,
 } from "ethers";
-import { SIGNER_ROLE } from "./utils/constants";
-import {
-  getDatasetFragmentProposeMessage,
-  getDatasetMintMessage,
-} from "./utils/signature";
+import { constants, signature, utils } from "./utils";
 
 describe("DatasetNFT", () => {
   const datasetId = 1;
@@ -41,8 +36,8 @@ describe("DatasetNFT", () => {
     user = (await ethers.getSigners())[1];
     userNotGranted = (await ethers.getSigners())[2];
 
-    await dataset.grantRole(SIGNER_ROLE, await admin.getAddress());
-    await dataset.grantRole(SIGNER_ROLE, await user.getAddress());
+    await dataset.grantRole(constants.SIGNER_ROLE, await admin.getAddress());
+    await dataset.grantRole(constants.SIGNER_ROLE, await user.getAddress());
   });
 
   it("Should dataset name be set on deploy", async function () {
@@ -62,8 +57,8 @@ describe("DatasetNFT", () => {
     const datasetAddress = await dataset.getAddress();
     const adminAddress = await admin.getAddress();
 
-    const signature = await admin.signMessage(
-      getDatasetMintMessage(
+    const signedMessage = await admin.signMessage(
+      signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
@@ -71,7 +66,7 @@ describe("DatasetNFT", () => {
       )
     );
 
-    await expect(dataset.mint(datasetId, adminAddress, signature))
+    await expect(dataset.mint(datasetId, adminAddress, signedMessage))
       .to.emit(dataset, "Transfer")
       .withArgs(ZeroAddress, adminAddress, datasetId);
   });
@@ -80,8 +75,8 @@ describe("DatasetNFT", () => {
     const datasetAddress = await dataset.getAddress();
     const adminAddress = await admin.getAddress();
 
-    const signature = await admin.signMessage(
-      getDatasetMintMessage(
+    const signedMessage = await admin.signMessage(
+      signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
@@ -89,20 +84,20 @@ describe("DatasetNFT", () => {
       )
     );
 
-    await dataset.mint(datasetId, adminAddress, signature);
+    await dataset.mint(datasetId, adminAddress, signedMessage);
 
-    expect(dataset.mint(datasetId, adminAddress, signature)).to.be.revertedWith(
-      "ERC721: token already minted"
-    );
+    expect(
+      dataset.mint(datasetId, adminAddress, signedMessage)
+    ).to.be.revertedWith("ERC721: token already minted");
   });
 
   it("Should revert mint dataset nft if signature is wrong", async function () {
     const adminAddress = await admin.getAddress();
 
-    const signature = await admin.signMessage(getBytes("0x"));
+    const signedMessage = await admin.signMessage(getBytes("0x"));
 
     await expect(
-      dataset.mint(datasetId, adminAddress, signature)
+      dataset.mint(datasetId, adminAddress, signedMessage)
     ).to.be.revertedWithCustomError(dataset, "BAD_SIGNATURE");
   });
 
@@ -110,8 +105,8 @@ describe("DatasetNFT", () => {
     const datasetAddress = await dataset.getAddress();
     const userAddress = await userNotGranted.getAddress();
 
-    const signature = await userNotGranted.signMessage(
-      getDatasetMintMessage(
+    const signedMessage = await userNotGranted.signMessage(
+      signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
@@ -120,7 +115,9 @@ describe("DatasetNFT", () => {
     );
 
     await expect(
-      dataset.connect(userNotGranted).mint(datasetId, userAddress, signature)
+      dataset
+        .connect(userNotGranted)
+        .mint(datasetId, userAddress, signedMessage)
     ).to.be.revertedWithCustomError(dataset, "BAD_SIGNATURE");
   });
 
@@ -178,8 +175,8 @@ describe("DatasetNFT", () => {
       await dataset.setFragmentImplementation(fragmentImplementationAddress);
       await dataset.fragmentImplementation();
 
-      const signature = await admin.signMessage(
-        getDatasetMintMessage(
+      const signedMessage = await admin.signMessage(
+        signature.getDatasetMintMessage(
           network.config.chainId!,
           datasetAddress,
           datasetId,
@@ -187,7 +184,7 @@ describe("DatasetNFT", () => {
         )
       );
 
-      await dataset.mint(datasetId, adminAddress, signature);
+      await dataset.mint(datasetId, adminAddress, signedMessage);
 
       subscriptionManager = await ethers.deployContract(
         "ERC20LinearSingleDatasetSubscriptionManager"
@@ -250,7 +247,7 @@ describe("DatasetNFT", () => {
         verifierManager,
       });
 
-      const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
+      const tag = utils.encodeTag("dataset.schemas");
 
       const datasetVerifierManagerAddress = await dataset.verifierManager(
         datasetId
@@ -264,7 +261,7 @@ describe("DatasetNFT", () => {
       datasetVerifierManager.setTagVerifier(tag, manuallyVerifierAddress);
 
       const proposeSignature = await admin.signMessage(
-        getDatasetFragmentProposeMessage(
+        signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
           datasetAddress,
           datasetId,
@@ -304,7 +301,7 @@ describe("DatasetNFT", () => {
         verifierManager,
       });
 
-      const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
+      const tag = utils.encodeTag("dataset.schemas");
 
       const datasetVerifierManagerAddress = await dataset.verifierManager(
         datasetId
@@ -318,7 +315,7 @@ describe("DatasetNFT", () => {
       datasetVerifierManager.setTagVerifier(tag, acceptAllVerifierAddress);
 
       const proposeSignature = await admin.signMessage(
-        getDatasetFragmentProposeMessage(
+        signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
           datasetAddress,
           datasetId,
@@ -360,7 +357,7 @@ describe("DatasetNFT", () => {
         verifierManager,
       });
 
-      const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
+      const tag = utils.encodeTag("dataset.schemas");
 
       const datasetVerifierManagerAddress = await dataset.verifierManager(
         datasetId
@@ -374,7 +371,7 @@ describe("DatasetNFT", () => {
       datasetVerifierManager.setTagVerifier(tag, manuallyVerifierAddress);
 
       const proposeSignature = await admin.signMessage(
-        getDatasetFragmentProposeMessage(
+        signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
           datasetAddress,
           datasetId,
@@ -408,7 +405,7 @@ describe("DatasetNFT", () => {
         verifierManager,
       });
 
-      const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
+      const tag = utils.encodeTag("dataset.schemas");
 
       const datasetVerifierManagerAddress = await dataset.verifierManager(
         datasetId
