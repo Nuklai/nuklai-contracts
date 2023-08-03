@@ -6,7 +6,7 @@
   "scripts": {
     "build": "yarn hardhat compile",
     "typechain": "yarn hardhat typechain",
-    "test": "yarn build && TEST=true mocha 'tests/**/*.spec.ts'"
+    "test": "yarn build && mocha 'tests/**/*.spec.ts'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
