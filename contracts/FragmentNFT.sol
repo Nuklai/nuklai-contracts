@@ -83,7 +83,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
-        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].accountTagCount[account];
+        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_latestAccountSnapshotId(account, snapshotId)].accountTagCount[account];
         tags_ = tagCount.keys();
         for(uint256 i; i < tagCount.length(); i++) {
             counts[i] = tagCount.get(tags_[i]);
@@ -92,8 +92,9 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns(uint256[] memory percentages) {
         require(snapshotId < snapshots.length, "bad snapshot id");
-        EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[snapshotId].totalTagCount;
-        EnumerableMap.Bytes32ToUintMap storage accountTagCount = snapshots[snapshotId].accountTagCount[account];
+        uint256 latestAccountSnapshot = _latestAccountSnapshotId(account, snapshotId);
+        EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[latestAccountSnapshot].totalTagCount;
+        EnumerableMap.Bytes32ToUintMap storage accountTagCount = snapshots[latestAccountSnapshot].accountTagCount[account];
         percentages = new uint256[](tags_.length);
 
         for(uint256 i; i<tags_.length; i++) {
@@ -211,6 +212,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             (, uint256 currentCount) = totalTagCount.tryGet(tag);
             totalTagCount.set(tag, add ? (currentCount+1):(currentCount-1));
         }
+    }
+
+    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
+        uint256 lastAccountSnapshot = lastSnapshots[account];
+        return (lastAccountSnapshot < targetSnapshotId)?lastAccountSnapshot:targetSnapshotId;
     }
 
     function _proposeMessageHash(
