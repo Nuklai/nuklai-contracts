@@ -1,6 +1,7 @@
 import { expect } from "chai";
 import { ethers, network } from "hardhat";
 import {
+  AcceptAllVerifier,
   AcceptManuallyVerifier,
   DatasetNFT,
   DistributionManager,
@@ -165,6 +166,9 @@ describe("DatasetNFT", () => {
     let manuallyVerifier: AcceptManuallyVerifier;
     let manuallyVerifierAddress: AddressLike;
 
+    let acceptAllVerifier: AcceptAllVerifier;
+    let acceptAllVerifierAddress: AddressLike;
+
     beforeEach(async () => {
       datasetAddress = await dataset.getAddress();
       adminAddress = await admin.getAddress();
@@ -193,6 +197,9 @@ describe("DatasetNFT", () => {
 
       manuallyVerifier = await ethers.deployContract("AcceptManuallyVerifier");
       manuallyVerifierAddress = await manuallyVerifier.getAddress();
+
+      acceptAllVerifier = await ethers.deployContract("AcceptAllVerifier");
+      acceptAllVerifierAddress = await acceptAllVerifier.getAddress();
     });
 
     it("Should deploy fragment instance", async function () {
@@ -234,7 +241,7 @@ describe("DatasetNFT", () => {
         .withArgs(wrongDatasetId, adminAddress);
     });
 
-    it("Should user propose a fragment", async function () {
+    it("Should user propose a fragment - set AcceptManuallyVerifier", async function () {
       await dataset.deployFragmentInstance(datasetId);
 
       await dataset.setManagers(datasetId, {
@@ -286,6 +293,62 @@ describe("DatasetNFT", () => {
       )
         .to.emit(datasetFragment, "FragmentPending")
         .withArgs(datasetId, tag);
+    });
+
+    it("Should user propose a fragment - set AcceptAllVerifier", async function () {
+      await dataset.deployFragmentInstance(datasetId);
+
+      await dataset.setManagers(datasetId, {
+        subscriptionManager,
+        distributionManager,
+        verifierManager,
+      });
+
+      const tag = solidityPackedKeccak256(["string"], ["dataset.schemas"]);
+
+      const datasetVerifierManagerAddress = await dataset.verifierManager(
+        datasetId
+      );
+
+      const datasetVerifierManager = await ethers.getContractAt(
+        "VerifierManager",
+        datasetVerifierManagerAddress
+      );
+
+      datasetVerifierManager.setTagVerifier(tag, acceptAllVerifierAddress);
+
+      const proposeSignature = await admin.signMessage(
+        getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          datasetAddress,
+          datasetId,
+          fragmentId,
+          userAddress,
+          tag
+        )
+      );
+
+      const fragmentAddress = await dataset.fragments(datasetId);
+      const datasetFragment = await ethers.getContractAt(
+        "FragmentNFT",
+        fragmentAddress
+      );
+
+      await expect(
+        dataset
+          .connect(user)
+          .proposeFragment(
+            datasetId,
+            fragmentId,
+            userAddress,
+            tag,
+            proposeSignature
+          )
+      )
+        .to.emit(datasetFragment, "FragmentPending")
+        .withArgs(datasetId, tag)
+        .to.emit(datasetVerifierManager, "FragmentResolved")
+        .withArgs(fragmentId, true);
     });
 
     it("Should revert a propose if fragment does not exists", async function () {
