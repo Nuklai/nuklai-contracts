@@ -4,18 +4,14 @@ import {
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
 } from "@typechained";
-import {
-  AddressLike,
-  MaxUint256,
-  Signer,
-  parseUnits,
-} from "ethers";
+import { AddressLike, MaxUint256, Signer, parseUnits } from "ethers";
 import { ethers, network } from "hardhat";
 import { expect } from "chai";
 import { constants, signature, utils } from "./utils";
 
 describe("DistributionManager", () => {
   const datasetId = 1;
+  const fragmentId = 1;
 
   let dataset: DatasetNFT;
   let fragmentImplementation: FragmentNFT;
@@ -29,6 +25,7 @@ describe("DistributionManager", () => {
 
   let datasetAddress: AddressLike;
   let adminAddress: AddressLike;
+  let userAddress: AddressLike;
   let fragmentImplementationAddress: AddressLike;
   let datasetDistributionManagerAddress: AddressLike;
   let datasetSubscriptionManagerAddress: AddressLike;
@@ -42,6 +39,7 @@ describe("DistributionManager", () => {
     subscriber = (await ethers.getSigners())[2];
 
     adminAddress = await admin.getAddress();
+    userAddress = await user.getAddress();
 
     await dataset.grantRole(constants.SIGNER_ROLE, adminAddress);
 
@@ -147,8 +145,48 @@ describe("DistributionManager", () => {
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
 
+    const manuallyVerifierManager = await ethers.deployContract(
+      "AcceptManuallyVerifier"
+    );
+
+    const manuallyVerifierAddress = await manuallyVerifierManager.getAddress();
+
+    const verifierManagerAddress = await dataset.verifierManager(datasetId);
+
+    const verifier = await ethers.getContractAt(
+      "VerifierManager",
+      verifierManagerAddress
+    );
+
+    verifier.setTagVerifier(datasetSchemasTag, manuallyVerifierAddress);
+
+    const proposeSignatureSchemas = await admin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        datasetAddress,
+        datasetId,
+        fragmentId,
+        userAddress,
+        datasetSchemasTag
+      )
+    );
+    
+    await dataset
+      .connect(user)
+      .proposeFragment(
+        datasetId,
+        fragmentId,
+        userAddress,
+        datasetSchemasTag,
+        proposeSignatureSchemas
+      );
+
+    const fragmentAddress = await dataset.fragments(datasetId);
+
+    await manuallyVerifierManager.resolve(fragmentAddress, fragmentId, true);
+
     await datasetDistributionManager.setDatasetOwnerPercentage(
-      ethers.parseUnits("0.5", 18)
+      ethers.parseUnits("0.001", 18)
     );
 
     const token = await ethers.deployContract("TestToken", subscriber);
@@ -172,8 +210,8 @@ describe("DistributionManager", () => {
       .connect(subscriber)
       .subscribe(datasetId, subscriptionStart, constants.ONE_WEEK, 1);
 
-    await expect(datasetDistributionManager.claimPayouts())
+    await expect(datasetDistributionManager.connect(user).claimPayouts())
       .to.emit(datasetDistributionManager, "PayoutSent")
-      .withArgs(adminAddress, tokenAddress, 1);
+      .withArgs(userAddress, tokenAddress, 1n);
   });
 });
