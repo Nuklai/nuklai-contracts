@@ -14,6 +14,7 @@ import { constants, signature, utils } from "./utils";
 describe("FragmentNFT", () => {
   const datasetId = 1;
   const fragmentId = 1;
+  const fragmentIds = [1, 2, 3];
 
   let dataset: DatasetNFT;
   let fragmentImplementation: FragmentNFT;
@@ -90,26 +91,28 @@ describe("FragmentNFT", () => {
 
     verifier.setTagVerifier(datasetSchemasTag, manuallyVerifierAddress);
 
-    const proposeSignatureSchemas = await admin.signMessage(
-      signature.getDatasetFragmentProposeMessage(
-        network.config.chainId!,
-        datasetAddress,
-        datasetId,
-        fragmentId,
-        userAddress,
-        datasetSchemasTag
-      )
-    );
-
-    await dataset
-      .connect(user)
-      .proposeFragment(
-        datasetId,
-        fragmentId,
-        userAddress,
-        datasetSchemasTag,
-        proposeSignatureSchemas
+    for (const fragmentId of fragmentIds) {
+      const proposeSignatureSchemas = await admin.signMessage(
+        signature.getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          datasetAddress,
+          datasetId,
+          fragmentId,
+          userAddress,
+          datasetSchemasTag
+        )
       );
+
+      await dataset
+        .connect(user)
+        .proposeFragment(
+          datasetId,
+          fragmentId,
+          userAddress,
+          datasetSchemasTag,
+          proposeSignatureSchemas
+        );
+    }
   });
 
   it("Should data set owner accept fragment propose", async function () {
@@ -128,6 +131,30 @@ describe("FragmentNFT", () => {
       .withArgs(fragmentId);
   });
 
+  it("Should data set owner accept multiple fragments proposes", async function () {
+    const fragmentAddress = await dataset.fragments(datasetId);
+    const datasetFragment = await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    );
+
+    await expect(
+      manuallyVerifierManager.resolveBatch(fragmentAddress, fragmentIds, true)
+    )
+      .to.emit(datasetFragment, "Transfer")
+      .withArgs(ZeroAddress, userAddress, fragmentIds[0])
+      .to.emit(datasetFragment, "Transfer")
+      .withArgs(ZeroAddress, userAddress, fragmentIds[1])
+      .to.emit(datasetFragment, "Transfer")
+      .withArgs(ZeroAddress, userAddress, fragmentIds[2])
+      .to.emit(datasetFragment, "FragmentAccepted")
+      .withArgs(fragmentIds[0])
+      .to.emit(datasetFragment, "FragmentAccepted")
+      .withArgs(fragmentIds[1])
+      .to.emit(datasetFragment, "FragmentAccepted")
+      .withArgs(fragmentIds[2]);
+  });
+
   it("Should data set owner reject fragment propose", async function () {
     const fragmentAddress = await dataset.fragments(datasetId);
     const datasetFragment = await ethers.getContractAt(
@@ -140,6 +167,24 @@ describe("FragmentNFT", () => {
     )
       .to.emit(datasetFragment, "FragmentRejected")
       .withArgs(fragmentId);
+  });
+
+  it("Should data set owner reject multiple fragments proposes", async function () {
+    const fragmentAddress = await dataset.fragments(datasetId);
+    const datasetFragment = await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    );
+
+    await expect(
+      manuallyVerifierManager.resolveBatch(fragmentAddress, fragmentIds, false)
+    )
+      .to.emit(datasetFragment, "FragmentRejected")
+      .withArgs(fragmentIds[0])
+      .to.emit(datasetFragment, "FragmentRejected")
+      .withArgs(fragmentIds[1])
+      .to.emit(datasetFragment, "FragmentRejected")
+      .withArgs(fragmentIds[2]);
   });
 
   it("Should revert accept/reject fragment propose if fragment id does not exists", async function () {

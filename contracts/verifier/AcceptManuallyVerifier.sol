@@ -36,4 +36,14 @@ contract AcceptManuallyVerifier is IVerifier {
         vm.resolve(id, accept);
         emit FragmentResolved(fragmentNFT, id, accept);
     }
+
+    function resolveBatch(address fragmentNFT, uint256[] memory ids, bool accept) external onlyDatasetOwner(fragmentNFT) {
+        VerifierManager vm = VerifierManager(IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId()));
+        for (uint256 i; i < ids.length; i++) {
+            uint256 id = ids[i];
+            vm.resolve(id, accept);
+            emit FragmentResolved(fragmentNFT, id, accept);
+        }
+        
+    }
 }
