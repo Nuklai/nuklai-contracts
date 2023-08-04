@@ -112,7 +112,7 @@ describe("FragmentNFT", () => {
       );
   });
 
-  it("Should accept fragment propose", async function () {
+  it("Should data set owner accept fragment propose", async function () {
     const fragmentAddress = await dataset.fragments(datasetId);
     const datasetFragment = await ethers.getContractAt(
       "FragmentNFT",
@@ -128,7 +128,7 @@ describe("FragmentNFT", () => {
       .withArgs(fragmentId);
   });
 
-  it("Should reject fragment propose", async function () {
+  it("Should data set owner reject fragment propose", async function () {
     const fragmentAddress = await dataset.fragments(datasetId);
     const datasetFragment = await ethers.getContractAt(
       "FragmentNFT",
@@ -155,7 +155,7 @@ describe("FragmentNFT", () => {
     ).to.be.revertedWith("Wrong verifier");
   });
 
-  it("Should admin remove a fragment", async function () {
+  it("Should data set owner remove a fragment", async function () {
     const fragmentAddress = await dataset.fragments(datasetId);
     const datasetFragment = await ethers.getContractAt(
       "FragmentNFT",
