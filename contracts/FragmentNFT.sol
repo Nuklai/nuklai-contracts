@@ -6,11 +6,13 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./interfaces/IFragmentNFT.sol";
 import "./interfaces/IVerifierManager.sol";
 
 contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
+    using Arrays for uint256[];
 
     string private constant NAME = "AllianceBlock DataTunel Fragment";
     string private constant SYMBOL = "ABDTF";
@@ -34,7 +36,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     mapping(uint256 id => address owner) public pendingFragmentOwners;
     mapping(uint256 id => bytes32 tag) public tags;
     Snapshot[] internal snapshots;
-    mapping(address account => uint256 lastUpdatedSnapshot) internal lastSnapshots;
+    mapping(address account => uint256[]) internal accountSnapshotIds; // ids of snapshots which contains account data
 
     modifier onlyAdmin() {
         if (dataset.ownerOf(datasetId) != _msgSender())
@@ -83,7 +85,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
-        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_latestAccountSnapshotId(account, snapshotId)].accountTagCount[account];
+        EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_findAccountSnapshotId(account, snapshotId)].accountTagCount[account];
         tags_ = tagCount.keys();
         for(uint256 i; i < tagCount.length(); i++) {
             counts[i] = tagCount.get(tags_[i]);
@@ -92,7 +94,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns(uint256[] memory percentages) {
         require(snapshotId < snapshots.length, "bad snapshot id");
-        uint256 latestAccountSnapshot = _latestAccountSnapshotId(account, snapshotId);
+        uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[latestAccountSnapshot].totalTagCount;
         EnumerableMap.Bytes32ToUintMap storage accountTagCount = snapshots[latestAccountSnapshot].accountTagCount[account];
         percentages = new uint256[](tags_.length);
@@ -183,12 +185,12 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function _updateAccountSnapshot(address account, uint256 firstTokenId, uint256 batchSize, bool add) private {
-        uint256 currentSnapshot = snapshots.length - 1;
+        uint256 currentSnapshot = _currentSnapshot();
         EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = snapshots[currentSnapshot].accountTagCount[account];
-        uint256 lastAccountSnapshot = lastSnapshots[account];
+        uint256 lastAccountSnapshot = _lastUint256ArrayElement(accountSnapshotIds[account]);
         if(lastAccountSnapshot < currentSnapshot) {
             _copy(snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
-            lastSnapshots[account] = currentSnapshot;
+            accountSnapshotIds[account].push(currentSnapshot);
         }
         for(uint256 i; i < batchSize; i++) {
             uint256 id = firstTokenId+i;
@@ -199,12 +201,12 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
-        uint256 currentSnapshot = snapshots.length - 1;
+        uint256 currentSnapshot = _currentSnapshot();
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[currentSnapshot].totalTagCount;
-        uint256 lastSnapshot = lastSnapshots[address(this)];
+        uint256 lastSnapshot = _lastUint256ArrayElement(accountSnapshotIds[address(this)]);
         if(lastSnapshot < currentSnapshot) {
             _copy(snapshots[lastSnapshot].totalTagCount, totalTagCount);
-            lastSnapshots[address(this)] = currentSnapshot;
+            accountSnapshotIds[address(this)].push(currentSnapshot);
         }        
         for(uint256 i; i < batchSize; i++) {
             uint256 id = firstTokenId+i;
@@ -214,9 +216,37 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
-        uint256 lastAccountSnapshot = lastSnapshots[account];
-        return (lastAccountSnapshot < targetSnapshotId)?lastAccountSnapshot:targetSnapshotId;
+    function _findAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
+        uint256[] storage snapshotIds = accountSnapshotIds[account];
+        uint256 bound = snapshotIds.findUpperBound(targetSnapshotId);
+        if(bound == snapshotIds.length) {
+            // no snapshot id was found equal or greater to the targetSnapshotId
+            // we need to return the last available
+            // if there is no snapshot at all - return current,
+            // otherwise return the last one
+            return (bound == 0)?_currentSnapshot():snapshotIds[bound-1];
+        } else {
+            // found snapshot id which is greater or equal to the targetSnapshotId
+            // if it is equal to target, we need to return it,
+            // otherwise we need to return previous
+            uint256 found = snapshotIds[bound];
+            if (found == targetSnapshotId) {
+                // we've found the exact snapshot we need
+                return targetSnapshotId;
+            } else {
+                if (bound == 0) {
+                    //there is no previous snapshot
+                    return 0; // return empty snapshot
+                } else {
+                    // return last snapshot before the one we've found
+                    return snapshotIds[bound - 1];
+                }
+            }
+        }
+    }
+
+    function _currentSnapshot() private view returns(uint256) {
+        return snapshots.length - 1;
     }
 
     function _proposeMessageHash(
@@ -244,6 +274,10 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             (bytes32 k, uint256 v) = from.at(i);
             to.set(k, v);
         }
+    }
+
+    function _lastUint256ArrayElement(uint256[] storage arr) private view returns(uint256) {
+        return arr[arr.length-1];
     }
 
 }
