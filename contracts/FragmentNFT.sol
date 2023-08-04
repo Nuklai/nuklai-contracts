@@ -151,8 +151,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     function remove(uint256 id) external onlyAdmin {
         delete pendingFragmentOwners[id]; // in case we are deliting pending one
-        delete tags[id];
         _burn(id);
+        delete tags[id];
         emit FragmentRemoved(id);
     }
 

@@ -7,7 +7,7 @@ import {
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import { AddressLike, Signer, ZeroAddress } from "ethers";
+import { AddressLike, Signer, ZeroAddress, ZeroHash } from "ethers";
 import { ethers, network } from "hardhat";
 import { constants, signature, utils } from "./utils";
 
@@ -167,6 +167,8 @@ describe("FragmentNFT", () => {
     await expect(datasetFragment.remove(fragmentId))
       .to.emit(datasetFragment, "FragmentRemoved")
       .withArgs(fragmentId);
+
+    expect(await datasetFragment.tags(fragmentId)).to.equal(ZeroHash);
   });
 
   it("Should revert if user tries to remove a fragment", async function () {
