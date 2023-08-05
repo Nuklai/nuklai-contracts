@@ -93,6 +93,18 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         fragmentInstance.propose(fragmentId, to, tag, signature);
     }
 
+    function proposeBatchFragments(
+        uint256 datasetId,
+        uint256[] memory fragmentIds,
+        address[] memory owners,
+        bytes32[] memory tags,
+        bytes calldata signature
+    ) external {
+        IFragmentNFT fragmentInstance = fragments[datasetId];
+        require(address(fragmentInstance) != address(0), "No fragment instance deployed");
+        fragmentInstance.proposeBatch(fragmentIds, owners, tags, signature);
+    }
+
 
     function isSigner(address account) external view returns(bool) {
         return hasRole(SIGNER_ROLE, account);

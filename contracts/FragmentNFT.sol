@@ -134,6 +134,38 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
     }
 
+    /**
+     * @notice Adds a batch of Fragments as Pending
+     * @param ids Fragments ids to mint
+     * @param owners Fragments owners
+     * @param tags_ Hashes of tag name of contribution
+     * @param signature Signature from a DT service confirming creation of the Fragment
+     */
+    function proposeBatch(
+        uint256[] memory ids,
+        address[] memory owners,
+        bytes32[] memory tags_,
+        bytes calldata signature
+    ) external {
+        require(ids.length == owners.length && ids.length == tags_.length && tags_.length == owners.length, "invalid length of fragments items");
+        bytes32 msgHash = _proposeBatchMessageHash(ids, owners, tags_);
+        address signer = ECDSA.recover(msgHash, signature);
+        if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
+
+        for (uint256 i; i < ids.length; i++) {
+            uint256 id = ids[i];
+            bytes32 tag = tags_[i];
+            pendingFragmentOwners[id] = owners[i];
+            tags[id] = tag;
+            emit FragmentPending(id, tag);
+
+            // Here we call VeriferManager and EXPECT it to call accept()
+            // during this call OR at any following transaction.
+            // DO NOT do any state changes after this point!
+            IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
+        }
+    }
+
     function accept(uint256 id) external onlyVerifierManager {
         require(!_exists(id), "Not a pending fragment");
         address to = pendingFragmentOwners[id];
@@ -233,6 +265,24 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
                     id,
                     to,
                     tag
+                )
+            );
+    }
+
+    function _proposeBatchMessageHash(
+        uint256[] memory ids,
+        address[] memory owners,
+        bytes32[] memory tags_
+    ) private view returns (bytes32) {
+        return
+            ECDSA.toEthSignedMessageHash(
+                abi.encodePacked(
+                    block.chainid,
+                    address(dataset),
+                    datasetId,
+                    ids,
+                    owners,
+                    tags_
                 )
             );
     }

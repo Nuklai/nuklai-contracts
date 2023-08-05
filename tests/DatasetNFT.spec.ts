@@ -292,6 +292,124 @@ describe("DatasetNFT", () => {
         .withArgs(datasetId, tag);
     });
 
+    it("Should user propose multiple fragments - set AcceptManuallyVerifier", async function () {
+      await dataset.deployFragmentInstance(datasetId);
+
+      await dataset.setManagers(datasetId, {
+        subscriptionManager,
+        distributionManager,
+        verifierManager,
+      });
+
+      const tagSchemas = utils.encodeTag("dataset.schemas");
+      const tagRows = utils.encodeTag("dataset.rows");
+      const tagData = utils.encodeTag("dataset.data");
+
+      const datasetVerifierManagerAddress = await dataset.verifierManager(
+        datasetId
+      );
+
+      const datasetVerifierManager = await ethers.getContractAt(
+        "VerifierManager",
+        datasetVerifierManagerAddress
+      );
+
+      datasetVerifierManager.setTagVerifier(
+        tagSchemas,
+        manuallyVerifierAddress
+      );
+      datasetVerifierManager.setTagVerifier(tagRows, manuallyVerifierAddress);
+      datasetVerifierManager.setTagVerifier(tagData, manuallyVerifierAddress);
+
+      const fragmentIds = [1, 2, 3];
+
+      const proposeBatchSignature = await admin.signMessage(
+        signature.getDatasetFragmentProposeBatchMessage(
+          network.config.chainId!,
+          datasetAddress,
+          datasetId,
+          fragmentIds,
+          [userAddress, userAddress, userAddress],
+          [tagSchemas, tagRows, tagData]
+        )
+      );
+
+      const fragmentAddress = await dataset.fragments(datasetId);
+      const datasetFragment = await ethers.getContractAt(
+        "FragmentNFT",
+        fragmentAddress
+      );
+
+      await expect(
+        dataset
+          .connect(user)
+          .proposeBatchFragments(
+            datasetId,
+            fragmentIds,
+            [userAddress, userAddress, userAddress],
+            [tagSchemas, tagRows, tagData],
+            proposeBatchSignature
+          )
+      )
+        .to.emit(datasetFragment, "FragmentPending")
+        .withArgs(fragmentIds[0], tagSchemas)
+        .to.emit(datasetFragment, "FragmentPending")
+        .withArgs(fragmentIds[1], tagRows)
+        .to.emit(datasetFragment, "FragmentPending")
+        .withArgs(fragmentIds[2], tagData);
+    });
+
+    it("Should user propose multiple fragments if length is not correct", async function () {
+      await dataset.deployFragmentInstance(datasetId);
+
+      await dataset.setManagers(datasetId, {
+        subscriptionManager,
+        distributionManager,
+        verifierManager,
+      });
+
+      const tagSchemas = utils.encodeTag("dataset.schemas");
+
+      const datasetVerifierManagerAddress = await dataset.verifierManager(
+        datasetId
+      );
+
+      const datasetVerifierManager = await ethers.getContractAt(
+        "VerifierManager",
+        datasetVerifierManagerAddress
+      );
+
+      datasetVerifierManager.setTagVerifier(
+        tagSchemas,
+        manuallyVerifierAddress
+      );
+
+      const fragmentIds = [1, 2];
+
+      const proposeBatchSignature = await admin.signMessage(
+        signature.getDatasetFragmentProposeBatchMessage(
+          network.config.chainId!,
+          datasetAddress,
+          datasetId,
+          fragmentIds,
+          [userAddress, userAddress],
+          [tagSchemas]
+        )
+      );
+
+      await expect(
+        dataset
+          .connect(user)
+          .proposeBatchFragments(
+            datasetId,
+            fragmentIds,
+            [userAddress, userAddress],
+            [tagSchemas],
+            proposeBatchSignature
+          )
+      ).to.be.rejectedWith("invalid length of fragments items");
+    });
+
     it("Should user propose a fragment - set AcceptAllVerifier", async function () {
       await dataset.deployFragmentInstance(datasetId);
 

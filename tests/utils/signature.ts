@@ -29,3 +29,19 @@ export const getDatasetFragmentProposeMessage = (
 
   return getBytes(proposeMessage);
 };
+
+export const getDatasetFragmentProposeBatchMessage = (
+  chainId: number,
+  datasetAddress: AddressLike,
+  datasetId: number,
+  fragmentIds: number[],
+  owners: AddressLike[],
+  tags: string[]
+): Uint8Array => {
+  const proposeMessage = solidityPacked(
+    ["uint256", "address", "uint256", "uint256[]", "address[]", "bytes32[]"],
+    [chainId, datasetAddress, datasetId, fragmentIds, owners, tags]
+  );
+
+  return getBytes(proposeMessage);
+};
