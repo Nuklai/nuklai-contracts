@@ -117,6 +117,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      */
     function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid){
         _requireCorrectDataset(ds);
+        require(balanceOf(_msgSender()) == 0, "User already subscribed");
         require(start >= block.timestamp, "Start timestamp already passed");
         require(duration > 0, "Duration is too low");
         require(consumers > 0, "Should be at least 1 consumer");

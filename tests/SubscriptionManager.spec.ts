@@ -156,6 +156,35 @@ describe("SubscriptionManager", () => {
       .to.emit(datasetSubscriptionManager, "SubscriptionPaid");
   });
 
+  it("Should revert if user subscribe twice the same data set", async function () {
+    await datasetDistributionManager.setDatasetOwnerPercentage(
+      ethers.parseUnits("0.01", 18)
+    );
+
+    const token = await ethers.deployContract("TestToken", subscriber);
+    const tokenAddress = await token.getAddress();
+
+    await token
+      .connect(subscriber)
+      .approve(datasetSubscriptionManagerAddress, MaxUint256);
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+
+    const subscriptionStart = Date.now();
+
+    await datasetSubscriptionManager
+      .connect(subscriber)
+      .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1);
+
+    await expect(
+      datasetSubscriptionManager
+        .connect(subscriber)
+        .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1)
+    ).to.be.revertedWith("User already subscribed");
+  });
+
   it("Should revert pay data set subscription with ERC-20 token if there is no enough allowance", async function () {
     await datasetDistributionManager.setDatasetOwnerPercentage(
       ethers.parseUnits("0.01", 18)
