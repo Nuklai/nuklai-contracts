@@ -139,7 +139,7 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      manuallyVerifierManager.resolveBatch(fragmentAddress, fragmentIds, true)
+      manuallyVerifierManager.resolveMany(fragmentAddress, fragmentIds, true)
     )
       .to.emit(datasetFragment, "Transfer")
       .withArgs(ZeroAddress, userAddress, fragmentIds[0])
@@ -177,7 +177,7 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      manuallyVerifierManager.resolveBatch(fragmentAddress, fragmentIds, false)
+      manuallyVerifierManager.resolveMany(fragmentAddress, fragmentIds, false)
     )
       .to.emit(datasetFragment, "FragmentRejected")
       .withArgs(fragmentIds[0])

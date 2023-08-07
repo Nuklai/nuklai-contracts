@@ -323,7 +323,7 @@ describe("DatasetNFT", () => {
 
       const fragmentIds = [1, 2, 3];
 
-      const proposeBatchSignature = await admin.signMessage(
+      const proposeManySignature = await admin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
           datasetAddress,
@@ -343,12 +343,12 @@ describe("DatasetNFT", () => {
       await expect(
         dataset
           .connect(user)
-          .proposeBatchFragments(
+          .proposeManyFragments(
             datasetId,
             fragmentIds,
             [userAddress, userAddress, userAddress],
             [tagSchemas, tagRows, tagData],
-            proposeBatchSignature
+            proposeManySignature
           )
       )
         .to.emit(datasetFragment, "FragmentPending")
@@ -386,7 +386,7 @@ describe("DatasetNFT", () => {
 
       const fragmentIds = [1, 2];
 
-      const proposeBatchSignature = await admin.signMessage(
+      const proposeManySignature = await admin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
           datasetAddress,
@@ -400,12 +400,12 @@ describe("DatasetNFT", () => {
       await expect(
         dataset
           .connect(user)
-          .proposeBatchFragments(
+          .proposeManyFragments(
             datasetId,
             fragmentIds,
             [userAddress, userAddress],
             [tagSchemas],
-            proposeBatchSignature
+            proposeManySignature
           )
       ).to.be.rejectedWith("invalid length of fragments items");
     });

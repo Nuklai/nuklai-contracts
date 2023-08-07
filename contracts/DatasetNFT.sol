@@ -93,7 +93,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         fragmentInstance.propose(fragmentId, to, tag, signature);
     }
 
-    function proposeBatchFragments(
+    function proposeManyFragments(
         uint256 datasetId,
         uint256[] memory fragmentIds,
         address[] memory owners,
@@ -102,7 +102,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     ) external {
         IFragmentNFT fragmentInstance = fragments[datasetId];
         require(address(fragmentInstance) != address(0), "No fragment instance deployed");
-        fragmentInstance.proposeBatch(fragmentIds, owners, tags, signature);
+        fragmentInstance.proposeMany(fragmentIds, owners, tags, signature);
     }
 
 

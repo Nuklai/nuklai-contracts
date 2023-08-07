@@ -141,14 +141,14 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
      * @param tags_ Hashes of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
-    function proposeBatch(
+    function proposeMany(
         uint256[] memory ids,
         address[] memory owners,
         bytes32[] memory tags_,
         bytes calldata signature
     ) external {
         require(ids.length == owners.length && ids.length == tags_.length && tags_.length == owners.length, "invalid length of fragments items");
-        bytes32 msgHash = _proposeBatchMessageHash(ids, owners, tags_);
+        bytes32 msgHash = _proposeManyMessageHash(ids, owners, tags_);
         address signer = ECDSA.recover(msgHash, signature);
         if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
@@ -269,7 +269,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             );
     }
 
-    function _proposeBatchMessageHash(
+    function _proposeManyMessageHash(
         uint256[] memory ids,
         address[] memory owners,
         bytes32[] memory tags_

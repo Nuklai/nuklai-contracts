@@ -26,7 +26,7 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
      * @param tags_ Hashes of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
-    function proposeBatch(uint256[] memory ids, address[] memory owners, bytes32[] memory tags_, bytes calldata signature) external;
+    function proposeMany(uint256[] memory ids, address[] memory owners, bytes32[] memory tags_, bytes calldata signature) external;
 
     /**
      * @notice Approve fragment as verified
