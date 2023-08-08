@@ -32,6 +32,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     mapping(uint256 id => ManagersConfig config) public configurations;
     mapping(uint256 id => ManagersConfig proxy) public proxies;
     mapping(uint256 id => IFragmentNFT fragment) public fragments;
+    mapping(uint256 => string) public uuids;
+    mapping(uint256 => bool) internal isUuidSet;
 
     modifier onlyTokenOwner(uint256 id) {
         if(_ownerOf(id) != _msgSender()) revert NOT_OWNER(id, _msgSender());
@@ -51,12 +53,18 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
      * @param signature Signature from a DT service confirming creation of Dataset
      */
     function mint(uint256 id, address to, bytes calldata signature) external {
+        require(isUuidSet[id], "No uuid set for data set id");
         bytes32 msgHash = _mintMessageHash(id, to);
         address signer = ECDSA.recover(msgHash, signature);
         if(!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
         _mint(to, id);
     }
 
+    function setUuidForDatasetId(uint256 datasetId, string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(!isUuidSet[datasetId], "Already set");
+        uuids[datasetId] = uuid;
+        isUuidSet[datasetId] = true;
+    }
 
     function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id)  {
         if(configurations[id].subscriptionManager != config.subscriptionManager) {
