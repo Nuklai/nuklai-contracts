@@ -4,413 +4,583 @@ import {
   DistributionManager,
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
+  TestToken,
+  VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import { AddressLike, MaxUint256, Signer, parseUnits } from "ethers";
-import { ethers, network } from "hardhat";
+import { MaxUint256, parseUnits } from "ethers";
+import { deployments, ethers, getNamedAccounts, network } from "hardhat";
+import { v4 as uuidv4 } from "uuid";
 import { constants, signature } from "./utils";
 
-describe("SubscriptionManager", () => {
+const setup = async () => {
+  await deployments.fixture(["DatasetNFT"]);
+
+  const contracts = {
+    DatasetNFT: (await ethers.getContract("DatasetNFT")) as DatasetNFT,
+    FragmentNFTImplementation: (await ethers.getContract(
+      "FragmentNFT"
+    )) as FragmentNFT,
+  };
+
+  const { dtAdmin, datasetOwner } = await ethers.getNamedSigners();
   const datasetId = 1;
+  const fragmentId = 1;
 
-  let dataset: DatasetNFT;
-  let fragmentImplementation: FragmentNFT;
+  const datasetAddress = await contracts.DatasetNFT.getAddress();
 
-  let admin: Signer;
-  let subscriber: Signer;
+  const signedMessage = await dtAdmin.signMessage(
+    signature.getDatasetMintMessage(
+      network.config.chainId!,
+      datasetAddress,
+      datasetId,
+      datasetOwner.address
+    )
+  );
 
-  let datasetAddress: AddressLike;
-  let adminAddress: AddressLike;
-  let fragmentImplementationAddress: AddressLike;
+  const datasetUUID = uuidv4();
 
-  let datasetSubscriptionManager: ERC20LinearSingleDatasetSubscriptionManager;
-  let datasetSubscriptionManagerAddress: AddressLike;
+  await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(
+    datasetId,
+    datasetUUID
+  );
 
-  let datasetDistributionManager: DistributionManager;
-  let datasetDistributionManagerAddress: AddressLike;
+  await contracts.DatasetNFT.connect(datasetOwner).mint(
+    datasetId,
+    datasetOwner.address,
+    signedMessage
+  );
 
-  beforeEach(async () => {
-    dataset = await ethers.deployContract("DatasetNFT");
-    fragmentImplementation = await ethers.deployContract("FragmentNFT");
+  await contracts.DatasetNFT.connect(datasetOwner).deployFragmentInstance(
+    datasetId
+  );
 
-    admin = (await ethers.getSigners())[0];
-    adminAddress = await admin.getAddress();
-    subscriber = (await ethers.getSigners())[1];
-
-    await dataset.grantRole(constants.SIGNER_ROLE, adminAddress);
-
-    datasetAddress = await dataset.getAddress();
-
-    fragmentImplementationAddress = await fragmentImplementation.getAddress();
-    await dataset.setFragmentImplementation(fragmentImplementationAddress);
-
-    const signedMessage = await admin.signMessage(
-      signature.getDatasetMintMessage(
-        network.config.chainId!,
-        datasetAddress,
-        datasetId,
-        adminAddress
-      )
-    );
-
-    await dataset.mint(datasetId, adminAddress, signedMessage);
-
-    await dataset.deployFragmentInstance(datasetId);
-
-    const subscriptionManager = await ethers.deployContract(
-      "ERC20LinearSingleDatasetSubscriptionManager"
-    );
-    const distributionManager = await ethers.deployContract(
+  const factories = {
+    DistributionManagerFactory: await ethers.getContractFactory(
       "DistributionManager"
-    );
-    const verifierManager = await ethers.deployContract("VerifierManager");
-    await dataset.setManagers(datasetId, {
-      subscriptionManager,
-      distributionManager,
-      verifierManager,
-    });
+    ),
+    ERC20SubscriptionManagerFactory: await ethers.getContractFactory(
+      "ERC20LinearSingleDatasetSubscriptionManager"
+    ),
+    VerifierManagerFactory: await ethers.getContractFactory("VerifierManager"),
+    AcceptManuallyVerifierFactory: await ethers.getContractFactory(
+      "AcceptManuallyVerifier"
+    ),
+    AcceptAllVerifierFactory: await ethers.getContractFactory(
+      "AcceptAllVerifier"
+    ),
+  };
 
-    datasetSubscriptionManagerAddress = await dataset.subscriptionManager(
-      datasetId
-    );
-    datasetSubscriptionManager = await ethers.getContractAt(
-      "ERC20LinearSingleDatasetSubscriptionManager",
-      datasetSubscriptionManagerAddress
-    );
+  const SubscriptionManager =
+    await factories.ERC20SubscriptionManagerFactory.connect(
+      datasetOwner
+    ).deploy();
+  const DistributionManager =
+    await factories.DistributionManagerFactory.connect(datasetOwner).deploy();
+  const VerifierManager = await factories.VerifierManagerFactory.connect(
+    datasetOwner
+  ).deploy();
 
-    datasetDistributionManagerAddress = await dataset.distributionManager(
-      datasetId
-    );
-    datasetDistributionManager = await ethers.getContractAt(
-      "DistributionManager",
-      datasetDistributionManagerAddress
-    );
+  await contracts.DatasetNFT.connect(datasetOwner).setManagers(datasetId, {
+    subscriptionManager: await SubscriptionManager.getAddress(),
+    distributionManager: await DistributionManager.getAddress(),
+    verifierManager: await VerifierManager.getAddress(),
   });
 
-  it("Should set ERC-20 token fee amount for data set subscription", async function () {
-    const token = await ethers.deployContract("TestToken", subscriber);
-    const tokenAddress = await token.getAddress();
+  return {
+    datasetId,
+    fragmentId,
+    DatasetSubscriptionManager: (await ethers.getContractAt(
+      "ERC20LinearSingleDatasetSubscriptionManager",
+      await contracts.DatasetNFT.subscriptionManager(datasetId)
+    )) as unknown as ERC20LinearSingleDatasetSubscriptionManager,
+    DatasetDistributionManager: (await ethers.getContractAt(
+      "DistributionManager",
+      await contracts.DatasetNFT.distributionManager(datasetId),
+      datasetOwner
+    )) as unknown as DistributionManager,
+    DatasetVerifierManager: (await ethers.getContractAt(
+      "VerifierManager",
+      await contracts.DatasetNFT.verifierManager(datasetId),
+      datasetOwner
+    )) as unknown as VerifierManager,
+    ...contracts,
+    ...factories,
+  };
+};
+
+const setupOnSubscribe = async () => {
+  const { DatasetSubscriptionManager, DatasetDistributionManager, datasetId } =
+    await setup();
+  const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+  const DeployedToken = await deployments.deploy("TestToken", {
+    from: subscriber.address,
+  });
+
+  const Token = (await ethers.getContractAt(
+    "TestToken",
+    DeployedToken.address
+  )) as unknown as TestToken;
+
+  await Token.connect(subscriber).approve(
+    await DatasetSubscriptionManager.getAddress(),
+    MaxUint256
+  );
+
+  await DatasetDistributionManager.connect(
+    datasetOwner
+  ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+  await DatasetDistributionManager.connect(
+    datasetOwner
+  ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+  const feeAmount = parseUnits("0.0000001", 18);
+
+  await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+    DeployedToken.address,
+    feeAmount
+  );
+
+  const subscriptionStart = Date.now();
+
+  await DatasetSubscriptionManager.connect(subscriber).subscribe(
+    datasetId,
+    subscriptionStart,
+    constants.ONE_DAY,
+    1
+  );
+
+  const subscriptionId = 1;
+
+  return {
+    datasetId,
+    subscriptionId,
+    DatasetSubscriptionManager,
+    DatasetDistributionManager,
+  };
+};
+
+describe("SubscriptionManager", () => {
+  it("Should data set owner set ERC-20 token fee amount for data set subscription", async function () {
+    const { DatasetSubscriptionManager } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
 
     const feeAmount = parseUnits("0.0000001", 18);
 
-    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
 
-    expect(await datasetSubscriptionManager.token()).to.equal(tokenAddress);
-    expect(await datasetSubscriptionManager.feePerConsumerPerSecond()).to.equal(
+    expect(await DatasetSubscriptionManager.token()).to.equal(
+      DeployedToken.address
+    );
+    expect(await DatasetSubscriptionManager.feePerConsumerPerSecond()).to.equal(
       feeAmount
     );
   });
 
   it("Should calculate fees for data set subscription (one week and 1 consumer)", async function () {
-    const token = await ethers.deployContract("TestToken", subscriber);
-    const tokenAddress = await token.getAddress();
+    const { DatasetSubscriptionManager, datasetId } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
 
     const feeAmount = parseUnits("0.0000001", 18);
 
-    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
 
     const consumers = 1;
 
     const [subscriptionFeeToken, subscriptionFeeAmount] =
-      await datasetSubscriptionManager.subscriptionFee(
+      await DatasetSubscriptionManager.subscriptionFee(
         datasetId,
         constants.ONE_WEEK,
         consumers
       );
 
     const feePerConsumerPerSecond =
-      await datasetSubscriptionManager.feePerConsumerPerSecond();
+      await DatasetSubscriptionManager.feePerConsumerPerSecond();
 
-    expect(subscriptionFeeToken).to.equal(tokenAddress);
+    expect(subscriptionFeeToken).to.equal(DeployedToken.address);
     expect(Number(subscriptionFeeAmount)).to.equal(
       Number(feePerConsumerPerSecond) * constants.ONE_WEEK * consumers
     );
   });
 
   it("Should user pay data set subscription with ERC-20 token - data set admin received payment", async function () {
-    await datasetDistributionManager.setDatasetOwnerPercentage(
-      ethers.parseUnits("0.01", 18)
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
+
+    const Token = (await ethers.getContractAt(
+      "TestToken",
+      DeployedToken.address
+    )) as unknown as TestToken;
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
     );
 
-    const token = await ethers.deployContract("TestToken", subscriber);
-    const tokenAddress = await token.getAddress();
-    await token
-      .connect(subscriber)
-      .approve(datasetSubscriptionManagerAddress, MaxUint256);
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.0000001", 18);
 
-    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
 
     const subscriptionStart = Date.now();
 
-    const datasetOwner = await dataset.ownerOf(datasetId);
-
     await expect(
-      datasetSubscriptionManager
-        .connect(subscriber)
-        .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1)
+      DatasetSubscriptionManager.connect(subscriber).subscribe(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
     )
-      .to.emit(datasetDistributionManager, "PayoutSent")
-      .withArgs(datasetOwner, tokenAddress, "86400000000000")
-      .to.emit(datasetSubscriptionManager, "SubscriptionPaid");
+      .to.emit(DatasetDistributionManager, "PayoutSent")
+      .withArgs(
+        datasetOwner.address,
+        DeployedToken.address,
+        parseUnits("0.0000864", 18)
+      )
+      .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
   });
 
-  it("Should revert if user subscribe twice the same data set", async function () {
-    await datasetDistributionManager.setDatasetOwnerPercentage(
-      ethers.parseUnits("0.01", 18)
+  it("Should revert if subscriber tries to subscribe to the same data set", async function () {
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
+
+    const Token = (await ethers.getContractAt(
+      "TestToken",
+      DeployedToken.address
+    )) as unknown as TestToken;
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
     );
 
-    const token = await ethers.deployContract("TestToken", subscriber);
-    const tokenAddress = await token.getAddress();
-
-    await token
-      .connect(subscriber)
-      .approve(datasetSubscriptionManagerAddress, MaxUint256);
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.0000001", 18);
 
-    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
 
     const subscriptionStart = Date.now();
 
-    await datasetSubscriptionManager
-      .connect(subscriber)
-      .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1);
+    await DatasetSubscriptionManager.connect(subscriber).subscribe(
+      datasetId,
+      subscriptionStart,
+      constants.ONE_DAY,
+      1
+    );
 
     await expect(
-      datasetSubscriptionManager
-        .connect(subscriber)
-        .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1)
+      DatasetSubscriptionManager.connect(subscriber).subscribe(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
     ).to.be.revertedWith("User already subscribed");
   });
 
   it("Should revert pay data set subscription with ERC-20 token if there is no enough allowance", async function () {
-    await datasetDistributionManager.setDatasetOwnerPercentage(
-      ethers.parseUnits("0.01", 18)
-    );
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
-    const token = await ethers.deployContract("TestToken", subscriber);
-    const tokenAddress = await token.getAddress();
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.0000001", 18);
 
-    await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
 
     const subscriptionStart = Date.now();
 
     await expect(
-      datasetSubscriptionManager
-        .connect(subscriber)
-        .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, 1)
+      DatasetSubscriptionManager.connect(subscriber).subscribe(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
     ).to.be.revertedWith("ERC20: insufficient allowance");
   });
 
   describe("On Subscription", () => {
-    const subscriptionId = 1;
+    it("Should subscription owner add consumers to the subscription", async () => {
+      const { datasetId, subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
-    let consumer: Signer;
-    let secondConsumer: Signer;
-
-    beforeEach(async () => {
-      await datasetDistributionManager.setDatasetOwnerPercentage(
-        ethers.parseUnits("0.01", 18)
+      await DatasetSubscriptionManager.connect(subscriber).addConsumers(
+        subscriptionId,
+        [consumer]
       );
 
-      const token = await ethers.deployContract("TestToken", subscriber);
-      const tokenAddress = await token.getAddress();
-      await token
-        .connect(subscriber)
-        .approve(datasetSubscriptionManagerAddress, MaxUint256);
-
-      const feeAmount = parseUnits("0.0000001", 18);
-
-      await datasetSubscriptionManager.setFee(tokenAddress, feeAmount);
-
-      const subscriptionStart = Date.now();
-      const consumers = 1;
-      consumer = (await ethers.getSigners())[2];
-      secondConsumer = (await ethers.getSigners())[3];
-
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .subscribe(datasetId, subscriptionStart, constants.ONE_DAY, consumers);
-    });
-
-    it("Should subscription owner add consumers to the subscription", async () => {
-      const consumerAddress = await consumer.getAddress();
-
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .addConsumers(subscriptionId, [consumerAddress]);
-
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          consumerAddress
+          consumer
         )
       ).to.be.true;
     });
 
     it("Should revert add consumers to the subscription if not the subscription owner", async () => {
-      const consumerAddress = await consumer.getAddress();
+      const { subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { user } = await ethers.getNamedSigners();
 
       await expect(
-        datasetSubscriptionManager.addConsumers(subscriptionId, [
-          consumerAddress,
+        DatasetSubscriptionManager.connect(user).addConsumers(subscriptionId, [
+          consumer,
         ])
       ).to.be.revertedWith("Not a subscription owner");
     });
 
     it("Should revert add consumers to the subscription with wrong id", async function () {
+      const { DatasetSubscriptionManager } = await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
+
       const wrongSubscriptionId = 112313;
-      const consumerAddress = await consumer.getAddress();
 
       await expect(
-        datasetSubscriptionManager
-          .connect(subscriber)
-          .addConsumers(wrongSubscriptionId, [consumerAddress])
+        DatasetSubscriptionManager.connect(subscriber).addConsumers(
+          wrongSubscriptionId,
+          [consumer]
+        )
       ).to.be.revertedWith("ERC721: invalid token ID");
     });
 
     it("Should revert add consumers if more consumers are added than set", async function () {
-      const consumerAddress = await consumer.getAddress();
+      const { subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer, secondConsumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
       await expect(
-        datasetSubscriptionManager
-          .connect(subscriber)
-          .addConsumers(subscriptionId, [consumerAddress, consumerAddress])
+        DatasetSubscriptionManager.connect(subscriber).addConsumers(
+          subscriptionId,
+          [consumer, secondConsumer]
+        )
       ).to.be.revertedWith("Too many consumers to add");
     });
 
     it("Should subscription owner remove consumers to the subscription", async () => {
-      const consumerAddress = await consumer.getAddress();
+      const { datasetId, subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .addConsumers(subscriptionId, [consumerAddress]);
+      await DatasetSubscriptionManager.connect(subscriber).addConsumers(
+        subscriptionId,
+        [consumer]
+      );
 
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          consumerAddress
+          consumer
         )
       ).to.be.true;
 
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .removeConsumers(subscriptionId, [consumerAddress]);
+      await DatasetSubscriptionManager.connect(subscriber).removeConsumers(
+        subscriptionId,
+        [consumer]
+      );
 
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          consumerAddress
+          consumer
         )
       ).to.be.false;
     });
 
-    it("Should subscription owner remove consumers to the subscription", async () => {
-      const consumerAddress = await consumer.getAddress();
+    it("Should revert if user tries to remove consumers from the subscription", async () => {
+      const { subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { user } = await ethers.getNamedSigners();
 
       await expect(
-        datasetSubscriptionManager.removeConsumers(subscriptionId, [
-          consumerAddress,
-        ])
-      ).to.be.rejectedWith("Not a subscription owner");
+        DatasetSubscriptionManager.connect(user).removeConsumers(
+          subscriptionId,
+          [consumer]
+        )
+      ).to.be.revertedWith("Not a subscription owner");
     });
 
-    it("Should subscription owner replace consumers to the subscription", async () => {
-      const consumerAddress = await consumer.getAddress();
-      const secondConsumerAddress = await secondConsumer.getAddress();
+    it("Should subscription owner replace consumers from the subscription", async () => {
+      const { datasetId, subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer, secondConsumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .addConsumers(subscriptionId, [consumerAddress]);
+      await DatasetSubscriptionManager.connect(subscriber).addConsumers(
+        subscriptionId,
+        [consumer]
+      );
 
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          consumerAddress
+          consumer
         )
       ).to.be.true;
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          secondConsumerAddress
+          secondConsumer
         )
       ).to.be.false;
 
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .replaceConsumers(
-          subscriptionId,
-          [consumerAddress],
-          [secondConsumerAddress]
-        );
+      await DatasetSubscriptionManager.connect(subscriber).replaceConsumers(
+        subscriptionId,
+        [consumer],
+        [secondConsumer]
+      );
 
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          consumerAddress
+          consumer
         )
       ).to.be.false;
       expect(
-        await datasetSubscriptionManager.isSubscriptionPaidFor(
+        await DatasetSubscriptionManager.isSubscriptionPaidFor(
           datasetId,
-          secondConsumerAddress
+          secondConsumer
         )
       ).to.be.true;
     });
 
     it("Should subscription be paid if consumer was added", async function () {
-      const consumerAddress = await consumer.getAddress();
+      const { datasetId, subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
-      await datasetSubscriptionManager
-        .connect(subscriber)
-        .addConsumers(subscriptionId, [consumerAddress]);
+      await DatasetSubscriptionManager.connect(subscriber).addConsumers(
+        subscriptionId,
+        [consumer]
+      );
 
       expect(
-        await datasetSubscriptionManager
-          .connect(subscriber)
-          .isSubscriptionPaidFor(datasetId, consumerAddress)
+        await DatasetSubscriptionManager.connect(
+          subscriber
+        ).isSubscriptionPaidFor(datasetId, consumer)
       ).to.be.true;
     });
 
     it("Should subscription not be paid if consumer was not added", async function () {
-      const consumerAddress = await consumer.getAddress();
+      const { datasetId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { consumer } = await getNamedAccounts();
+      const { subscriber } = await ethers.getNamedSigners();
 
       expect(
-        await datasetSubscriptionManager
-          .connect(subscriber)
-          .isSubscriptionPaidFor(datasetId, consumerAddress)
+        await DatasetSubscriptionManager.connect(
+          subscriber
+        ).isSubscriptionPaidFor(datasetId, consumer)
       ).to.be.false;
     });
 
-    it("Should subscriber extends his subscription if expired", async () => {
+    it("Should subscriber extends its subscription if expired", async () => {
+      const { subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { subscriber } = await ethers.getNamedSigners();
+
       await time.increase(constants.ONE_DAY * 3);
 
       await expect(
-        datasetSubscriptionManager
-          .connect(subscriber)
-          .extendSubscription(subscriptionId, constants.ONE_WEEK, 0)
-      ).to.emit(datasetSubscriptionManager, "SubscriptionPaid");
+        DatasetSubscriptionManager.connect(subscriber).extendSubscription(
+          subscriptionId,
+          constants.ONE_WEEK,
+          0
+        )
+      ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
     });
 
     it("Should subscriber extends his subscription if not expired", async () => {
+      const { subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+      const { subscriber } = await ethers.getNamedSigners();
+
       await expect(
-        datasetSubscriptionManager
-          .connect(subscriber)
-          .extendSubscription(subscriptionId, constants.ONE_WEEK, 0)
-      ).to.emit(datasetSubscriptionManager, "SubscriptionPaid");
+        DatasetSubscriptionManager.connect(subscriber).extendSubscription(
+          subscriptionId,
+          constants.ONE_WEEK,
+          0
+        )
+      ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
     });
 
     it("Should revert if subscriber tries to extend a wrong subscription", async () => {
+      const { DatasetSubscriptionManager } = await setupOnSubscribe();
+      const { subscriber } = await ethers.getNamedSigners();
       const wrongSubscriptionId = 112313;
 
       await expect(
-        datasetSubscriptionManager
-          .connect(subscriber)
-          .extendSubscription(wrongSubscriptionId, constants.ONE_WEEK, 0)
+        DatasetSubscriptionManager.connect(subscriber).extendSubscription(
+          wrongSubscriptionId,
+          constants.ONE_WEEK,
+          0
+        )
       ).to.be.revertedWith("ERC721: invalid token ID");
     });
   });
