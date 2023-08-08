@@ -167,15 +167,15 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function accept(uint256 id) external onlyVerifierManager {
-        require(!_exists(id), "Not a pending fragment");
         address to = pendingFragmentOwners[id];
+        require(!_exists(id) && to != address(0), "Not a pending fragment");
         delete pendingFragmentOwners[id];
         _safeMint(to, id);
         emit FragmentAccepted(id);
     }
 
     function reject(uint256 id) external onlyVerifierManager {
-        require(!_exists(id), "Not a pending fragment");
+        require(!_exists(id) && pendingFragmentOwners[id] != address(0), "Not a pending fragment");
         delete pendingFragmentOwners[id];
         delete tags[id];
         emit FragmentRejected(id);
