@@ -33,13 +33,9 @@ const setup = async () => {
 
   const datasetUUID = uuidv4();
 
-  await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(
-    datasetId,
-    datasetUUID
-  );
+  await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID);
 
   await contracts.DatasetNFT.connect(datasetOwner).mint(
-    datasetId,
     datasetOwner.address,
     signedMessage
   );
