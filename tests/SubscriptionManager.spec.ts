@@ -152,7 +152,10 @@ const setupOnSubscribe = async () => {
     1
   );
 
-  const subscriptionId = 1;
+  const subscriptionId = await DatasetSubscriptionManager.tokenOfOwnerByIndex(
+    subscriber.address,
+    0
+  );
 
   return {
     datasetId,
@@ -269,6 +272,65 @@ describe("SubscriptionManager", () => {
         parseUnits("0.0000864", 18)
       )
       .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+  });
+
+  it("Should retrieve subscription id after subscription is paid", async function () {
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
+
+    const Token = (await ethers.getContractAt(
+      "TestToken",
+      DeployedToken.address
+    )) as unknown as TestToken;
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
+
+    const subscriptionStart = Date.now();
+
+    await expect(
+      DatasetSubscriptionManager.connect(subscriber).subscribe(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
+    )
+      .to.emit(DatasetDistributionManager, "PayoutSent")
+      .withArgs(
+        datasetOwner.address,
+        DeployedToken.address,
+        parseUnits("0.0000864", 18)
+      )
+      .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+
+    expect(
+      await DatasetSubscriptionManager.tokenOfOwnerByIndex(
+        subscriber.address,
+        0
+      )
+    ).to.equal(1);
   });
 
   it("Should revert if subscriber tries to subscribe to the same data set", async function () {
