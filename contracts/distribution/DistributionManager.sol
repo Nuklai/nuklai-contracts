@@ -122,6 +122,19 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         _sendPayout(collectToken, collectAmount, _msgSender());
     }
 
+    function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
+        uint256 firstUnclaimedPayout = firstUnclaimed[account]; 
+        
+        if(firstUnclaimedPayout >= payments.length) return 0;
+
+        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+            Payment storage p = payments[i];
+            if(token == p.token) {
+                collectAmount += _calculatePayout(p, account);
+            }
+        }
+    }
+
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
         uint256 paymentAmount = p.distributionAmount;
         bytes32[] memory tags = tagWeights.keys();
