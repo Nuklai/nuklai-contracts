@@ -23,7 +23,8 @@ interface IDatasetNFT is IERC721 {
     function setManagers(uint256 id, ManagersConfig calldata config) external;
     function deployFragmentInstance(uint256 id) external returns(address);
 
-    function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external;
+    function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external;
+    function proposeManyFragments(uint256 datasetId, address[] memory owners, bytes32[] memory tags, bytes calldata signature) external;
 
     function subscriptionManager(uint256 id) external view returns(address);
     function verifierManager(uint256 id) external view returns(address);

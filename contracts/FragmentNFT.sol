@@ -31,6 +31,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     IDatasetNFT public dataset;
     uint256 public datasetId;
+    uint256 internal mintCounter;
     mapping(uint256 id => address owner) public pendingFragmentOwners;
     mapping(uint256 id => bytes32 tag) public tags;
     Snapshot[] internal snapshots;
@@ -110,17 +111,16 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     /**
      * @notice Adds a Fragment as Pending
-     * @param id Fragment id to mint
      * @param to Fragment owner
      * @param tag Hash of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
     function propose(
-        uint256 id,
         address to,
         bytes32 tag,
         bytes calldata signature
     ) external {
+        uint256 id = ++mintCounter;
         bytes32 msgHash = _proposeMessageHash(id, to, tag);
         address signer = ECDSA.recover(msgHash, signature);
         if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
@@ -136,24 +136,22 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     /**
      * @notice Adds a batch of Fragments as Pending
-     * @param ids Fragments ids to mint
      * @param owners Fragments owners
      * @param tags_ Hashes of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
     function proposeMany(
-        uint256[] memory ids,
         address[] memory owners,
         bytes32[] memory tags_,
         bytes calldata signature
     ) external {
-        require(ids.length == owners.length && ids.length == tags_.length && tags_.length == owners.length, "invalid length of fragments items");
-        bytes32 msgHash = _proposeManyMessageHash(ids, owners, tags_);
+        require(tags_.length == owners.length, "invalid length of fragments items");
+        bytes32 msgHash = _proposeManyMessageHash(mintCounter, owners, tags_);
         address signer = ECDSA.recover(msgHash, signature);
         if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-        for (uint256 i; i < ids.length; i++) {
-            uint256 id = ids[i];
+        for (uint256 i; i < owners.length; i++) {
+            uint256 id = ++mintCounter;
             bytes32 tag = tags_[i];
             pendingFragmentOwners[id] = owners[i];
             tags[id] = tag;
@@ -164,6 +162,10 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             // DO NOT do any state changes after this point!
             IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
         }
+    }
+
+    function totalFragments() external view returns(uint256) {
+        return mintCounter;
     }
 
     function accept(uint256 id) external onlyVerifierManager {
@@ -270,7 +272,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function _proposeManyMessageHash(
-        uint256[] memory ids,
+        uint256 id,
         address[] memory owners,
         bytes32[] memory tags_
     ) private view returns (bytes32) {
@@ -280,7 +282,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
                     block.chainid,
                     address(dataset),
                     datasetId,
-                    ids,
+                    id,
                     owners,
                     tags_
                 )
