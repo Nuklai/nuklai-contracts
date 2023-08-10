@@ -9,6 +9,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { dtAdmin } = await getNamedAccounts();
 
+  console.log("DT admin: ", dtAdmin)
+
   const deployedDataset = await deploy("DatasetNFT", {
     from: dtAdmin,
   });
