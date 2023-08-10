@@ -198,12 +198,20 @@ describe("DistributionManager", () => {
       await DeployedAcceptManuallyVerifier.getAddress()
     );
 
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    const totalFragments = await DatasetFragment.totalFragments();
+
     const proposeSignatureSchemas = await dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         await DatasetNFT.getAddress(),
         datasetId,
-        fragmentId,
+        totalFragments + 1n,
         contributor.address,
         datasetSchemasTag
       )
@@ -211,7 +219,6 @@ describe("DistributionManager", () => {
 
     await DatasetNFT.connect(contributor).proposeFragment(
       datasetId,
-      fragmentId,
       contributor.address,
       datasetSchemasTag,
       proposeSignatureSchemas
@@ -276,5 +283,114 @@ describe("DistributionManager", () => {
         DeployedToken.address,
         parseUnits("24167.808", 18)
       );
+  });
+
+  it("Should calculate contributor payout before claiming", async function () {
+    const {
+      DatasetDistributionManager,
+      DatasetSubscriptionManager,
+      DatasetVerifierManager,
+      AcceptManuallyVerifierFactory,
+      DatasetNFT,
+      datasetId,
+      fragmentId,
+    } = await setup();
+    const { datasetOwner, dtAdmin, contributor, subscriber } =
+      await ethers.getNamedSigners();
+
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
+
+    const DeployedAcceptManuallyVerifier =
+      await AcceptManuallyVerifierFactory.connect(datasetOwner).deploy();
+
+    DatasetVerifierManager.setDefaultVerifier(
+      await DeployedAcceptManuallyVerifier.getAddress()
+    );
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    const totalFragments = await DatasetFragment.totalFragments();
+
+    const proposeSignatureSchemas = await dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT.getAddress(),
+        datasetId,
+        totalFragments + 1n,
+        contributor.address,
+        datasetSchemasTag
+      )
+    );
+
+    await DatasetNFT.connect(contributor).proposeFragment(
+      datasetId,
+      contributor.address,
+      datasetSchemasTag,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
+
+    const AcceptManuallyVerifier = (await ethers.getContractAt(
+      "AcceptManuallyVerifier",
+      await DeployedAcceptManuallyVerifier.getAddress()
+    )) as unknown as AcceptManuallyVerifier;
+
+    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      datasetFragmentAddress,
+      fragmentId,
+      true
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const DeployedToken = await deployments.deploy("TestToken", {
+      from: subscriber.address,
+    });
+
+    const Token = (await ethers.getContractAt(
+      "TestToken",
+      DeployedToken.address
+    )) as unknown as TestToken;
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+
+    const feeAmount = parseUnits("0.1", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
+
+    const subscriptionStart = Date.now();
+
+    await DatasetSubscriptionManager.connect(subscriber).subscribe(
+      datasetId,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    expect(
+      await DatasetDistributionManager.calculatePayoutByToken(
+        DeployedToken.address,
+        contributor.address
+      )
+    ).to.equal(parseUnits("24167.808", 18));
   });
 });

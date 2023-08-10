@@ -361,8 +361,6 @@ describe("DatasetNFT", () => {
   });
 
   describe("On mint", () => {
-    const fragmentId = 1;
-
     it("Should data set owner set managers", async function () {
       const {
         DatasetNFT,
@@ -472,27 +470,28 @@ describe("DatasetNFT", () => {
 
       const tag = utils.encodeTag("dataset.schemas");
 
+      const fragmentAddress = await DatasetNFT.fragments(datasetId);
+      const DatasetFragment = (await ethers.getContractAt(
+        "FragmentNFT",
+        fragmentAddress
+      )) as unknown as FragmentNFT;
+
+      const totalFragments = await DatasetFragment.totalFragments();
+
       const proposeSignature = await dtAdmin.signMessage(
         signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
           await DatasetNFT.getAddress(),
           datasetId,
-          fragmentId,
+          totalFragments + 1n,
           contributor.address,
           tag
         )
       );
 
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      );
-
       await expect(
         DatasetNFT.connect(contributor).proposeFragment(
           datasetId,
-          fragmentId,
           contributor.address,
           tag,
           proposeSignature
@@ -548,23 +547,23 @@ describe("DatasetNFT", () => {
       );
 
       const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = await ethers.getContractAt(
+      const DatasetFragment = (await ethers.getContractAt(
         "FragmentNFT",
         fragmentAddress
-      );
+      )) as unknown as FragmentNFT;
 
       const tagSchemas = utils.encodeTag("dataset.schemas");
       const tagRows = utils.encodeTag("dataset.rows");
       const tagData = utils.encodeTag("dataset.data");
 
-      const fragmentIds = [1, 2, 3];
+      const totalFragments = await DatasetFragment.totalFragments();
 
       const proposeManySignature = await dtAdmin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
           await DatasetNFT.getAddress(),
           datasetId,
-          fragmentIds,
+          totalFragments,
           [contributor.address, contributor.address, contributor.address],
           [tagSchemas, tagRows, tagData]
         )
@@ -573,18 +572,17 @@ describe("DatasetNFT", () => {
       await expect(
         DatasetNFT.connect(contributor).proposeManyFragments(
           datasetId,
-          fragmentIds,
           [contributor.address, contributor.address, contributor.address],
           [tagSchemas, tagRows, tagData],
           proposeManySignature
         )
       )
         .to.emit(DatasetFragment, "FragmentPending")
-        .withArgs(fragmentIds[0], tagSchemas)
+        .withArgs(totalFragments + 1n, tagSchemas)
         .to.emit(DatasetFragment, "FragmentPending")
-        .withArgs(fragmentIds[1], tagRows)
+        .withArgs(totalFragments + 2n, tagRows)
         .to.emit(DatasetFragment, "FragmentPending")
-        .withArgs(fragmentIds[2], tagData);
+        .withArgs(totalFragments + 3n, tagData);
     });
 
     it("Should revert contributor propose multiple fragments if proposes length is not correct", async function () {
@@ -632,18 +630,24 @@ describe("DatasetNFT", () => {
         await AcceptManuallyVerifier.getAddress()
       );
 
+      const fragmentAddress = await DatasetNFT.fragments(datasetId);
+      const DatasetFragment = (await ethers.getContractAt(
+        "FragmentNFT",
+        fragmentAddress
+      )) as unknown as FragmentNFT;
+
       const tagSchemas = utils.encodeTag("dataset.schemas");
       const tagRows = utils.encodeTag("dataset.rows");
       const tagData = utils.encodeTag("dataset.data");
 
-      const fragmentIds = [1, 2, 3];
+      const totalFragments = await DatasetFragment.totalFragments();
 
       const proposeManySignature = await dtAdmin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
           await DatasetNFT.getAddress(),
           datasetId,
-          fragmentIds,
+          totalFragments,
           [contributor.address, contributor.address, contributor.address],
           [tagSchemas, tagRows, tagData]
         )
@@ -652,7 +656,6 @@ describe("DatasetNFT", () => {
       await expect(
         DatasetNFT.connect(contributor).proposeManyFragments(
           datasetId,
-          fragmentIds,
           [contributor.address, contributor.address],
           [tagSchemas],
           proposeManySignature
@@ -708,27 +711,28 @@ describe("DatasetNFT", () => {
 
       const tag = utils.encodeTag("dataset.schemas");
 
+      const fragmentAddress = await DatasetNFT.fragments(datasetId);
+      const DatasetFragment = (await ethers.getContractAt(
+        "FragmentNFT",
+        fragmentAddress
+      )) as unknown as FragmentNFT;
+
+      const totalFragments = await DatasetFragment.totalFragments();
+
       const proposeSignature = await dtAdmin.signMessage(
         signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
           await DatasetNFT.getAddress(),
           datasetId,
-          fragmentId,
+          totalFragments + 1n,
           contributor.address,
           tag
         )
       );
 
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      );
-
       await expect(
         DatasetNFT.connect(contributor).proposeFragment(
           datasetId,
-          fragmentId,
           contributor.address,
           tag,
           proposeSignature
@@ -790,7 +794,6 @@ describe("DatasetNFT", () => {
       await expect(
         DatasetNFT.connect(contributor).proposeFragment(
           datasetId,
-          fragmentId,
           contributor.address,
           tag,
           proposeSignature

@@ -96,13 +96,21 @@ const setup = async () => {
 
   const tag = utils.encodeTag("dataset.schemas");
 
-  for (const fragmentId of fragmentIds) {
+  const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
+  const DatasetFragment = (await ethers.getContractAt(
+    "FragmentNFT",
+    fragmentAddress
+  )) as unknown as FragmentNFT;
+
+  for (const _ of [1, 1, 1]) {
+    const totalFragments = await DatasetFragment.totalFragments();
+
     const proposeSignatureSchemas = await dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
-        fragmentId,
+        totalFragments + 1n,
         contributor.address,
         tag
       )
@@ -110,7 +118,6 @@ const setup = async () => {
 
     await contracts.DatasetNFT.connect(contributor).proposeFragment(
       datasetId,
-      fragmentId,
       contributor.address,
       tag,
       proposeSignatureSchemas
