@@ -135,6 +135,39 @@ const setup = async () => {
 };
 
 describe("FragmentNFT", () => {
+  it("Should list pending fragment id from contributor propose", async function () {
+    const { datasetId, DatasetNFT } = await setup();
+    const { contributor } = await ethers.getNamedSigners();
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    expect(
+      await DatasetFragment.pendingFragmentOfOwnerByIndex(
+        contributor.address,
+        0
+      )
+    ).to.equal(1n);
+    expect(
+      await DatasetFragment.pendingFragmentOfOwnerByIndex(
+        contributor.address,
+        1
+      )
+    ).to.equal(2n);
+    expect(
+      await DatasetFragment.pendingFragmentOfOwnerByIndex(
+        contributor.address,
+        2
+      )
+    ).to.equal(3n);
+    expect(
+      (await DatasetFragment.pendingFragmentsOf(contributor.address)).length
+    ).to.equal(3);
+  });
+
   it("Should data set owner accept fragment propose", async function () {
     const { datasetId, fragmentId, DatasetNFT, AcceptManuallyVerifier } =
       await setup();
