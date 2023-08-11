@@ -36,6 +36,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     mapping(uint256 id => bytes32 tag) public tags;
     Snapshot[] internal snapshots;
     mapping(address account => uint256 lastUpdatedSnapshot) internal lastSnapshots;
+    mapping(address owner => uint256[] pendingFragments) internal _ownedPendingFragments;
 
     modifier onlyAdmin() {
         if (dataset.ownerOf(datasetId) != _msgSender())
@@ -125,6 +126,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address signer = ECDSA.recover(msgHash, signature);
         if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         pendingFragmentOwners[id] = to;
+        _ownedPendingFragments[to].push(id);
         tags[id] = tag;
         emit FragmentPending(id, tag);
 
@@ -154,6 +156,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             uint256 id = ++mintCounter;
             bytes32 tag = tags_[i];
             pendingFragmentOwners[id] = owners[i];
+            _ownedPendingFragments[owners[i]].push(id);
             tags[id] = tag;
             emit FragmentPending(id, tag);
 
@@ -168,17 +171,46 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         return mintCounter;
     }
 
+    function pendingFragmentsOf(address owner) external view returns (uint256[] memory) {
+        return _ownedPendingFragments[owner];
+    }
+
+    function pendingFragmentOfOwnerByIndex(address owner, uint256 index) external view returns (uint256) {
+        require(index < _ownedPendingFragments[owner].length, "Pending fragment index out of bounds");
+        return _ownedPendingFragments[owner][index];
+    }
+
+    function _removePendingFragmentFrom(address owner, uint256 id) internal {
+        uint256 totalPendingFragments = _ownedPendingFragments[owner].length;
+        uint256 targetIndex;
+        for (uint256 i; i < totalPendingFragments; i++) {
+            if (_ownedPendingFragments[owner][i] == id) {
+                targetIndex = i;
+                break;
+            }
+        }
+
+        for (uint256 i = targetIndex; i < totalPendingFragments - 1; i++) {
+            _ownedPendingFragments[owner][i] = _ownedPendingFragments[owner][i + 1];
+        }
+
+        _ownedPendingFragments[owner].pop();
+    }
+
     function accept(uint256 id) external onlyVerifierManager {
         address to = pendingFragmentOwners[id];
         require(!_exists(id) && to != address(0), "Not a pending fragment");
         delete pendingFragmentOwners[id];
+        _removePendingFragmentFrom(to, id);
         _safeMint(to, id);
         emit FragmentAccepted(id);
     }
 
     function reject(uint256 id) external onlyVerifierManager {
-        require(!_exists(id) && pendingFragmentOwners[id] != address(0), "Not a pending fragment");
+        address to = pendingFragmentOwners[id];
+        require(!_exists(id) && to != address(0), "Not a pending fragment");
         delete pendingFragmentOwners[id];
+        _removePendingFragmentFrom(to, id);
         delete tags[id];
         emit FragmentRejected(id);
     }
