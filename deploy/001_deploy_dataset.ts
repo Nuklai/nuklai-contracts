@@ -9,7 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { dtAdmin } = await getNamedAccounts();
 
-  console.log("DT admin: ", dtAdmin)
+  console.log("DT admin: ", dtAdmin);
 
   const deployedDataset = await deploy("DatasetNFT", {
     from: dtAdmin,
@@ -43,6 +43,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "DatasetNFT fragment implementation set successfully:",
     await dataset.fragmentImplementation()
   );
+
+  await hre.run("etherscan-verify");
 };
 
 export default func;

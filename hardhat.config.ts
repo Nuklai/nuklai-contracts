@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
@@ -21,10 +22,20 @@ const config: HardhatUserConfig = {
     goerli: {
       url: network.getNodeUrl("goerli"),
       accounts: network.getAccounts("goerli"),
+      verify: {
+        etherscan: {
+          apiKey: process.env.ETHERSCAN_API_KEY_GOERLI,
+        },
+      },
     },
     fuji: {
       url: network.getNodeUrl("fuji"),
       accounts: network.getAccounts("fuji"),
+      verify: {
+        etherscan: {
+          apiKey: process.env.ETHERSCAN_API_KEY_FUJI,
+        },
+      },
     },
   },
   namedAccounts: {

@@ -12,6 +12,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log("FragmentNFT deployed successfully at", deployedFragment.address);
+
+  await hre.run("etherscan-verify");
 };
 
 export default func;

@@ -27,6 +27,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     "AcceptAllVerifier deployed successfully at",
     deployedAcceptAllVerifier.address
   );
+
+  await hre.run("etherscan-verify");
 };
 
 export default func;
