@@ -6,7 +6,7 @@
   "scripts": {
     "build": "yarn hardhat compile",
     "typechain": "yarn hardhat typechain",
-    "test": "yarn build && yarn typechain && mocha 'tests/**/*.spec.ts'"
+    "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -21,6 +21,7 @@
     "@types/mocha": ">=9.1.0",
     "@types/uuid": "^9.0.2",
     "chai": "^4.2.0",
+    "cross-env": "^7.0.3",
     "dotenv": "^16.3.1",
     "ethers": "^6.6.4",
     "hardhat": "^2.17.0",
