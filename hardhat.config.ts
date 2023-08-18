@@ -3,6 +3,7 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@typechain/hardhat";
+import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import { network } from "./utils";
