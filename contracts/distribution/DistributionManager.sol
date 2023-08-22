@@ -28,6 +28,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     IDatasetNFT public dataset;
     uint256 public datasetId;
     IFragmentNFT public fragmentNFT;
+    uint256 public datasetDeployerFeeModel; // Defines type of
     uint256 public datasetOwnerPercentage; // 100% = 1e18
     Payment[] public payments;
     EnumerableMap.Bytes32ToUintMap internal tagWeights;
@@ -74,6 +75,15 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
     /**
+     * @notice Set percentage of each payment that should be sent to the Deployer
+     * @param percentage Percentage encoded in a way that 100% = 1e18
+     */
+    function setDeployerPercentage(uint256 percentage) external onlyDatasetOwner {
+        require(percentage <= 1e18, "Can't be higher than 100%");
+        datasetOwnerPercentage = percentage;
+    }
+
+    /**
      * @notice Called by SubscriptionManager to initiate payment
      * @dev if token is address(0) - native currency, the amount should match the msg.value
      * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender
@@ -88,20 +98,36 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         }
         uint256 snapshotId = fragmentNFT.snapshot();
         
-        uint256 ownerAmount = amount * datasetOwnerPercentage / 1e18;
-        _sendPayout(token, ownerAmount, dataset.ownerOf(datasetId));
+        // Deployer fee
+        uint256 deployerFee = amount * dataset.deployerFeePercentage(datasetId);
+        if(deployerFee > 0) {
+            address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
+            require(deployerFeeBeneficiary != address(0), "bad deployer fee beneficiary");
+            _sendPayout(token, deployerFee, deployerFeeBeneficiary);
+            amount = amount - deployerFee;
+        }
 
-        payments.push(Payment({
-            token: token,
-            distributionAmount: amount - ownerAmount,
-            snapshotId: snapshotId
-        }));
+        // Dataset owner fee
+        if(amount > 0) {
+            uint256 ownerAmount = amount * datasetOwnerPercentage / 1e18;
+            _sendPayout(token, ownerAmount, dataset.ownerOf(datasetId));
+            amount = amount - ownerAmount;
+        }
+
+        // Fragment contributors fee
+        if(amount > 0) {
+            payments.push(Payment({
+                token: token,
+                distributionAmount: amount,
+                snapshotId: snapshotId
+            }));
+        }
 
         emit PaymentReceived();
     }
 
     /**
-     * @notice Claim all payouts
+     * @notice Claim all payouts (for Fragment owners)
      */
     function claimPayouts() external {
         uint256 firstUnclaimedPayout = firstUnclaimed[_msgSender()];
@@ -149,4 +175,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             map.remove(keys[i]);
         }
     }
+
+
+
 }
