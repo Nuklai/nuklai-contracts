@@ -142,7 +142,14 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     /**
      * @notice Claim all payouts (for Fragment owners)
      */
-    function claimPayouts() external {
+    function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external {
+        // Validate signature
+        require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
+        bytes32 msgHash = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
+        address signer = ECDSA.recover(msgHash, signature);
+        if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
+
+        // Claim payouts
         uint256 firstUnclaimedPayout = firstUnclaimed[_msgSender()];
         if(firstUnclaimedPayout >= payments.length) return; // Nothing to claim
         address collectToken = payments[firstUnclaimedPayout].token;
@@ -210,6 +217,16 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             token,
             amount,
             beneficiary
+        ));
+    }
+
+    function _fragmentClaimMessageHash(address beneficiary, uint256 sigValidSince, uint256 sigValidTill) private view returns(bytes32) {
+        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
+            block.chainid,
+            address(this),
+            beneficiary,
+            sigValidSince,
+            sigValidTill
         ));
     }
 
