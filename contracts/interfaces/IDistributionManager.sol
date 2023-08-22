@@ -16,5 +16,5 @@ interface IDistributionManager is IDatasetLinkInitializable {
     /**
      * @notice Claim all payouts
      */
-    function claimPayouts() external;
+    function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external;
 }
