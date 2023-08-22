@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../interfaces/IDistributionManager.sol";
 import "../interfaces/IDatasetNFT.sol";
 import "../interfaces/IFragmentNFT.sol";
@@ -19,6 +20,8 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     event PaymentReceived();
     event PayoutSent(address indexed to, address token, uint256 amount);
 
+    error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
+
     struct Payment {
         address token;
         uint256 distributionAmount;
@@ -28,8 +31,9 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     IDatasetNFT public dataset;
     uint256 public datasetId;
     IFragmentNFT public fragmentNFT;
-    uint256 public datasetDeployerFeeModel; // Defines type of
-    uint256 public datasetOwnerPercentage; // 100% = 1e18
+    uint256 public datasetDeployerFeeModel;     // Defines type of
+    uint256 public datasetOwnerPercentage;      // 100% = 1e18
+    mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
     EnumerableMap.Bytes32ToUintMap internal tagWeights;
     mapping(address => uint256) internal firstUnclaimed;
@@ -110,7 +114,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         // Dataset owner fee
         if(amount > 0) {
             uint256 ownerAmount = amount * datasetOwnerPercentage / 1e18;
-            _sendPayout(token, ownerAmount, dataset.ownerOf(datasetId));
+            pendingOwnerFee[token] += ownerAmount;
             amount = amount - ownerAmount;
         }
 
@@ -124,6 +128,15 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         }
 
         emit PaymentReceived();
+    }
+
+    function claimDatasetOwnerPayouts(address token, uint256 amount, address beneficiary, bytes calldata signature) external onlyDatasetOwner {
+        require(pendingOwnerFee[token] >= amount, "not enough amount");
+        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary);
+        address signer = ECDSA.recover(msgHash, signature);
+        if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
+        pendingOwnerFee[token] -= amount;
+         _sendPayout(token, amount, beneficiary);
     }
 
     /**
@@ -190,5 +203,14 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
 
+    function _ownerClaimMessageHash(address token, uint256 amount, address beneficiary) private view returns(bytes32) {
+        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
+            block.chainid,
+            address(this),
+            token,
+            amount,
+            beneficiary
+        ));
+    }
 
 }
