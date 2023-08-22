@@ -29,11 +29,14 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
 
     address public fragmentImplementation;
+    address public deployerFeeBeneficiary;
     uint256 internal mintCounter;
     mapping(uint256 id => ManagersConfig config) public configurations;
     mapping(uint256 id => ManagersConfig proxy) public proxies;
     mapping(uint256 id => IFragmentNFT fragment) public fragments;
     mapping(uint256 => string) public uuids;
+    mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
+    mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
     modifier onlyTokenOwner(uint256 id) {
         if(_ownerOf(id) != _msgSender()) revert NOT_OWNER(id, _msgSender());
@@ -79,6 +82,26 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
         configurations[id] = config;
         emit ManagersConfigChange(id);
+    }
+
+
+    function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(models.length == percentages.length, "array length missmatch");
+        for(uint256 i; i < models.length; i++) {
+            DeployerFeeModel m = models[i];
+            require(uint8(m) != 0, "model 0 always has no fee");
+            uint256 p = percentages[i];
+            require(p <= 1e18, "percentage can not be more than 100%");
+            deployerFeeModelPercentage[m] = p;
+        }
+    }
+
+    function setDeployerFeeModel(uint256 datasetId, DeployerFeeModel model) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        deployerFeeModels[datasetId] = model;
+    }
+
+    function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        deployerFeeBeneficiary = deployerFeeBeneficiary_;
     }
 
     function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE){
@@ -128,6 +151,11 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
     function fragmentNFT(uint256 id) external view returns(address) {
         return address(fragments[id]);
+    }
+
+    function deployerFeePercentage(uint256 id) external view returns(uint256) {
+        DeployerFeeModel m = deployerFeeModels[id];
+        return deployerFeeModelPercentage[m];
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721, AccessControl) returns (bool) {

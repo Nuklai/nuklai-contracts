@@ -12,6 +12,14 @@ import "./IVerifierManager.sol";
  */
 interface IDatasetNFT is IERC721 {
 
+    // Defines the model for the deployer (ALlianceblock/Nexera) fee
+    enum DeployerFeeModel {
+        NO_FEE,                     // No Fee wii
+        DATASET_OWNER_STORAGE,      // Using Owner's Storage, 10% fee
+        DEPLOYER_STORAGE            // Deployer's Storage 35% fee
+    }
+
+
     struct ManagersConfig {
         address subscriptionManager;
         address distributionManager;
@@ -30,6 +38,9 @@ interface IDatasetNFT is IERC721 {
     function verifierManager(uint256 id) external view returns(address);
     function distributionManager(uint256 id) external view returns(address);
     function fragmentNFT(uint256 id) external view returns(address);
+    function deployerFeePercentage(uint256 id) external view returns(uint256);
+    function deployerFeeBeneficiary() external view returns(address);
 
     function isSigner(address account) external view returns(bool);
+
 }

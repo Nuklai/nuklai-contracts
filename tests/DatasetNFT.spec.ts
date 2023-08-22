@@ -1,9 +1,9 @@
 import { expect } from "chai";
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { DatasetNFT, FragmentNFT } from "@typechained";
-import { getBytes, ZeroAddress, ZeroHash } from "ethers";
+import { getBytes, parseUnits, ZeroAddress, ZeroHash } from "ethers";
 import { v4 as uuidv4 } from "uuid";
-import { signature, utils } from "./utils";
+import { constants, signature, utils } from "./utils";
 
 async function setup() {
   await deployments.fixture(["DatasetNFT"]);
@@ -102,6 +102,63 @@ describe("DatasetNFT", () => {
     const { DatasetNFT } = await setup();
     const { dtAdmin } = await getNamedAccounts();
     expect(await DatasetNFT.isSigner(dtAdmin)).to.be.true;
+  });
+
+  it("Should DT admin set a deployer beneficiary for fees", async function () {
+    const { DatasetNFT } = await setup();
+    const { dtAdmin } = await ethers.getNamedSigners();
+
+    await DatasetNFT.connect(dtAdmin).setDeployerFeeBeneficiary(
+      dtAdmin.address
+    );
+
+    expect(await DatasetNFT.deployerFeeBeneficiary()).to.equal(dtAdmin.address);
+  });
+
+  it("Should DT admin set fee model percentage for deployer", async function () {
+    const { DatasetNFT } = await setup();
+    const { dtAdmin } = await ethers.getNamedSigners();
+
+    const percentage = parseUnits("0.35", 18);
+
+    await DatasetNFT.connect(dtAdmin).setDeployerFeeModelPercentages(
+      [constants.DeployerFeeModel.DEPLOYER_STORAGE],
+      [percentage]
+    );
+
+    expect(
+      await DatasetNFT.deployerFeeModelPercentage(
+        constants.DeployerFeeModel.DEPLOYER_STORAGE
+      )
+    ).to.equal(percentage);
+  });
+
+  it("Should DT admin set fee model percentage for data set owners", async function () {
+    const { DatasetNFT } = await setup();
+    const { dtAdmin } = await ethers.getNamedSigners();
+
+    const percentage = parseUnits("0.1", 18);
+
+    await DatasetNFT.connect(dtAdmin).setDeployerFeeModelPercentages(
+      [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
+      [percentage]
+    );
+
+    expect(
+      await DatasetNFT.deployerFeeModelPercentage(
+        constants.DeployerFeeModel.DATASET_OWNER_STORAGE
+      )
+    ).to.equal(percentage);
+  });
+
+  it("Should fee model percentage NO_FEE be zero", async function () {
+    const { DatasetNFT } = await setup();
+
+    expect(
+      await DatasetNFT.deployerFeeModelPercentage(
+        constants.DeployerFeeModel.NO_FEE
+      )
+    ).to.equal(0);
   });
 
   it("Should first DT admin set UUID before data set owner mints the data set", async function () {
