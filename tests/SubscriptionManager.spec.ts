@@ -12,6 +12,7 @@ import { MaxUint256, parseUnits } from "ethers";
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { constants, signature } from "./utils";
+import { getTestTokenContract } from "./utils/contracts";
 
 const setup = async () => {
   await deployments.fixture(["DatasetNFT"]);
@@ -110,14 +111,9 @@ const setupOnSubscribe = async () => {
     await setup();
   const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
-  const DeployedToken = await deployments.deploy("TestToken", {
-    from: subscriber.address,
+  const Token = await getTestTokenContract(subscriber, {
+    mint: parseUnits("100000000", 18),
   });
-
-  const Token = (await ethers.getContractAt(
-    "TestToken",
-    DeployedToken.address
-  )) as unknown as TestToken;
 
   await Token.connect(subscriber).approve(
     await DatasetSubscriptionManager.getAddress(),
@@ -135,7 +131,7 @@ const setupOnSubscribe = async () => {
   const feeAmount = parseUnits("0.0000001", 18);
 
   await DatasetSubscriptionManager.connect(datasetOwner).setFee(
-    DeployedToken.address,
+    await Token.getAddress(),
     feeAmount
   );
 
@@ -226,14 +222,11 @@ describe("SubscriptionManager", () => {
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
-    const DeployedToken = await deployments.deploy("TestToken", {
-      from: subscriber.address,
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
     });
 
-    const Token = (await ethers.getContractAt(
-      "TestToken",
-      DeployedToken.address
-    )) as unknown as TestToken;
+    const tokenAddress = await Token.getAddress();
 
     await Token.connect(subscriber).approve(
       await DatasetSubscriptionManager.getAddress(),
@@ -247,7 +240,7 @@ describe("SubscriptionManager", () => {
     const feeAmount = parseUnits("0.0000001", 18);
 
     await DatasetSubscriptionManager.connect(datasetOwner).setFee(
-      DeployedToken.address,
+      tokenAddress,
       feeAmount
     );
 
@@ -262,11 +255,7 @@ describe("SubscriptionManager", () => {
       )
     )
       .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(
-        datasetOwner.address,
-        DeployedToken.address,
-        parseUnits("0.0000864", 18)
-      )
+      .withArgs(datasetOwner.address, tokenAddress, parseUnits("0.0000864", 18))
       .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
   });
 
@@ -278,14 +267,11 @@ describe("SubscriptionManager", () => {
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
-    const DeployedToken = await deployments.deploy("TestToken", {
-      from: subscriber.address,
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
     });
 
-    const Token = (await ethers.getContractAt(
-      "TestToken",
-      DeployedToken.address
-    )) as unknown as TestToken;
+    const tokenAddress = await Token.getAddress();
 
     await Token.connect(subscriber).approve(
       await DatasetSubscriptionManager.getAddress(),
@@ -299,7 +285,7 @@ describe("SubscriptionManager", () => {
     const feeAmount = parseUnits("0.0000001", 18);
 
     await DatasetSubscriptionManager.connect(datasetOwner).setFee(
-      DeployedToken.address,
+      tokenAddress,
       feeAmount
     );
 
@@ -314,11 +300,7 @@ describe("SubscriptionManager", () => {
       )
     )
       .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(
-        datasetOwner.address,
-        DeployedToken.address,
-        parseUnits("0.0000864", 18)
-      )
+      .withArgs(datasetOwner.address, tokenAddress, parseUnits("0.0000864", 18))
       .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
 
     expect(
@@ -337,14 +319,9 @@ describe("SubscriptionManager", () => {
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
-    const DeployedToken = await deployments.deploy("TestToken", {
-      from: subscriber.address,
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
     });
-
-    const Token = (await ethers.getContractAt(
-      "TestToken",
-      DeployedToken.address
-    )) as unknown as TestToken;
 
     await Token.connect(subscriber).approve(
       await DatasetSubscriptionManager.getAddress(),
@@ -358,7 +335,7 @@ describe("SubscriptionManager", () => {
     const feeAmount = parseUnits("0.0000001", 18);
 
     await DatasetSubscriptionManager.connect(datasetOwner).setFee(
-      DeployedToken.address,
+      await Token.getAddress(),
       feeAmount
     );
 
