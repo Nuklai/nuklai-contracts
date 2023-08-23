@@ -315,7 +315,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart = Date.now();
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
     await DatasetSubscriptionManager.connect(subscriber).subscribe(
       datasetId,
@@ -439,7 +440,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart = Date.now();
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
     await DatasetSubscriptionManager.connect(subscriber).subscribe(
       datasetId,
@@ -561,7 +563,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart = Date.now();
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
     await DatasetSubscriptionManager.connect(subscriber).subscribe(
       datasetId,
