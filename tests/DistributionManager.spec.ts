@@ -7,11 +7,12 @@ import {
   TestToken,
   VerifierManager,
 } from "@typechained";
-import { MaxUint256, parseUnits } from "ethers";
+import { MaxUint256, Result, parseUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { expect } from "chai";
 import { v4 as uuidv4 } from "uuid";
 import { constants, signature, utils } from "./utils";
+import { getEvent } from "./utils/events";
 
 const setup = async () => {
   await deployments.fixture(["DatasetNFT"]);
@@ -105,14 +106,14 @@ const setup = async () => {
     "FragmentNFT",
     fragmentAddress
   )) as unknown as FragmentNFT;
-  const totalFragments = await DatasetFragment.totalFragments();
+  const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
 
   const proposeSignatureSchemas = await dtAdmin.signMessage(
     signature.getDatasetFragmentProposeMessage(
       network.config.chainId!,
       await contracts.DatasetNFT.getAddress(),
       datasetId,
-      totalFragments + 1n,
+      lastFragmentPendingId + 1n,
       datasetOwner.address,
       datasetSchemasTag
     )
@@ -130,14 +131,9 @@ const setup = async () => {
     await DeployedAcceptManuallyVerifier.getAddress()
   )) as unknown as AcceptManuallyVerifier;
 
-  const pendingFragmentId = await DatasetFragment.pendingFragmentOfOwnerByIndex(
-    datasetOwner.address,
-    0
-  );
-
   await AcceptManuallyVerifier.connect(datasetOwner).resolve(
     fragmentAddress,
-    pendingFragmentId,
+    lastFragmentPendingId + 1n,
     true
   );
 
@@ -257,14 +253,15 @@ describe("DistributionManager", () => {
       fragmentAddress
     )) as unknown as FragmentNFT;
 
-    const totalFragments = await DatasetFragment.totalFragments();
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
     const proposeSignatureSchemas = await dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         await DatasetNFT.getAddress(),
         datasetId,
-        totalFragments + 1n,
+        nextPendingFragmentId,
         contributor.address,
         datasetSchemasTag
       )
@@ -284,15 +281,9 @@ describe("DistributionManager", () => {
       await DeployedAcceptManuallyVerifier.getAddress()
     )) as unknown as AcceptManuallyVerifier;
 
-    const pendingFragmentId =
-      await DatasetFragment.pendingFragmentOfOwnerByIndex(
-        contributor.address,
-        0
-      );
-
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
-      pendingFragmentId,
+      nextPendingFragmentId,
       true
     );
 
@@ -382,14 +373,15 @@ describe("DistributionManager", () => {
       fragmentAddress
     )) as unknown as FragmentNFT;
 
-    const totalFragments = await DatasetFragment.totalFragments();
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
     const proposeSignatureSchemas = await dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         await DatasetNFT.getAddress(),
         datasetId,
-        totalFragments + 1n,
+        nextPendingFragmentId,
         contributor.address,
         datasetSchemasTag
       )
@@ -409,15 +401,9 @@ describe("DistributionManager", () => {
       await DeployedAcceptManuallyVerifier.getAddress()
     )) as unknown as AcceptManuallyVerifier;
 
-    const pendingFragmentId =
-      await DatasetFragment.pendingFragmentOfOwnerByIndex(
-        contributor.address,
-        0
-      );
-
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
-      pendingFragmentId,
+      nextPendingFragmentId,
       true
     );
 
@@ -497,14 +483,15 @@ describe("DistributionManager", () => {
       fragmentAddress
     )) as unknown as FragmentNFT;
 
-    const totalFragments = await DatasetFragment.totalFragments();
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
     const proposeSignatureSchemas = await dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         await DatasetNFT.getAddress(),
         datasetId,
-        totalFragments + 1n,
+        nextPendingFragmentId,
         contributor.address,
         datasetSchemasTag
       )
@@ -524,15 +511,9 @@ describe("DistributionManager", () => {
       await DeployedAcceptManuallyVerifier.getAddress()
     )) as unknown as AcceptManuallyVerifier;
 
-    const pendingFragmentId =
-      await DatasetFragment.pendingFragmentOfOwnerByIndex(
-        contributor.address,
-        0
-      );
-
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
-      pendingFragmentId,
+      nextPendingFragmentId,
       true
     );
 
