@@ -253,10 +253,7 @@ describe("SubscriptionManager", () => {
         constants.ONE_DAY,
         1
       )
-    )
-      .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(datasetOwner.address, tokenAddress, parseUnits("0.0000864", 18))
-      .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+    ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
   });
 
   it("Should retrieve subscription id after subscription is paid", async function () {
@@ -298,10 +295,7 @@ describe("SubscriptionManager", () => {
         constants.ONE_DAY,
         1
       )
-    )
-      .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(datasetOwner.address, tokenAddress, parseUnits("0.0000864", 18))
-      .to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+    ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
 
     expect(
       await DatasetSubscriptionManager.tokenOfOwnerByIndex(

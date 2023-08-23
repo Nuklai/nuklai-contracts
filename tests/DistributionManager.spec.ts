@@ -7,7 +7,7 @@ import {
   TestToken,
   VerifierManager,
 } from "@typechained";
-import { MaxUint256, Result, parseUnits } from "ethers";
+import { MaxUint256, Result, formatUnits, parseUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { expect } from "chai";
 import { v4 as uuidv4 } from "uuid";
@@ -324,19 +324,30 @@ describe("DistributionManager", () => {
       1
     );
 
-    await expect(DatasetDistributionManager.connect(contributor).claimPayouts())
-      .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(contributor.address, tokenAddress, parseUnits("12083.904", 18));
+    const claimableAmount = await DatasetDistributionManager.pendingOwnerFee(
+      tokenAddress
+    );
+
+    const claimDatasetOwnerSignature = await dtAdmin.signMessage(
+      signature.getDatasetOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager.getAddress(),
+        tokenAddress,
+        claimableAmount,
+        datasetOwner.address
+      )
+    );
 
     await expect(
-      DatasetDistributionManager.connect(datasetOwner).claimPayouts()
+      DatasetDistributionManager.connect(datasetOwner).claimDatasetOwnerPayouts(
+        tokenAddress,
+        claimableAmount,
+        datasetOwner.address,
+        claimDatasetOwnerSignature
+      )
     )
       .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(
-        datasetOwner.address,
-        tokenAddress,
-        parseUnits("12083.904", 18)
-      );
+      .withArgs(datasetOwner.address, tokenAddress, parseUnits("60.48", 18));
   });
 
   it("Should contributor claim revenue", async function () {
@@ -437,7 +448,26 @@ describe("DistributionManager", () => {
       1
     );
 
-    await expect(DatasetDistributionManager.connect(contributor).claimPayouts())
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+    const validTill = validSince + constants.ONE_DAY;
+    const fragmentOwnerSignature = await dtAdmin.signMessage(
+      signature.getFragmentOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager.getAddress(),
+        contributor.address,
+        BigInt(validSince),
+        BigInt(validTill)
+      )
+    );
+
+    await expect(
+      DatasetDistributionManager.connect(contributor).claimPayouts(
+        validSince,
+        validTill,
+        fragmentOwnerSignature
+      )
+    )
       .to.emit(DatasetDistributionManager, "PayoutSent")
       .withArgs(contributor.address, tokenAddress, parseUnits("12083.904", 18));
   });

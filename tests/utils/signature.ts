@@ -45,3 +45,39 @@ export const getDatasetFragmentProposeBatchMessage = (
 
   return getBytes(proposeMessage);
 };
+
+export const getDatasetOwnerClaimMessage = (
+  chainId: number,
+  distributionAddress: AddressLike,
+  token: AddressLike,
+  amount: bigint,
+  beneficiary: AddressLike
+): Uint8Array => {
+  const datasetOwnerClaimMessage = solidityPacked(
+    ["uint256", "address", "address", "uint256", "address"],
+    [chainId, distributionAddress, token, amount, beneficiary]
+  );
+
+  return getBytes(datasetOwnerClaimMessage);
+};
+
+export const getFragmentOwnerClaimMessage = (
+  chainId: number,
+  distributionAddress: AddressLike,
+  beneficiary: AddressLike,
+  signatureValidSince: bigint,
+  signatureValidTill: bigint
+): Uint8Array => {
+  const datasetOwnerClaimMessage = solidityPacked(
+    ["uint256", "address", "address", "uint256", "uint256"],
+    [
+      chainId,
+      distributionAddress,
+      beneficiary,
+      signatureValidSince,
+      signatureValidTill,
+    ]
+  );
+
+  return getBytes(datasetOwnerClaimMessage);
+};
