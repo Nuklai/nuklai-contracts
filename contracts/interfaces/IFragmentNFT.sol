@@ -26,7 +26,7 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
      */
     function proposeMany(address[] memory owners, bytes32[] memory tags_, bytes calldata signature) external;
 
-    function totalFragments() external view returns(uint256);
+    function lastFragmentPendingId() external view returns(uint256);
 
     /**
      * @notice Approve fragment as verified
