@@ -31,7 +31,6 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     IDatasetNFT public dataset;
     uint256 public datasetId;
     IFragmentNFT public fragmentNFT;
-    uint256 public datasetDeployerFeeModel;     // Defines type of
     uint256 public datasetOwnerPercentage;      // 100% = 1e18
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
@@ -74,15 +73,6 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param percentage Percentage encoded in a way that 100% = 1e18
      */
     function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
-        require(percentage <= 1e18, "Can't be higher than 100%");
-        datasetOwnerPercentage = percentage;
-    }
-
-    /**
-     * @notice Set percentage of each payment that should be sent to the Deployer
-     * @param percentage Percentage encoded in a way that 100% = 1e18
-     */
-    function setDeployerPercentage(uint256 percentage) external onlyDatasetOwner {
         require(percentage <= 1e18, "Can't be higher than 100%");
         datasetOwnerPercentage = percentage;
     }
