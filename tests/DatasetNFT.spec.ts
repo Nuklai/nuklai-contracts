@@ -151,6 +151,36 @@ describe("DatasetNFT", () => {
     ).to.equal(percentage);
   });
 
+  it("Should revert set deployer fee model percentage if goes over 100%", async function () {
+    const { DatasetNFT } = await setup();
+    const { dtAdmin } = await ethers.getNamedSigners();
+
+    const percentage = parseUnits("1.1", 18);
+
+    await expect(
+      DatasetNFT.connect(dtAdmin).setDeployerFeeModelPercentages(
+        [constants.DeployerFeeModel.DEPLOYER_STORAGE],
+        [percentage]
+      )
+    ).to.be.revertedWith("percentage can not be more than 100%");
+  });
+
+  it("Should revert set deployer fee model percentage if not DT admin", async function () {
+    const { DatasetNFT } = await setup();
+    const { user } = await ethers.getNamedSigners();
+
+    const percentage = parseUnits("1", 18);
+
+    await expect(
+      DatasetNFT.connect(user).setDeployerFeeModelPercentages(
+        [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
+        [percentage]
+      )
+    ).to.be.revertedWith(
+      `AccessControl: account ${user.address.toLowerCase()} is missing role ${ZeroHash}`
+    );
+  });
+
   it("Should fee model percentage NO_FEE be zero", async function () {
     const { DatasetNFT } = await setup();
 
@@ -271,7 +301,6 @@ describe("DatasetNFT", () => {
   it("Should revert mint dataset if DT admin signature is wrong", async function () {
     const { DatasetNFT } = await setup();
     const { datasetOwner, dtAdmin } = await ethers.getNamedSigners();
-    const datasetId = 1;
 
     const signedMessage = await datasetOwner.signMessage(getBytes("0x"));
 
