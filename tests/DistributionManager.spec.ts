@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { constants, signature, utils } from "./utils";
 import { getEvent } from "./utils/events";
 import { getTestTokenContract } from "./utils/contracts";
+import { time } from "@nomicfoundation/hardhat-network-helpers";
 
 const setup = async () => {
   await deployments.fixture(["DatasetNFT"]);
@@ -351,7 +352,248 @@ describe("DistributionManager", () => {
       .withArgs(datasetOwner.address, tokenAddress, parseUnits("60.48", 18));
   });
 
-  it("Should contributor claim revenue", async function () {
+  it("Should revert claim revenue if it's not the data set owner", async function () {
+    const {
+      DatasetDistributionManager,
+      DatasetSubscriptionManager,
+      DatasetVerifierManager,
+      AcceptManuallyVerifierFactory,
+      DatasetNFT,
+      datasetId,
+    } = await setup();
+    const { datasetOwner, dtAdmin, contributor, subscriber } =
+      await ethers.getNamedSigners();
+
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
+
+    const DeployedAcceptManuallyVerifier =
+      await AcceptManuallyVerifierFactory.connect(datasetOwner).deploy();
+
+    DatasetVerifierManager.setDefaultVerifier(
+      await DeployedAcceptManuallyVerifier.getAddress()
+    );
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
+
+    const proposeSignatureSchemas = await dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT.getAddress(),
+        datasetId,
+        nextPendingFragmentId,
+        contributor.address,
+        datasetSchemasTag
+      )
+    );
+
+    await DatasetNFT.connect(contributor).proposeFragment(
+      datasetId,
+      contributor.address,
+      datasetSchemasTag,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
+
+    const AcceptManuallyVerifier = (await ethers.getContractAt(
+      "AcceptManuallyVerifier",
+      await DeployedAcceptManuallyVerifier.getAddress()
+    )) as unknown as AcceptManuallyVerifier;
+
+    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      datasetFragmentAddress,
+      nextPendingFragmentId,
+      true
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
+    });
+
+    const tokenAddress = await Token.getAddress();
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+
+    const feeAmount = parseUnits("0.1", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager.connect(subscriber).subscribe(
+      datasetId,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    const claimableAmount = await DatasetDistributionManager.pendingOwnerFee(
+      tokenAddress
+    );
+
+    const claimDatasetOwnerSignature = await dtAdmin.signMessage(
+      signature.getDatasetOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager.getAddress(),
+        tokenAddress,
+        claimableAmount,
+        contributor.address
+      )
+    );
+
+    await expect(
+      DatasetDistributionManager.connect(contributor).claimDatasetOwnerPayouts(
+        tokenAddress,
+        claimableAmount,
+        contributor.address,
+        claimDatasetOwnerSignature
+      )
+    ).to.be.revertedWith("Not a Dataset owner");
+  });
+
+  it("Should revert data set owner from claiming revenue if signature is wrong", async function () {
+    const {
+      DatasetDistributionManager,
+      DatasetSubscriptionManager,
+      DatasetVerifierManager,
+      AcceptManuallyVerifierFactory,
+      DatasetNFT,
+      datasetId,
+    } = await setup();
+    const { datasetOwner, dtAdmin, contributor, subscriber } =
+      await ethers.getNamedSigners();
+
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
+
+    const DeployedAcceptManuallyVerifier =
+      await AcceptManuallyVerifierFactory.connect(datasetOwner).deploy();
+
+    DatasetVerifierManager.setDefaultVerifier(
+      await DeployedAcceptManuallyVerifier.getAddress()
+    );
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
+
+    const proposeSignatureSchemas = await dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT.getAddress(),
+        datasetId,
+        nextPendingFragmentId,
+        contributor.address,
+        datasetSchemasTag
+      )
+    );
+
+    await DatasetNFT.connect(contributor).proposeFragment(
+      datasetId,
+      contributor.address,
+      datasetSchemasTag,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
+
+    const AcceptManuallyVerifier = (await ethers.getContractAt(
+      "AcceptManuallyVerifier",
+      await DeployedAcceptManuallyVerifier.getAddress()
+    )) as unknown as AcceptManuallyVerifier;
+
+    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      datasetFragmentAddress,
+      nextPendingFragmentId,
+      true
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
+    });
+
+    const tokenAddress = await Token.getAddress();
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+
+    const feeAmount = parseUnits("0.1", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager.connect(subscriber).subscribe(
+      datasetId,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    const claimableAmount = await DatasetDistributionManager.pendingOwnerFee(
+      tokenAddress
+    );
+
+    const claimDatasetOwnerSignature = await dtAdmin.signMessage("0x");
+
+    await expect(
+      DatasetDistributionManager.connect(datasetOwner).claimDatasetOwnerPayouts(
+        tokenAddress,
+        claimableAmount,
+        dtAdmin.address,
+        claimDatasetOwnerSignature
+      )
+    ).to.be.revertedWithCustomError(
+      DatasetDistributionManager,
+      "BAD_SIGNATURE"
+    );
+  });
+
+  it("Should contributor claim revenue after two weeks", async function () {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
@@ -451,7 +693,136 @@ describe("DistributionManager", () => {
     );
 
     const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+    const fragmentOwnerSignature = await dtAdmin.signMessage(
+      signature.getFragmentOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager.getAddress(),
+        contributor.address,
+        BigInt(validSince),
+        BigInt(validTill)
+      )
+    );
+
+    await time.increase(constants.ONE_WEEK * 2);
+
+    await expect(
+      DatasetDistributionManager.connect(contributor).claimPayouts(
+        validSince,
+        validTill,
+        fragmentOwnerSignature
+      )
+    )
+      .to.emit(DatasetDistributionManager, "PayoutSent")
+      .withArgs(contributor.address, tokenAddress, parseUnits("12083.904", 18));
+  });
+
+  it("Should revert if contributor claims revenue before two weeks", async function () {
+    const {
+      DatasetDistributionManager,
+      DatasetSubscriptionManager,
+      DatasetVerifierManager,
+      AcceptManuallyVerifierFactory,
+      DatasetNFT,
+      datasetId,
+    } = await setup();
+    const { datasetOwner, dtAdmin, contributor, subscriber } =
+      await ethers.getNamedSigners();
+
+    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
+    const datasetRowsTag = utils.encodeTag("dataset.rows");
+
+    const DeployedAcceptManuallyVerifier =
+      await AcceptManuallyVerifierFactory.connect(datasetOwner).deploy();
+
+    DatasetVerifierManager.setDefaultVerifier(
+      await DeployedAcceptManuallyVerifier.getAddress()
+    );
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = (await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    )) as unknown as FragmentNFT;
+
+    const nextPendingFragmentId =
+      (await DatasetFragment.lastFragmentPendingId()) + 1n;
+
+    const proposeSignatureSchemas = await dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT.getAddress(),
+        datasetId,
+        nextPendingFragmentId,
+        contributor.address,
+        datasetSchemasTag
+      )
+    );
+
+    await DatasetNFT.connect(contributor).proposeFragment(
+      datasetId,
+      contributor.address,
+      datasetSchemasTag,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
+
+    const AcceptManuallyVerifier = (await ethers.getContractAt(
+      "AcceptManuallyVerifier",
+      await DeployedAcceptManuallyVerifier.getAddress()
+    )) as unknown as AcceptManuallyVerifier;
+
+    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      datasetFragmentAddress,
+      nextPendingFragmentId,
+      true
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
+    });
+
+    const tokenAddress = await Token.getAddress();
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [datasetSchemasTag, datasetRowsTag],
+      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+    );
+
+    const feeAmount = parseUnits("0.1", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    const subscriptionStart =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager.connect(subscriber).subscribe(
+      datasetId,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await dtAdmin.signMessage(
       signature.getFragmentOwnerClaimMessage(
@@ -469,9 +840,7 @@ describe("DistributionManager", () => {
         validTill,
         fragmentOwnerSignature
       )
-    )
-      .to.emit(DatasetDistributionManager, "PayoutSent")
-      .withArgs(contributor.address, tokenAddress, parseUnits("12083.904", 18));
+    ).to.be.revertedWith("signature overdue");
   });
 
   it("Should calculate contributor payout before claiming", async function () {
