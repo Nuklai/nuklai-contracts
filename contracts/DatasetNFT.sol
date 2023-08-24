@@ -27,7 +27,6 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     event FragmentInstanceDeployement(uint256 id, address instance);
     event DatasetUuidSet(string uuid, uint256 ds);
 
-
     address public fragmentImplementation;
     address public deployerFeeBeneficiary;
     uint256 internal mintCounter;
@@ -84,7 +83,6 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         emit ManagersConfigChange(id);
     }
 
-
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(models.length == percentages.length, "array length missmatch");
         for(uint256 i; i < models.length; i++) {
@@ -135,7 +133,6 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         fragmentInstance.proposeMany(owners, tags, signature);
     }
 
-
     function isSigner(address account) external view returns(bool) {
         return hasRole(SIGNER_ROLE, account);
     }
@@ -167,8 +164,6 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         proxy = Clones.clone(implementation);
         IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
     }
-
-
 
     function _mintMessageHash(uint256 id, address to) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(

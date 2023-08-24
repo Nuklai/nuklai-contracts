@@ -21,11 +21,9 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
         _;
     }
 
-
     constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
         _disableInitializers();
     }
-
 
     function initialize(address dataset_, uint256 datasetId_) external initializer() {
         __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
@@ -57,5 +55,4 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
         token.approve(distributionManager, amount);
         IDistributionManager(distributionManager).receivePayment(address(token), amount);
     }
-
 }
