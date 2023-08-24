@@ -15,7 +15,7 @@ import "./interfaces/IDatasetNFT.sol";
 import "./interfaces/IFragmentNFT.sol";
 
 contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
-    string private constant NAME = "AllianceBlock DataTunel Dataset";
+    string private constant NAME = "AllianceBlock DataTunnel Dataset";
     string private constant SYMBOL = "ABDTDS";
 
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");

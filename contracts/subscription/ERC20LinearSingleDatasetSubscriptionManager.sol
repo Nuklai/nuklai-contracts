@@ -10,7 +10,7 @@ import "./GenericSingleDatasetSubscriptionManager.sol";
 contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
 
-    string internal constant TOKEN_NAME = "DataTunel Subscription";
+    string internal constant TOKEN_NAME = "DataTunnel Subscription";
     string internal constant TOKEN_SYMBOL = "DTSUB";
 
     IERC20 public token;

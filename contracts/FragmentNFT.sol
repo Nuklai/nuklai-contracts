@@ -12,7 +12,7 @@ import "./interfaces/IVerifierManager.sol";
 contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
 
-    string private constant NAME = "AllianceBlock DataTunel Fragment";
+    string private constant NAME = "AllianceBlock DataTunnel Fragment";
     string private constant SYMBOL = "ABDTF";
 
     event FragmentPending(uint256 id, bytes32 tag);
