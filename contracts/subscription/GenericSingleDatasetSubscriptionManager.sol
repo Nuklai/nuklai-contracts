@@ -10,7 +10,6 @@ import "../interfaces/IDatasetNFT.sol";
 abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, ERC721Enumerable {
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
-    
 
     event SubscriptionPaid(uint256 id, uint256 validSince, uint256 validTill, uint256 paidConsumers);
     event ConsumerAdded(uint256 id, address consumer);
@@ -26,14 +25,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         EnumerableSet.AddressSet consumers;
     }
 
-
     IDatasetNFT public dataset;
     uint256 public datasetId;
     uint256 internal mintCounter;
 
     mapping(uint256 id => SubscriptionDetails) internal subscriptions;
-    mapping(address consumer => EnumerableSet.UintSet subscriptions) internal consumerSupscribsions;
-
+    mapping(address consumer => EnumerableSet.UintSet subscriptions) internal consumerSubscriptions;
 
     modifier onlySubscriptionOwner(uint256 subscription) {
         require(ownerOf(subscription) == _msgSender(), "Not a subscription owner");
@@ -69,7 +66,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      */
     function isSubscriptionPaidFor(uint256 ds, address consumer) external view returns(bool) {
         _requireCorrectDataset(ds);
-        EnumerableSet.UintSet storage subscrs = consumerSupscribsions[consumer];
+        EnumerableSet.UintSet storage subscrs = consumerSubscriptions[consumer];
         for(uint256 i; i < subscrs.length(); i++){
             uint256 sid = subscrs.at(i);
             if(subscriptions[sid].validTill > block.timestamp) return true;
@@ -171,7 +168,6 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         emit SubscriptionPaid(subscription, sd.validSince, sd.validTill, sd.paidConsumers);
     }
 
-
     function addConsumers(uint256 subscription, address[] calldata consumers) external onlySubscriptionOwner(subscription) {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
@@ -180,7 +176,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
             address consumer = consumers[i];
             bool added = sd.consumers.add(consumer);
             if(added) {
-                consumerSupscribsions[consumer].add(subscription);
+                consumerSubscriptions[consumer].add(subscription);
             }
         }
     }
@@ -198,11 +194,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
             address consumer = consumers[i];
             bool removed = sd.consumers.remove(consumer);
             if(removed) {
-                consumerSupscribsions[consumer].remove(subscription);
+                consumerSubscriptions[consumer].remove(subscription);
             }
         }
     }
-
 
     function replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) external onlySubscriptionOwner(subscription) {
         _requireMinted(subscription);
@@ -212,7 +207,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
             address consumer = oldConsumers[i];
             bool removed = sd.consumers.remove(consumer);
             if(removed) {
-                consumerSupscribsions[consumer].remove(subscription);
+                consumerSubscriptions[consumer].remove(subscription);
             } else {
                 // Should revert because otherwise we can exeed paidConsumers limit
                 revert CONSUMER_NOT_FOUND(subscription, consumer);
@@ -220,12 +215,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
             consumer = newConsumers[i];
             bool added = sd.consumers.add(consumer);
             if(added) {
-                consumerSupscribsions[consumer].add(subscription);
+                consumerSubscriptions[consumer].add(subscription);
             }            
         }
     }
-
-
 
     function _requireCorrectDataset(uint256 _datasetId) internal view {
         if(datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
