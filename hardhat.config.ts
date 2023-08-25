@@ -9,6 +9,9 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import { network } from "./utils";
 
+import "./tasks/set_deployer_fee_model_percentage";
+import "./tasks/set_deployer_fee_beneficiary";
+
 const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.18",

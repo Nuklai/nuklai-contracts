@@ -3,7 +3,8 @@ import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { DatasetNFT, FragmentNFT } from "@typechained";
 import { getBytes, parseUnits, ZeroAddress, ZeroHash } from "ethers";
 import { v4 as uuidv4 } from "uuid";
-import { constants, signature, utils } from "./utils";
+import { signature, utils } from "./utils";
+import { constants } from "../utils";
 
 async function setup() {
   await deployments.fixture(["DatasetNFT"]);
@@ -83,7 +84,9 @@ const setupOnMint = async () => {
 describe("DatasetNFT", () => {
   it("Should dataset name be set on deploy", async function () {
     const { DatasetNFT } = await setup();
-    expect(await DatasetNFT.name()).to.equal("AllianceBlock DataTunel Dataset");
+    expect(await DatasetNFT.name()).to.equal(
+      "AllianceBlock DataTunnel Dataset"
+    );
   });
 
   it("Should dataset symbol be set on deploy", async function () {
