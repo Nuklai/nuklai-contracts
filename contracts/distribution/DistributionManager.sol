@@ -35,7 +35,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     uint256 public datasetOwnerPercentage;      // 100% = 1e18
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
-    EnumerableMap.Bytes32ToUintMap[] internal verisonedTagWeights;
+    EnumerableMap.Bytes32ToUintMap[] internal versionedTagWeights;
     mapping(address => uint256) internal firstUnclaimed;
 
     modifier onlyDatasetOwner() {
@@ -60,7 +60,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param weights weights of the tags
      */
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
-        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights.push();
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
         uint256 weightSumm;
         for(uint256 i; i < weights.length; i++) {
             weightSumm += weights[i];
@@ -115,7 +115,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
                 token: token,
                 distributionAmount: amount,
                 snapshotId: snapshotId,
-                tagWeightsVersion: verisonedTagWeights.length-1
+                tagWeightsVersion: versionedTagWeights.length-1
             }));
         }
 
@@ -175,7 +175,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
 
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
         uint256 paymentAmount = p.distributionAmount;
-        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights[p.tagWeightsVersion];
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[p.tagWeightsVersion];
         bytes32[] memory tags = tagWeights.keys();
         uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
         for(uint256 i; i < tags.length; i++) {
