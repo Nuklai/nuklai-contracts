@@ -86,7 +86,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param amount Payment amount
      */
     function receivePayment(address token, uint256 amount) external payable{
-        require(verisonedTagWeights.length > 0, "tag weights not initialized");
+        require(versionedTagWeights.length > 0, "tag weights not initialized");
         if(address(token) == address(0)){
             require(amount == msg.value, "value missmatch");
         } else {
