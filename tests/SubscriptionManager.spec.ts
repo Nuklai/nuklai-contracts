@@ -8,7 +8,7 @@ import {
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import { MaxUint256, parseUnits } from "ethers";
+import { MaxUint256, ZeroHash, parseUnits } from "ethers";
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { constants, signature } from "./utils";
@@ -110,6 +110,11 @@ const setupOnSubscribe = async () => {
   const { DatasetSubscriptionManager, DatasetDistributionManager, datasetId } =
     await setup();
   const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+  await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+    [ZeroHash],
+    [parseUnits("1", 18)]
+  );
 
   const Token = await getTestTokenContract(subscriber, {
     mint: parseUnits("100000000", 18),
@@ -223,6 +228,11 @@ describe("SubscriptionManager", () => {
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
     const Token = await getTestTokenContract(subscriber, {
       mint: parseUnits("100000000", 18),
     });
@@ -266,6 +276,11 @@ describe("SubscriptionManager", () => {
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
 
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
     const Token = await getTestTokenContract(subscriber, {
       mint: parseUnits("100000000", 18),
     });
@@ -308,6 +323,49 @@ describe("SubscriptionManager", () => {
     ).to.equal(1);
   });
 
+  it("Should if tags weights are not set", async function () {
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
+    });
+
+    const tokenAddress = await Token.getAddress();
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(
+      DatasetSubscriptionManager.connect(subscriber).subscribe(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
+    ).to.be.revertedWith("tag weights not initialized");
+  });
+
   it("Should revert if subscriber tries to subscribe to the same data set", async function () {
     const {
       DatasetSubscriptionManager,
@@ -315,6 +373,11 @@ describe("SubscriptionManager", () => {
       datasetId,
     } = await setup();
     const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
 
     const Token = await getTestTokenContract(subscriber, {
       mint: parseUnits("100000000", 18),
