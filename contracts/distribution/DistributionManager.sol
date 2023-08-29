@@ -26,6 +26,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         address token;
         uint256 distributionAmount;
         uint256 snapshotId;
+        uint256 tagWeightsVersion;
     }
 
     IDatasetNFT public dataset;
@@ -34,7 +35,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     uint256 public datasetOwnerPercentage;      // 100% = 1e18
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
-    EnumerableMap.Bytes32ToUintMap internal tagWeights;
+    EnumerableMap.Bytes32ToUintMap[] internal verisonedTagWeights;
     mapping(address => uint256) internal firstUnclaimed;
 
     modifier onlyDatasetOwner() {
@@ -59,8 +60,8 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param weights weights of the tags
      */
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights.push();
         uint256 weightSumm;
-        _clear(tagWeights);
         for(uint256 i; i < weights.length; i++) {
             weightSumm += weights[i];
             tagWeights.set(tags[i], weights[i]);
@@ -113,7 +114,8 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             payments.push(Payment({
                 token: token,
                 distributionAmount: amount,
-                snapshotId: snapshotId
+                snapshotId: snapshotId,
+                tagWeightsVersion: verisonedTagWeights.length-1
             }));
         }
 
@@ -160,6 +162,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
 
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
         uint256 paymentAmount = p.distributionAmount;
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights[p.tagWeightsVersion];
         bytes32[] memory tags = tagWeights.keys();
         uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
         for(uint256 i; i < tags.length; i++) {
