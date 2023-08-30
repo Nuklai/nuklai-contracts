@@ -26,7 +26,7 @@ interface IDatasetNFT is IERC721 {
         address verifierManager;
     }
 
-    function mint(address to, bytes calldata signature) external;
+    function mint(address to, bytes calldata signature) external returns(uint256);
     function setUuidForDatasetId(string memory uuid) external returns(uint256);
     function setManagers(uint256 id, ManagersConfig calldata config) external;
     function deployFragmentInstance(uint256 id) external returns(address);

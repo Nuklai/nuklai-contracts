@@ -53,12 +53,16 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
      * @param to Dataset admin
      * @param signature Signature from a DT service confirming creation of Dataset
      */
-    function mint(address to, bytes calldata signature) external {
+    function mint(address to, bytes calldata signature) external returns(uint256) {
         require(!Strings.equal(uuids[mintCounter], ""), "No uuid set for data set id");
         bytes32 msgHash = _mintMessageHash(mintCounter);
         address signer = ECDSA.recover(msgHash, signature);
+
         if(!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
+
         _mint(to, mintCounter);
+
+        return mintCounter;
     }
 
     function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns(uint256 ds) {

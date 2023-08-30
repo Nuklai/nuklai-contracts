@@ -32,13 +32,13 @@ contract DatasetFactory is Ownable {
 
 
     function mintAndConfigureDataset(
-        uint256 id, address to, bytes calldata mintSignature,
+        address to, bytes calldata mintSignature,
         address defaultVerifier,
         IERC20 feeToken, uint256 feePerConsumerPerSecond,
         uint256 dsOwnerFeePercentage,
         bytes32[] calldata tags, uint256[] calldata weights
     ) external {
-        datasetNFT.mint(id, address(this), mintSignature);
+        uint256 id = datasetNFT.mint(address(this), mintSignature);
 
         _deployProxies(id);
         _configureVerifierManager(id, defaultVerifier);
