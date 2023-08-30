@@ -5,7 +5,22 @@ import "@nomicfoundation/hardhat-ethers";
 import "@nomicfoundation/hardhat-chai-matchers";
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.18",
+    solidity: {
+        version: "0.8.18",
+        settings: {
+            optimizer: {
+                enabled: true,
+                runs: 2000000,
+            },
+        },
+        overrides: {
+            "contracts/DatasetFactory.sol": {
+                settings: {
+                    viaIR: true,
+                }
+            }
+        }
+    },
 };
 
 export default config;

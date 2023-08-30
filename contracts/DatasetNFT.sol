@@ -52,7 +52,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
      * @param signature Signature from a DT service confirming creation of Dataset
      */
     function mint(uint256 id, address to, bytes calldata signature) external {
-        bytes32 msgHash = _mintMessageHash(id, to);
+        bytes32 msgHash = _mintMessageHash(id);
         address signer = ECDSA.recover(msgHash, signature);
         if(!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
         _mint(to, id);
@@ -149,12 +149,11 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
 
 
-    function _mintMessageHash(uint256 id, address to) private view returns(bytes32) {
+    function _mintMessageHash(uint256 id) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
-            id,
-            to
+            id
         ));
     }
 
