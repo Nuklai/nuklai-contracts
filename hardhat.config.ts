@@ -21,6 +21,14 @@ const config: HardhatUserConfig = {
         runs: 200,
       },
     },
+    overrides: {
+      "contracts/DatasetFactory.sol": {
+        version: "0.8.18",
+        settings: {
+          viaIR: true,
+        },
+      },
+    },
   },
   networks: {
     goerli: {
