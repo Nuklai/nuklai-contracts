@@ -112,10 +112,62 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @param ds Id of the dataset
      * @param start Subscription start timestamp
      * @param duration Duration of subscription
-     * @param consumers Liast of consumers who have access to the data with this subscription
+     * @param consumers Count of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
     function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid){
+        return _subscribe(ds, start, duration, consumers);
+    }
+
+    /**
+     * @notice Subscribe for a dataset and make payment and add consumer addresses
+     * @param ds Id of the dataset
+     * @param start Subscription start timestamp
+     * @param duration Duration of subscription
+     * @param consumers List of consumers who have access to the data with this subscription
+     * @return sid of subscription
+     */
+    function subscribeAndAddConsumers(uint256 ds, uint256 start, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid){
+        sid = _subscribe(ds, start, duration, consumers.length);
+        _addConsumers(sid, consumers);
+    }
+
+    /**
+     * @notice Extend subscription with additional time or consumers
+     * @param subscription Id of subscription
+     * @param extraDuration Time to add
+     * @param extraConsumers Consumer count to add
+     */
+    function extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) external payable {
+        _extendSubscription(subscription, extraDuration, extraConsumers);
+    }
+
+    function addConsumers(uint256 subscription, address[] calldata consumers) external onlySubscriptionOwner(subscription) {
+        _addConsumers(subscription, consumers);
+    }
+
+    /**
+     * @notice Removes consumers from the list for this subscription
+     * @dev No refund is paid, but count of consumers is not decreased
+     * @param subscription Id of subscription
+     * @param consumers List of consumers to remove
+     */
+    function removeConsumers(uint256 subscription, address[] calldata consumers) external  onlySubscriptionOwner(subscription) {
+        _removeConsumers(subscription, consumers);
+    }
+
+    /**
+     * @notice Replaces a set of old consumers with a same-size set of new consumers
+     * @param subscription Id of subscription
+     * @param oldConsumers List of consumers to remove
+     * @param newConsumers List of consumers to add
+     */
+    function replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) external onlySubscriptionOwner(subscription) {
+        _replaceConsumers(subscription, oldConsumers, newConsumers);
+    }
+
+
+    function _subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) internal returns(uint256 sid) {
         _requireCorrectDataset(ds);
         require(start >= block.timestamp, "Start timestamp already passed");
         require(duration > 0, "Duration is too low");
@@ -130,16 +182,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         sd.validTill = start+duration;
         sd.paidConsumers = consumers;
         _safeMint(_msgSender(), sid);
-        emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);
+        emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);        
     }
 
-    /**
-     * @notice Extend subscription with additional time or consumers
-     * @param subscription Id of subscription
-     * @param extraDuration Time to add
-     * @param extraConsumers Consumer count to add
-     */
-    function extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) external payable {
+    function _extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) internal {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
 
@@ -171,7 +217,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
 
-    function addConsumers(uint256 subscription, address[] calldata consumers) external onlySubscriptionOwner(subscription) {
+    function _addConsumers(uint256 subscription, address[] calldata consumers) internal {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(sd.consumers.length() + consumers.length <= sd.paidConsumers, "Too many consumers to add");
@@ -184,13 +230,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         }
     }
 
-    /**
-     * @notice Removes consumers from the list for this subscription
-     * @dev No refund is paid, but count of consumers is not decreased
-     * @param subscription Id of subscription
-     * @param consumers List of consumers to remove
-     */
-    function removeConsumers(uint256 subscription, address[] calldata consumers) external  onlySubscriptionOwner(subscription) {
+    function _removeConsumers(uint256 subscription, address[] calldata consumers) internal {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         for(uint256 i; i < consumers.length; i++){
@@ -202,8 +242,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         }
     }
 
-
-    function replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) external onlySubscriptionOwner(subscription) {
+    function _replaceConsumers(uint256 subscription, address[] calldata oldConsumers, address[] calldata newConsumers) internal {
         _requireMinted(subscription);
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(oldConsumers.length == newConsumers.length, "Array length missmatch");
@@ -222,9 +261,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
                 consumerSupscribsions[consumer].add(subscription);
             }            
         }
-    }
-
-
+    }    
 
     function _requireCorrectDataset(uint256 _datasetId) internal view {
         if(datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
