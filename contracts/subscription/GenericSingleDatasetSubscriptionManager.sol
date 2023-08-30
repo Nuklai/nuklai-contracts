@@ -120,7 +120,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
     /**
-     * @notice Subscribe for a dataset and make payment and add consumer addresses
+     * @notice Subscribe for a dataset, make payment and add consumer addresses
      * @param ds Id of the dataset
      * @param start Subscription start timestamp
      * @param duration Duration of subscription
