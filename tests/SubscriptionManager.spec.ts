@@ -1,10 +1,10 @@
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import {
+  DatasetFactory,
   DatasetNFT,
   DistributionManager,
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
-  TestToken,
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
@@ -15,9 +15,12 @@ import { constants, signature } from "./utils";
 import { getTestTokenContract } from "./utils/contracts";
 
 const setup = async () => {
-  await deployments.fixture(["DatasetNFT"]);
+  await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
 
   const contracts = {
+    DatasetFactory: (await ethers.getContract(
+      "DatasetFactory"
+    )) as DatasetFactory,
     DatasetNFT: (await ethers.getContract("DatasetNFT")) as DatasetNFT,
     FragmentNFTImplementation: (await ethers.getContract(
       "FragmentNFT"
@@ -28,61 +31,37 @@ const setup = async () => {
   const datasetId = 1;
   const fragmentId = 1;
 
-  const datasetAddress = await contracts.DatasetNFT.getAddress();
-
-  const signedMessage = await dtAdmin.signMessage(
-    signature.getDatasetMintMessage(
-      network.config.chainId!,
-      datasetAddress,
-      datasetId,
-      datasetOwner.address
-    )
-  );
-
   const datasetUUID = uuidv4();
 
   await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID);
 
-  await contracts.DatasetNFT.connect(datasetOwner).mint(
-    datasetOwner.address,
-    signedMessage
+  const datasetAddress = await contracts.DatasetNFT.getAddress();
+  const signedMessage = await dtAdmin.signMessage(
+    signature.getDatasetMintMessage(
+      network.config.chainId!,
+      datasetAddress,
+      datasetId
+    )
   );
-
-  await contracts.DatasetNFT.connect(datasetOwner).deployFragmentInstance(
-    datasetId
-  );
-
-  const factories = {
-    DistributionManagerFactory: await ethers.getContractFactory(
-      "DistributionManager"
-    ),
-    ERC20SubscriptionManagerFactory: await ethers.getContractFactory(
-      "ERC20LinearSingleDatasetSubscriptionManager"
-    ),
-    VerifierManagerFactory: await ethers.getContractFactory("VerifierManager"),
-    AcceptManuallyVerifierFactory: await ethers.getContractFactory(
-      "AcceptManuallyVerifier"
-    ),
-    AcceptAllVerifierFactory: await ethers.getContractFactory(
-      "AcceptAllVerifier"
-    ),
-  };
-
-  const SubscriptionManager =
-    await factories.ERC20SubscriptionManagerFactory.connect(
-      datasetOwner
-    ).deploy();
-  const DistributionManager =
-    await factories.DistributionManagerFactory.connect(datasetOwner).deploy();
-  const VerifierManager = await factories.VerifierManagerFactory.connect(
-    datasetOwner
-  ).deploy();
-
-  await contracts.DatasetNFT.connect(datasetOwner).setManagers(datasetId, {
-    subscriptionManager: await SubscriptionManager.getAddress(),
-    distributionManager: await DistributionManager.getAddress(),
-    verifierManager: await VerifierManager.getAddress(),
+  const defaultVerifierAddress = await (
+    await ethers.getContract("AcceptManuallyVerifier")
+  ).getAddress();
+  const Token = await getTestTokenContract(dtAdmin, {
+    mint: parseUnits("100000000", 18),
   });
+  const feeAmount = parseUnits("0.1", 18);
+  const dsOwnerPercentage = parseUnits("0.001", 18);
+
+  await contracts.DatasetFactory.connect(datasetOwner).mintAndConfigureDataset(
+    datasetOwner.address,
+    signedMessage,
+    defaultVerifierAddress,
+    await Token.getAddress(),
+    feeAmount,
+    dsOwnerPercentage,
+    [ZeroHash],
+    [parseUnits("1", 18)]
+  );
 
   return {
     datasetId,
@@ -102,7 +81,6 @@ const setup = async () => {
       datasetOwner
     )) as unknown as VerifierManager,
     ...contracts,
-    ...factories,
   };
 };
 
@@ -321,49 +299,6 @@ describe("SubscriptionManager", () => {
         0
       )
     ).to.equal(1);
-  });
-
-  it("Should if tags weights are not set", async function () {
-    const {
-      DatasetSubscriptionManager,
-      DatasetDistributionManager,
-      datasetId,
-    } = await setup();
-    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
-
-    const Token = await getTestTokenContract(subscriber, {
-      mint: parseUnits("100000000", 18),
-    });
-
-    const tokenAddress = await Token.getAddress();
-
-    await Token.connect(subscriber).approve(
-      await DatasetSubscriptionManager.getAddress(),
-      MaxUint256
-    );
-
-    await DatasetDistributionManager.connect(
-      datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
-
-    const feeAmount = parseUnits("0.0000001", 18);
-
-    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
-      tokenAddress,
-      feeAmount
-    );
-
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
-    await expect(
-      DatasetSubscriptionManager.connect(subscriber).subscribe(
-        datasetId,
-        subscriptionStart,
-        constants.ONE_DAY,
-        1
-      )
-    ).to.be.revertedWith("tag weights not initialized");
   });
 
   it("Should revert if subscriber tries to subscribe to the same data set", async function () {
@@ -637,7 +572,7 @@ describe("SubscriptionManager", () => {
       ).to.be.false;
     });
 
-    it("Should subscriber extends its subscription if expired", async () => {
+    it("Should subscriber extends his subscription if expired", async () => {
       const { subscriptionId, DatasetSubscriptionManager } =
         await setupOnSubscribe();
       const { subscriber } = await ethers.getNamedSigners();

@@ -1,25 +1,27 @@
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 import { TestToken } from "@typechained";
-import { AddressLike } from "ethers";
 import { deployments, ethers } from "hardhat";
 
 export async function getTestTokenContract(
-  deployer: HardhatEthersSigner,
+  beneficiary: HardhatEthersSigner,
   opts: {
-    mint?: bigint
+    mint?: bigint;
   }
 ) {
+  const { dtAdmin } = await ethers.getNamedSigners();
+
   const DeployedToken = await deployments.deploy("TestToken", {
-    from: deployer.address,
+    from: dtAdmin.address,
   });
 
   const token = (await ethers.getContractAt(
     "TestToken",
-    DeployedToken.address
+    DeployedToken.address,
+    dtAdmin
   )) as unknown as TestToken;
 
   if (opts?.mint && opts.mint > 0) {
-    await token.connect(deployer).mint(deployer as AddressLike, opts.mint);
+    await token.connect(dtAdmin).mint(beneficiary.address, opts.mint);
   }
 
   return token;

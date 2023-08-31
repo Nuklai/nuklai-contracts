@@ -1,18 +1,30 @@
-import { AcceptManuallyVerifier, DatasetNFT, FragmentNFT } from "@typechained";
+import {
+  AcceptManuallyVerifier,
+  DatasetFactory,
+  DatasetNFT,
+  FragmentNFT,
+} from "@typechained";
 import { expect } from "chai";
-import { ZeroAddress, ZeroHash } from "ethers";
+import { ZeroAddress, ZeroHash, parseUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
+import { getTestTokenContract } from "./utils/contracts";
 
 const setup = async () => {
-  await deployments.fixture(["DatasetNFT"]);
+  await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
 
   const contracts = {
+    DatasetFactory: (await ethers.getContract(
+      "DatasetFactory"
+    )) as DatasetFactory,
     DatasetNFT: (await ethers.getContract("DatasetNFT")) as DatasetNFT,
     FragmentNFTImplementation: (await ethers.getContract(
       "FragmentNFT"
     )) as FragmentNFT,
+    AcceptManuallyVerifier: (await ethers.getContract(
+      "AcceptManuallyVerifier"
+    )) as AcceptManuallyVerifier,
   };
 
   const { dtAdmin, datasetOwner, contributor } = await ethers.getNamedSigners();
@@ -20,78 +32,36 @@ const setup = async () => {
   const fragmentId = 1;
   const fragmentIds = [1, 2, 3];
 
-  const datasetAddress = await contracts.DatasetNFT.getAddress();
-
-  const signedMessage = await dtAdmin.signMessage(
-    signature.getDatasetMintMessage(
-      network.config.chainId!,
-      datasetAddress,
-      datasetId,
-      datasetOwner.address
-    )
-  );
-
   const datasetUUID = uuidv4();
 
   await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID);
 
-  await contracts.DatasetNFT.connect(datasetOwner).mint(
-    datasetOwner.address,
-    signedMessage
+  const datasetAddress = await contracts.DatasetNFT.getAddress();
+  const signedMessage = await dtAdmin.signMessage(
+    signature.getDatasetMintMessage(
+      network.config.chainId!,
+      datasetAddress,
+      datasetId
+    )
   );
-
-  await contracts.DatasetNFT.connect(datasetOwner).deployFragmentInstance(
-    datasetId
-  );
-
-  const factories = {
-    DistributionManagerFactory: await ethers.getContractFactory(
-      "DistributionManager"
-    ),
-    ERC20SubscriptionManagerFactory: await ethers.getContractFactory(
-      "ERC20LinearSingleDatasetSubscriptionManager"
-    ),
-    VerifierManagerFactory: await ethers.getContractFactory("VerifierManager"),
-    AcceptManuallyVerifierFactory: await ethers.getContractFactory(
-      "AcceptManuallyVerifier"
-    ),
-    AcceptAllVerifierFactory: await ethers.getContractFactory(
-      "AcceptAllVerifier"
-    ),
-  };
-
-  const SubscriptionManager =
-    await factories.ERC20SubscriptionManagerFactory.connect(
-      datasetOwner
-    ).deploy();
-  const DistributionManager =
-    await factories.DistributionManagerFactory.connect(datasetOwner).deploy();
-  const VerifierManager = await factories.VerifierManagerFactory.connect(
-    datasetOwner
-  ).deploy();
-
-  await contracts.DatasetNFT.connect(datasetOwner).setManagers(datasetId, {
-    subscriptionManager: await SubscriptionManager.getAddress(),
-    distributionManager: await DistributionManager.getAddress(),
-    verifierManager: await VerifierManager.getAddress(),
+  const defaultVerifierAddress = await (
+    await ethers.getContract("AcceptManuallyVerifier")
+  ).getAddress();
+  const Token = await getTestTokenContract(dtAdmin, {
+    mint: parseUnits("100000000", 18),
   });
+  const feeAmount = parseUnits("0.1", 18);
+  const dsOwnerPercentage = parseUnits("0.001", 18);
 
-  const datasetVerifierManagerAddress =
-    await contracts.DatasetNFT.verifierManager(datasetId);
-
-  const DatasetVerifierManager = await ethers.getContractAt(
-    "VerifierManager",
-    datasetVerifierManagerAddress,
-    datasetOwner
-  );
-
-  const AcceptManuallyVerifier =
-    (await factories.AcceptManuallyVerifierFactory.connect(
-      datasetOwner
-    ).deploy()) as unknown as AcceptManuallyVerifier;
-
-  DatasetVerifierManager.setDefaultVerifier(
-    await AcceptManuallyVerifier.getAddress()
+  await contracts.DatasetFactory.connect(datasetOwner).mintAndConfigureDataset(
+    datasetOwner.address,
+    signedMessage,
+    defaultVerifierAddress,
+    await Token.getAddress(),
+    feeAmount,
+    dsOwnerPercentage,
+    [ZeroHash],
+    [parseUnits("1", 18)]
   );
 
   const tag = utils.encodeTag("dataset.schemas");
@@ -128,9 +98,7 @@ const setup = async () => {
     datasetId,
     fragmentId,
     fragmentIds,
-    AcceptManuallyVerifier,
     ...contracts,
-    ...factories,
   };
 };
 
@@ -216,6 +184,7 @@ describe("FragmentNFT", () => {
   it("Should data set owner reject multiple fragments proposes", async function () {
     const { datasetId, fragmentIds, DatasetNFT, AcceptManuallyVerifier } =
       await setup();
+    const { datasetOwner } = await ethers.getNamedSigners();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const DatasetFragment = await ethers.getContractAt(
@@ -224,7 +193,11 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      AcceptManuallyVerifier.resolveMany(fragmentAddress, fragmentIds, false)
+      AcceptManuallyVerifier.connect(datasetOwner).resolveMany(
+        fragmentAddress,
+        fragmentIds,
+        false
+      )
     )
       .to.emit(DatasetFragment, "FragmentRejected")
       .withArgs(fragmentIds[0])
