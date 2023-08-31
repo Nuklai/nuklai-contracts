@@ -301,6 +301,52 @@ describe("SubscriptionManager", () => {
     ).to.equal(1);
   });
 
+  it("Should subscriber add consumers to the data set subscription", async function () {
+    const {
+      DatasetSubscriptionManager,
+      DatasetDistributionManager,
+      datasetId,
+    } = await setup();
+    const { subscriber, datasetOwner } = await ethers.getNamedSigners();
+
+    await DatasetDistributionManager.connect(datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    const Token = await getTestTokenContract(subscriber, {
+      mint: parseUnits("100000000", 18),
+    });
+
+    await Token.connect(subscriber).approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(
+      datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager.connect(datasetOwner).setFee(
+      await Token.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(
+      DatasetSubscriptionManager.connect(subscriber).subscribeAndAddConsumers(
+        datasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        [subscriber.address, datasetOwner.address]
+      )
+    ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+  });
+
   it("Should revert if subscriber tries to subscribe to the same data set", async function () {
     const {
       DatasetSubscriptionManager,
