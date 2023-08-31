@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deployedDistributionManager.address
   );
 
-  await hre.run("etherscan-verify");
+  if (process.env.TEST !== "true") await hre.run("etherscan-verify");
 };
 
 export default func;
