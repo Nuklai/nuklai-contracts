@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from "uuid";
 import { constants, signature, utils } from "./utils";
 import { getTestTokenContract } from "./utils/contracts";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
+import { getEvent } from "./utils/events";
 
 const setup = async () => {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
@@ -29,12 +30,18 @@ const setup = async () => {
   };
 
   const { dtAdmin, datasetOwner } = await ethers.getNamedSigners();
-  const datasetId = 1;
-  const fragmentId = 1;
 
   const datasetUUID = uuidv4();
 
-  await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID);
+  const uuidSetTxReceipt = await (
+    await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
+  ).wait();
+
+  const [, datasetId] = getEvent(
+    "DatasetUuidSet",
+    uuidSetTxReceipt?.logs!,
+    contracts.DatasetNFT
+  )!.args as unknown as [string, bigint];
 
   const datasetAddress = await contracts.DatasetNFT.getAddress();
   const signedMessage = await dtAdmin.signMessage(
@@ -109,7 +116,6 @@ const setup = async () => {
 
   return {
     datasetId,
-    fragmentId,
     DatasetSubscriptionManager: (await ethers.getContractAt(
       "ERC20LinearSingleDatasetSubscriptionManager",
       await contracts.DatasetNFT.subscriptionManager(datasetId)

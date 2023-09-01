@@ -3,7 +3,7 @@ import { AddressLike, getBytes, solidityPacked } from "ethers";
 export const getDatasetMintMessage = (
   chainId: number,
   datasetAddress: AddressLike,
-  datasetId: number
+  datasetId: bigint
 ): Uint8Array => {
   const message = solidityPacked(
     ["uint256", "address", "uint256"],
@@ -16,7 +16,7 @@ export const getDatasetMintMessage = (
 export const getDatasetFragmentProposeMessage = (
   chainId: number,
   datasetAddress: AddressLike,
-  datasetId: number,
+  datasetId: bigint,
   counter: bigint,
   owner: AddressLike,
   tag: string
@@ -32,7 +32,7 @@ export const getDatasetFragmentProposeMessage = (
 export const getDatasetFragmentProposeBatchMessage = (
   chainId: number,
   datasetAddress: AddressLike,
-  datasetId: number,
+  datasetId: bigint,
   counter: bigint,
   owners: AddressLike[],
   tags: string[]
