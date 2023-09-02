@@ -199,8 +199,8 @@ describe("SubscriptionManager", () => {
       await DatasetSubscriptionManager.feePerConsumerPerSecond();
 
     expect(subscriptionFeeToken).to.equal(DeployedToken.address);
-    expect(Number(subscriptionFeeAmount)).to.equal(
-      Number(feePerConsumerPerSecond) * constants.ONE_WEEK * consumers
+    expect(subscriptionFeeAmount).to.equal(
+      feePerConsumerPerSecond * BigInt(constants.ONE_WEEK) * BigInt(consumers)
     );
   });
 
