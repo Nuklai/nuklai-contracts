@@ -502,9 +502,13 @@ describe("DatasetNFT", () => {
     const { DatasetNFT } = await setup();
     const { dtAdmin } = await ethers.getNamedSigners();
 
-    const newFragmentImplementation = await deployments.deploy("FragmentNFT", {
-      from: await dtAdmin.getAddress(),
-    });
+    const newFragmentImplementation = await deployments.deploy(
+      "FragmentNFT_new",
+      {
+        contract: "FragmentNFT",
+        from: await dtAdmin.getAddress(),
+      }
+    );
 
     await DatasetNFT.connect(dtAdmin).setFragmentImplementation(
       newFragmentImplementation.address
@@ -519,9 +523,13 @@ describe("DatasetNFT", () => {
     const { DatasetNFT } = await setup();
     const { user } = await ethers.getNamedSigners();
 
-    const newFragmentImplementation = await deployments.deploy("FragmentNFT", {
-      from: await user.getAddress(),
-    });
+    const newFragmentImplementation = await deployments.deploy(
+      "FragmentNFT_new",
+      {
+        contract: "FragmentNFT",
+        from: await user.getAddress(),
+      }
+    );
 
     await expect(
       DatasetNFT.connect(user).setFragmentImplementation(
