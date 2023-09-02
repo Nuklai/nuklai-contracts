@@ -115,6 +115,7 @@ const setup = async () => {
 
   return {
     datasetId,
+    DatasetFragment,
     DatasetSubscriptionManager: (await ethers.getContractAt(
       "ERC20LinearSingleDatasetSubscriptionManager",
       await contracts.DatasetNFT.subscriptionManager(datasetId)
@@ -204,6 +205,7 @@ describe("DistributionManager", () => {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
       DatasetNFT,
+      DatasetFragment,
       datasetId,
     } = await setup();
     const { datasetOwner, dtAdmin, contributor, subscriber } =
@@ -211,12 +213,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
@@ -319,7 +315,7 @@ describe("DistributionManager", () => {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
-      DatasetVerifierManager,
+      DatasetFragment,
       DatasetNFT,
       datasetId,
     } = await setup();
@@ -328,12 +324,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
@@ -434,7 +424,7 @@ describe("DistributionManager", () => {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
-      DatasetVerifierManager,
+      DatasetFragment,
       DatasetNFT,
       datasetId,
     } = await setup();
@@ -443,12 +433,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
@@ -544,7 +528,7 @@ describe("DistributionManager", () => {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
-      DatasetVerifierManager,
+      DatasetFragment,
       DatasetNFT,
       datasetId,
     } = await setup();
@@ -553,12 +537,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
@@ -663,7 +641,7 @@ describe("DistributionManager", () => {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
-      DatasetVerifierManager,
+      DatasetFragment,
       DatasetNFT,
       datasetId,
     } = await setup();
@@ -672,12 +650,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
@@ -778,7 +750,7 @@ describe("DistributionManager", () => {
     const {
       DatasetDistributionManager,
       DatasetSubscriptionManager,
-      DatasetVerifierManager,
+      DatasetFragment,
       DatasetNFT,
       datasetId,
     } = await setup();
@@ -787,12 +759,6 @@ describe("DistributionManager", () => {
 
     const datasetSchemasTag = utils.encodeTag("dataset.schemas");
     const datasetRowsTag = utils.encodeTag("dataset.rows");
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
-    const DatasetFragment = (await ethers.getContractAt(
-      "FragmentNFT",
-      fragmentAddress
-    )) as unknown as FragmentNFT;
 
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;

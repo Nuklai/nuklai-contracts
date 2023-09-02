@@ -1,14 +1,7 @@
 import { expect } from "chai";
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { DatasetFactory, DatasetNFT, FragmentNFT } from "@typechained";
-import {
-  BaseContract,
-  getBytes,
-  parseUnits,
-  Result,
-  ZeroAddress,
-  ZeroHash,
-} from "ethers";
+import { getBytes, parseUnits, ZeroAddress, ZeroHash } from "ethers";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
 import { constants } from "../utils";
@@ -99,9 +92,16 @@ const setupOnMint = async () => {
     ),
   };
 
+  const fragmentAddress = await DatasetNFT.fragments(datasetId);
+  const DatasetFragment = (await ethers.getContractAt(
+    "FragmentNFT",
+    fragmentAddress
+  )) as unknown as FragmentNFT;
+
   return {
     datasetId,
     datasetUUID: uuid,
+    DatasetFragment,
     ...contracts,
     ...factories,
   };
@@ -618,8 +618,9 @@ describe("DatasetNFT", () => {
 
     it("Should contributor propose a fragment - default AcceptManuallyVerifier", async function () {
       const {
-        DatasetNFT,
         datasetId,
+        DatasetNFT,
+        DatasetFragment,
         ERC20SubscriptionManagerFactory,
         DistributionManagerFactory,
         VerifierManagerFactory,
@@ -663,12 +664,6 @@ describe("DatasetNFT", () => {
 
       const tag = utils.encodeTag("dataset.schemas");
 
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = (await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      )) as unknown as FragmentNFT;
-
       const lastFragmentPendingId =
         await DatasetFragment.lastFragmentPendingId();
 
@@ -697,8 +692,9 @@ describe("DatasetNFT", () => {
 
     it("Should contributor propose multiple fragments - default AcceptManuallyVerifier", async function () {
       const {
-        DatasetNFT,
         datasetId,
+        DatasetNFT,
+        DatasetFragment,
         ERC20SubscriptionManagerFactory,
         DistributionManagerFactory,
         VerifierManagerFactory,
@@ -739,12 +735,6 @@ describe("DatasetNFT", () => {
       DatasetVerifierManager.setDefaultVerifier(
         await AcceptManuallyVerifier.getAddress()
       );
-
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = (await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      )) as unknown as FragmentNFT;
 
       const tagSchemas = utils.encodeTag("dataset.schemas");
       const tagRows = utils.encodeTag("dataset.rows");
@@ -782,8 +772,9 @@ describe("DatasetNFT", () => {
 
     it("Should revert contributor propose multiple fragments if proposes length is not correct", async function () {
       const {
-        DatasetNFT,
         datasetId,
+        DatasetNFT,
+        DatasetFragment,
         ERC20SubscriptionManagerFactory,
         DistributionManagerFactory,
         VerifierManagerFactory,
@@ -825,12 +816,6 @@ describe("DatasetNFT", () => {
         await AcceptManuallyVerifier.getAddress()
       );
 
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = (await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      )) as unknown as FragmentNFT;
-
       const tagSchemas = utils.encodeTag("dataset.schemas");
       const tagRows = utils.encodeTag("dataset.rows");
       const tagData = utils.encodeTag("dataset.data");
@@ -861,8 +846,9 @@ describe("DatasetNFT", () => {
 
     it("Should contributor propose a fragment - default AcceptAllVerifier", async function () {
       const {
-        DatasetNFT,
         datasetId,
+        DatasetNFT,
+        DatasetFragment,
         ERC20SubscriptionManagerFactory,
         DistributionManagerFactory,
         VerifierManagerFactory,
@@ -906,12 +892,6 @@ describe("DatasetNFT", () => {
       );
 
       const tag = utils.encodeTag("dataset.schemas");
-
-      const fragmentAddress = await DatasetNFT.fragments(datasetId);
-      const DatasetFragment = (await ethers.getContractAt(
-        "FragmentNFT",
-        fragmentAddress
-      )) as unknown as FragmentNFT;
 
       const lastFragmentPendingId =
         await DatasetFragment.lastFragmentPendingId();
