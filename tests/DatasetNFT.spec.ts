@@ -1,7 +1,14 @@
 import { expect } from "chai";
 import { deployments, ethers, getNamedAccounts, network } from "hardhat";
 import { DatasetFactory, DatasetNFT, FragmentNFT } from "@typechained";
-import { getBytes, parseUnits, Result, ZeroAddress, ZeroHash } from "ethers";
+import {
+  BaseContract,
+  getBytes,
+  parseUnits,
+  Result,
+  ZeroAddress,
+  ZeroHash,
+} from "ethers";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
 import { constants } from "../utils";
@@ -222,7 +229,7 @@ describe("DatasetNFT", () => {
     const uuidSetTxReceipt = await (
       await DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
-  
+
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
@@ -317,7 +324,7 @@ describe("DatasetNFT", () => {
     const uuidSetTxReceipt = await (
       await DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
-  
+
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
@@ -376,7 +383,7 @@ describe("DatasetNFT", () => {
     const uuidSetTxReceipt = await (
       await DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
-  
+
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
@@ -447,11 +454,11 @@ describe("DatasetNFT", () => {
     const { datasetOwner, user, dtAdmin } = await ethers.getNamedSigners();
 
     const datasetUUID = uuidv4();
-    
+
     const uuidSetTxReceipt = await (
       await DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
-  
+
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,

@@ -74,10 +74,10 @@ const setup = async () => {
   const datasetSchemasTag = utils.encodeTag("dataset.schemas");
 
   const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
-  const DatasetFragment = (await ethers.getContractAt(
+  const DatasetFragment = await ethers.getContractAt(
     "FragmentNFT",
     fragmentAddress
-  )) as unknown as FragmentNFT;
+  );
   const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
 
   const proposeSignatureSchemas = await dtAdmin.signMessage(
@@ -104,9 +104,8 @@ const setup = async () => {
     datasetOwner
   )) as unknown as VerifierManager;
 
-  const AcceptManuallyVerifier = (await ethers.getContract(
-    "AcceptManuallyVerifier"
-  )) as unknown as AcceptManuallyVerifier;
+  const AcceptManuallyVerifier =
+    await ethers.getContract<AcceptManuallyVerifier>("AcceptManuallyVerifier");
 
   await AcceptManuallyVerifier.connect(datasetOwner).resolve(
     fragmentAddress,
@@ -166,9 +165,9 @@ describe("DistributionManager", () => {
     const percentage = parseUnits("1.01", 18);
 
     await expect(
-      (DatasetDistributionManager as unknown as DistributionManager)
-        .connect(user)
-        .setDatasetOwnerPercentage(percentage)
+      DatasetDistributionManager.connect(user).setDatasetOwnerPercentage(
+        percentage
+      )
     ).to.be.revertedWith("Not a Dataset owner");
   });
 
@@ -242,9 +241,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
@@ -358,9 +358,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
@@ -472,9 +473,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
@@ -581,9 +583,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
@@ -699,9 +702,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
@@ -813,9 +817,10 @@ describe("DistributionManager", () => {
 
     const datasetFragmentAddress = await DatasetNFT.fragments(datasetId);
 
-    const AcceptManuallyVerifier = (await ethers.getContract(
-      "AcceptManuallyVerifier"
-    )) as unknown as AcceptManuallyVerifier;
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
 
     await AcceptManuallyVerifier.connect(datasetOwner).resolve(
       datasetFragmentAddress,
