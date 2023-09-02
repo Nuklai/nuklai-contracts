@@ -7,7 +7,7 @@
     "build": "hardhat compile",
     "deploy": "hardhat deploy",
     "typechain": "yarn hardhat typechain",
-    "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
+    "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
     "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
     "clean": "npx hardhat clean"
   },
