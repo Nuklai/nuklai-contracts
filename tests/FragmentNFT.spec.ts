@@ -9,11 +9,13 @@ import { ZeroAddress, ZeroHash, parseUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
-import { getTestTokenContract } from "./utils/contracts";
 import { getEvent } from "./utils/events";
+import { setupUsers } from "./utils/users";
 
 const setup = async () => {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
+
+  const users = await setupUsers();
 
   const contracts = {
     DatasetFactory: (await ethers.getContract(
@@ -28,12 +30,12 @@ const setup = async () => {
     )) as AcceptManuallyVerifier,
   };
 
-  const { dtAdmin, datasetOwner, contributor } = await ethers.getNamedSigners();
-
   const datasetUUID = uuidv4();
 
   const uuidSetTxReceipt = await (
-    await contracts.DatasetNFT.connect(dtAdmin).setUuidForDatasetId(datasetUUID)
+    await contracts.DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(
+      datasetUUID
+    )
   ).wait();
 
   const [, datasetId] = getEvent(
@@ -43,7 +45,7 @@ const setup = async () => {
   )!.args as unknown as [string, bigint];
 
   const datasetAddress = await contracts.DatasetNFT.getAddress();
-  const signedMessage = await dtAdmin.signMessage(
+  const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(
       network.config.chainId!,
       datasetAddress,
@@ -53,17 +55,16 @@ const setup = async () => {
   const defaultVerifierAddress = await (
     await ethers.getContract("AcceptManuallyVerifier")
   ).getAddress();
-  const Token = await getTestTokenContract(dtAdmin, {
-    mint: parseUnits("100000000", 18),
-  });
   const feeAmount = parseUnits("0.1", 18);
   const dsOwnerPercentage = parseUnits("0.001", 18);
 
-  await contracts.DatasetFactory.connect(datasetOwner).mintAndConfigureDataset(
-    datasetOwner.address,
+  await contracts.DatasetFactory.connect(
+    users.datasetOwner
+  ).mintAndConfigureDataset(
+    users.datasetOwner.address,
     signedMessage,
     defaultVerifierAddress,
-    await Token.getAddress(),
+    await users.subscriber.Token!.getAddress(),
     feeAmount,
     dsOwnerPercentage,
     [ZeroHash],
@@ -83,21 +84,21 @@ const setup = async () => {
   for (const _ of [1, 1, 1]) {
     const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
 
-    const proposeSignatureSchemas = await dtAdmin.signMessage(
+    const proposeSignatureSchemas = await users.dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId,
         lastFragmentPendingId + 1n,
-        contributor.address,
+        users.contributor.address,
         tag
       )
     );
 
     const proposedFragmentTxReceipt = await (
-      await contracts.DatasetNFT.connect(contributor).proposeFragment(
+      await contracts.DatasetNFT.connect(users.contributor).proposeFragment(
         datasetId,
-        contributor.address,
+        users.contributor.address,
         tag,
         proposeSignatureSchemas
       )
@@ -116,15 +117,20 @@ const setup = async () => {
     datasetId,
     fragmentIds,
     DatasetFragment,
+    users,
     ...contracts,
   };
 };
 
 describe("FragmentNFT", () => {
   it("Should data set owner accept fragment propose", async function () {
-    const { datasetId, fragmentIds, DatasetNFT, AcceptManuallyVerifier } =
-      await setup();
-    const { datasetOwner, contributor } = await ethers.getNamedSigners();
+    const {
+      datasetId,
+      fragmentIds,
+      DatasetNFT,
+      AcceptManuallyVerifier,
+      users,
+    } = await setup();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const DatasetFragment = await ethers.getContractAt(
@@ -133,22 +139,26 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
         fragmentAddress,
         fragmentIds[0],
         true
       )
     )
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, contributor.address, fragmentIds[0])
+      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[0])
       .to.emit(DatasetFragment, "FragmentAccepted")
       .withArgs(fragmentIds[0]);
   });
 
   it("Should data set owner accept multiple fragments proposes", async function () {
-    const { datasetId, fragmentIds, DatasetNFT, AcceptManuallyVerifier } =
-      await setup();
-    const { datasetOwner, contributor } = await ethers.getNamedSigners();
+    const {
+      datasetId,
+      fragmentIds,
+      DatasetNFT,
+      AcceptManuallyVerifier,
+      users,
+    } = await setup();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const DatasetFragment = await ethers.getContractAt(
@@ -157,18 +167,18 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolveMany(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolveMany(
         fragmentAddress,
         fragmentIds,
         true
       )
     )
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, contributor.address, fragmentIds[0])
+      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[0])
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, contributor.address, fragmentIds[1])
+      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[1])
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, contributor.address, fragmentIds[2])
+      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[2])
       .to.emit(DatasetFragment, "FragmentAccepted")
       .withArgs(fragmentIds[0])
       .to.emit(DatasetFragment, "FragmentAccepted")
@@ -178,9 +188,13 @@ describe("FragmentNFT", () => {
   });
 
   it("Should data set owner reject fragment propose", async function () {
-    const { datasetId, fragmentIds, DatasetNFT, AcceptManuallyVerifier } =
-      await setup();
-    const { datasetOwner } = await ethers.getNamedSigners();
+    const {
+      datasetId,
+      fragmentIds,
+      DatasetNFT,
+      AcceptManuallyVerifier,
+      users,
+    } = await setup();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const DatasetFragment = await ethers.getContractAt(
@@ -189,7 +203,7 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
         fragmentAddress,
         fragmentIds[0],
         false
@@ -200,9 +214,13 @@ describe("FragmentNFT", () => {
   });
 
   it("Should data set owner reject multiple fragments proposes", async function () {
-    const { datasetId, fragmentIds, DatasetNFT, AcceptManuallyVerifier } =
-      await setup();
-    const { datasetOwner } = await ethers.getNamedSigners();
+    const {
+      datasetId,
+      fragmentIds,
+      DatasetNFT,
+      AcceptManuallyVerifier,
+      users,
+    } = await setup();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const DatasetFragment = await ethers.getContractAt(
@@ -211,7 +229,7 @@ describe("FragmentNFT", () => {
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolveMany(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolveMany(
         fragmentAddress,
         fragmentIds,
         false
@@ -226,14 +244,14 @@ describe("FragmentNFT", () => {
   });
 
   it("Should revert accept/reject fragment propose if fragment id does not exists", async function () {
-    const { datasetId, DatasetNFT, AcceptManuallyVerifier } = await setup();
-    const { datasetOwner } = await ethers.getNamedSigners();
+    const { datasetId, DatasetNFT, AcceptManuallyVerifier, users } =
+      await setup();
 
     const fragmentAddress = await DatasetNFT.fragments(datasetId);
     const wrongFragmentId = 1232131231;
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
         fragmentAddress,
         wrongFragmentId,
         false
@@ -241,7 +259,7 @@ describe("FragmentNFT", () => {
     ).to.be.revertedWith("Not a pending fragment");
 
     await expect(
-      AcceptManuallyVerifier.connect(datasetOwner).resolve(
+      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
         fragmentAddress,
         wrongFragmentId,
         true
@@ -250,17 +268,18 @@ describe("FragmentNFT", () => {
   });
 
   it("Should data set owner remove a fragment", async function () {
-    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier } =
+    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier, users } =
       await setup();
-    const { datasetOwner } = await ethers.getNamedSigners();
 
-    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+    await AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
       await DatasetFragment.getAddress(),
       fragmentIds[0],
       true
     );
 
-    await expect(DatasetFragment.connect(datasetOwner).remove(fragmentIds[0]))
+    await expect(
+      DatasetFragment.connect(users.datasetOwner).remove(fragmentIds[0])
+    )
       .to.emit(DatasetFragment, "FragmentRemoved")
       .withArgs(fragmentIds[0]);
 
@@ -268,18 +287,17 @@ describe("FragmentNFT", () => {
   });
 
   it("Should revert if user tries to remove a fragment", async function () {
-    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier } =
+    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier, users } =
       await setup();
-    const { datasetOwner, user } = await ethers.getNamedSigners();
 
-    await AcceptManuallyVerifier.connect(datasetOwner).resolve(
+    await AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
       await DatasetFragment.getAddress(),
       fragmentIds[0],
       true
     );
 
     await expect(
-      DatasetFragment.connect(user).remove(fragmentIds[0])
+      DatasetFragment.connect(users.user).remove(fragmentIds[0])
     ).to.be.revertedWithCustomError(DatasetFragment, "NOT_ADMIN");
   });
 });

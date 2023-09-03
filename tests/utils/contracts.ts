@@ -24,5 +24,5 @@ export async function getTestTokenContract(
     await token.connect(dtAdmin).mint(beneficiary.address, opts.mint);
   }
 
-  return token;
+  return token.connect(beneficiary);
 }
