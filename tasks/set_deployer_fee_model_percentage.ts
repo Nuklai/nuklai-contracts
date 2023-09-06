@@ -15,10 +15,10 @@ task(
 )
   .addParam("pk", "Signer private key with ADMIN_ROLE")
   .addParam("contractAddress", "Address of the DatasetNFT contract")
-  .addParam("models", "Deployer fee models, separated by commas (1,2,3)")
+  .addParam("models", "Deployer fee models, separated by commas (1,2)")
   .addParam(
     "percentages",
-    "Percentages of the deployer fee models, separated by commas (0.1,0.5,0.6)"
+    "Percentages of the deployer fee models, separated by commas (0.1,0.35)"
   )
   .setAction(async (taskArgs: TaskArgs) => {
     const wallet = new ethers.Wallet(taskArgs.pk, ethers.provider);
@@ -35,10 +35,12 @@ task(
       .map((percentage) => parseUnits(String(percentage), 18));
 
     if (models.length !== percentages.length)
-      throw new Error("args length mistmatch");
+      throw new Error("args length mismatch");
 
     console.log("Setting deployer fee models percentages...");
-    await dataset.setDeployerFeeModelPercentages(models, percentages);
+    await (
+      await dataset.setDeployerFeeModelPercentages(models, percentages)
+    ).wait();
 
     console.log(
       "No fee model percentage:",
