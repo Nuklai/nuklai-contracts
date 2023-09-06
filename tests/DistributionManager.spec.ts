@@ -72,8 +72,6 @@ const setup = async () => {
     [parseUnits("1", 18)]
   );
 
-  const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-
   const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
   const DatasetFragment = await ethers.getContractAt(
     "FragmentNFT",
@@ -88,14 +86,14 @@ const setup = async () => {
       datasetId,
       lastFragmentPendingId + 1n,
       users.datasetOwner.address,
-      datasetSchemasTag
+      ZeroHash
     )
   );
 
   await contracts.DatasetNFT.connect(users.datasetOwner).proposeFragment(
     datasetId,
     users.datasetOwner.address,
-    datasetSchemasTag,
+    ZeroHash,
     proposeSignatureSchemas
   );
 
@@ -174,12 +172,9 @@ describe("DistributionManager", () => {
   it("Should data set owner set data set tag weights", async function () {
     const { DatasetDistributionManager, users } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
   });
 
@@ -207,9 +202,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -220,14 +212,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -256,11 +248,11 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
-    const feeAmount = parseUnits("0.1", 18);
+    const feeAmount = parseUnits("0.00000001", 18);
 
     await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
       tokenAddress,
@@ -305,7 +297,7 @@ describe("DistributionManager", () => {
       .withArgs(
         users.datasetOwner.address,
         tokenAddress,
-        parseUnits("60.48", 18)
+        parseUnits("0.000006048", 18)
       );
   });
 
@@ -319,9 +311,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -332,14 +321,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -368,8 +357,8 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
     const feeAmount = parseUnits("0.1", 18);
@@ -425,9 +414,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -438,14 +424,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -474,8 +460,8 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
     const feeAmount = parseUnits("0.1", 18);
@@ -526,9 +512,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -539,14 +522,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -575,11 +558,11 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
-    const feeAmount = parseUnits("0.1", 18);
+    const feeAmount = parseUnits("0.001", 18);
 
     await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
       tokenAddress,
@@ -624,7 +607,7 @@ describe("DistributionManager", () => {
       .withArgs(
         users.contributor.address,
         tokenAddress,
-        parseUnits("12083.904", 18)
+        parseUnits("302.0976", 18)
       );
   });
 
@@ -638,9 +621,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -651,14 +631,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -687,8 +667,8 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
     const feeAmount = parseUnits("0.1", 18);
@@ -742,9 +722,6 @@ describe("DistributionManager", () => {
       users,
     } = await setup();
 
-    const datasetSchemasTag = utils.encodeTag("dataset.schemas");
-    const datasetRowsTag = utils.encodeTag("dataset.rows");
-
     const nextPendingFragmentId =
       (await DatasetFragment.lastFragmentPendingId()) + 1n;
 
@@ -755,14 +732,14 @@ describe("DistributionManager", () => {
         datasetId,
         nextPendingFragmentId,
         users.contributor.address,
-        datasetSchemasTag
+        ZeroHash
       )
     );
 
     await DatasetNFT.connect(users.contributor).proposeFragment(
       datasetId,
       users.contributor.address,
-      datasetSchemasTag,
+      ZeroHash,
       proposeSignatureSchemas
     );
 
@@ -791,11 +768,11 @@ describe("DistributionManager", () => {
     );
 
     await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
-      [datasetSchemasTag, datasetRowsTag],
-      [parseUnits("0.4", 18), parseUnits("0.6", 18)]
+      [ZeroHash],
+      [parseUnits("1", 18)]
     );
 
-    const feeAmount = parseUnits("0.1", 18);
+    const feeAmount = parseUnits("0.001", 18);
 
     await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
       tokenAddress,
@@ -815,8 +792,8 @@ describe("DistributionManager", () => {
     expect(
       await DatasetDistributionManager.calculatePayoutByToken(
         tokenAddress,
-        users.datasetOwner.address
+        users.contributor.address
       )
-    ).to.equal(parseUnits("12083.904", 18));
+    ).to.equal(parseUnits("302.0976", 18));
   });
 });
