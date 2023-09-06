@@ -39,7 +39,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   const fragmentImplementationSet = await dataset.setFragmentImplementation(
-    fragmentImplementation
+    await fragmentImplementation.getAddress()
   );
   await fragmentImplementationSet.wait();
 
