@@ -36,7 +36,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
     EnumerableMap.Bytes32ToUintMap[] internal versionedTagWeights;
-    mapping(address => uint256) internal firstUnclaimed;
+    mapping(address => uint256) internal lastUnclaimed;
 
     modifier onlyDatasetOwner() {
         require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
@@ -143,11 +143,11 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
         // Claim payouts
-        uint256 firstUnclaimedPayout = firstUnclaimed[_msgSender()];
-        if(firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-        address collectToken = payments[firstUnclaimedPayout].token;
+        uint256 lastUnclaimedPayout = lastUnclaimed[_msgSender()];
+        if(lastUnclaimedPayout >= payments.length) return; // Nothing to claim
+        address collectToken = payments[lastUnclaimedPayout].token;
         uint256 collectAmount;
-        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+        for(uint256 i = lastUnclaimedPayout; i < payments.length; i++) {
             Payment storage p = payments[i];
             if(collectToken != p.token) {
                 // Payment token changed, send what we've already collected
@@ -157,17 +157,17 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             }
             collectAmount += _calculatePayout(p, _msgSender());
         }
+        lastUnclaimed[_msgSender()] = payments.length;
         // send collected and not sent yet
         _sendPayout(collectToken, collectAmount, _msgSender());
-        firstUnclaimed[_msgSender()] += 1;
     }
 
     function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
-        uint256 firstUnclaimedPayout = firstUnclaimed[account]; 
+        uint256 lastUnclaimedPayout = lastUnclaimed[account]; 
         
-        if(firstUnclaimedPayout >= payments.length) return 0;
+        if(lastUnclaimedPayout >= payments.length) return 0;
 
-        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+        for(uint256 i = lastUnclaimedPayout; i < payments.length; i++) {
             Payment storage p = payments[i];
             if(token == p.token) {
                 collectAmount += _calculatePayout(p, account);
