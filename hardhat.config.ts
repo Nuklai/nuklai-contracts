@@ -58,8 +58,9 @@ const config: HardhatUserConfig = {
     datasetOwner: 2,
     contributor: 3,
     subscriber: 4,
-    consumer: 5,
-    secondConsumer: 6,
+    secondSubscriber: 5,
+    consumer: 6,
+    secondConsumer: 7,
   },
 };
 
