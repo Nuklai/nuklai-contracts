@@ -4,7 +4,7 @@ import { DatasetFactory, DatasetNFT } from "@typechained";
 import { constants, logs } from "../utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  logs.disableConsoleLogs();
+  logs.disableConsoleLogsOnTesting();
 
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy, fixture } = deployments;
