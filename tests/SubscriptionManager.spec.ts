@@ -206,6 +206,38 @@ describe("SubscriptionManager", () => {
     );
   });
 
+  it("Should revert calculate fees for data set subscription if it's a wrong data set", async function () {
+    const wrongDatasetId = 12312312n;
+    const { DatasetSubscriptionManager, users } = await setup();
+
+    const DeployedToken = await deployments.deploy("TestToken_new", {
+      contract: "TestToken",
+      from: users.subscriber.address,
+    });
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
+      DeployedToken.address,
+      feeAmount
+    );
+
+    const consumers = 1;
+
+    await expect(
+      DatasetSubscriptionManager.subscriptionFee(
+        wrongDatasetId,
+        constants.ONE_WEEK,
+        consumers
+      )
+    )
+      .to.be.revertedWithCustomError(
+        DatasetSubscriptionManager,
+        "UNSUPPORTED_DATASET"
+      )
+      .withArgs(wrongDatasetId);
+  });
+
   it("Should user pay data set subscription with ERC-20 token - data set admin received payment", async function () {
     const {
       DatasetSubscriptionManager,
@@ -246,6 +278,50 @@ describe("SubscriptionManager", () => {
         1
       )
     ).to.emit(DatasetSubscriptionManager, "SubscriptionPaid");
+  });
+
+  it("Should revert user pay data set subscription if wrong data set id is used", async function () {
+    const wrongDatasetId = 123123123n;
+    const { DatasetSubscriptionManager, DatasetDistributionManager, users } =
+      await setup();
+
+    await DatasetDistributionManager.connect(users.datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    await users.subscriber.Token!.approve(
+      await DatasetSubscriptionManager.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager.connect(
+      users.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
+      await users.datasetOwner.Token!.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(
+      DatasetSubscriptionManager.connect(users.subscriber).subscribe(
+        wrongDatasetId,
+        subscriptionStart,
+        constants.ONE_DAY,
+        1
+      )
+    )
+      .to.be.revertedWithCustomError(
+        DatasetSubscriptionManager,
+        "UNSUPPORTED_DATASET"
+      )
+      .withArgs(wrongDatasetId);
   });
 
   it("Should retrieve subscription id after subscription is paid", async function () {
@@ -444,6 +520,24 @@ describe("SubscriptionManager", () => {
       ).to.be.true;
     });
 
+    it("Should subscription owner calculate extra fee for adding more consumers", async () => {
+      const { datasetId, subscriptionId, DatasetSubscriptionManager } =
+        await setupOnSubscribe();
+
+      const [, fee] = await DatasetSubscriptionManager.subscriptionFee(
+        datasetId,
+        constants.ONE_DAY,
+        1
+      );
+
+      const extraFee = await DatasetSubscriptionManager.extraConsumerFee(
+        subscriptionId,
+        1
+      );
+
+      expect(fee).to.equal(extraFee);
+    });
+
     it("Should revert add consumers to the subscription if not the subscription owner", async () => {
       const { subscriptionId, DatasetSubscriptionManager, users } =
         await setupOnSubscribe();
@@ -509,6 +603,24 @@ describe("SubscriptionManager", () => {
       ).to.be.false;
     });
 
+    it("Should revert subscription owner remove consumers if subscription does not exists", async () => {
+      const wrongSubscriptionId = 12312312312n;
+      const { DatasetSubscriptionManager, users, subscriptionId } =
+        await setupOnSubscribe();
+
+      await DatasetSubscriptionManager.connect(users.subscriber).addConsumers(
+        subscriptionId,
+        [users.consumer.address]
+      );
+
+      await expect(
+        DatasetSubscriptionManager.connect(users.subscriber).removeConsumers(
+          wrongSubscriptionId,
+          [users.consumer.address]
+        )
+      ).to.be.revertedWith("ERC721: invalid token ID");
+    });
+
     it("Should revert if user tries to remove consumers from the subscription", async () => {
       const { subscriptionId, DatasetSubscriptionManager, users } =
         await setupOnSubscribe();
@@ -565,6 +677,29 @@ describe("SubscriptionManager", () => {
       ).to.be.true;
     });
 
+    it("Should revert subscription owner consumers replace if one consumer to replace is not found", async () => {
+      const { subscriptionId, DatasetSubscriptionManager, users } =
+        await setupOnSubscribe();
+
+      await DatasetSubscriptionManager.connect(users.subscriber).addConsumers(
+        subscriptionId,
+        [users.consumer.address]
+      );
+
+      await expect(
+        DatasetSubscriptionManager.connect(users.subscriber).replaceConsumers(
+          subscriptionId,
+          [users.user.address],
+          [users.secondConsumer.address]
+        )
+      )
+        .to.be.revertedWithCustomError(
+          DatasetSubscriptionManager,
+          "CONSUMER_NOT_FOUND"
+        )
+        .withArgs(subscriptionId, users.user.address);
+    });
+
     it("Should subscription be paid if consumer was added", async function () {
       const { datasetId, subscriptionId, DatasetSubscriptionManager, users } =
         await setupOnSubscribe();
@@ -590,6 +725,22 @@ describe("SubscriptionManager", () => {
           users.subscriber
         ).isSubscriptionPaidFor(datasetId, users.consumer.address)
       ).to.be.false;
+    });
+
+    it("Should revert check for subscription paid for consumer if wrong data set", async function () {
+      const wrongDatasetId = 13412312n;
+      const { DatasetSubscriptionManager, users } = await setupOnSubscribe();
+
+      await expect(
+        DatasetSubscriptionManager.connect(
+          users.subscriber
+        ).isSubscriptionPaidFor(wrongDatasetId, users.consumer.address)
+      )
+        .to.be.revertedWithCustomError(
+          DatasetSubscriptionManager,
+          "UNSUPPORTED_DATASET"
+        )
+        .withArgs(wrongDatasetId);
     });
 
     it("Should subscriber extends his subscription if expired", async () => {

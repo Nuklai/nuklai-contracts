@@ -530,6 +530,19 @@ describe("DatasetNFT", () => {
   });
 
   describe("On mint", () => {
+    it("Should DT admin set deployer fee model for a data set", async function () {
+      const { DatasetNFT, datasetId, users } = await setupOnMint();
+
+      await DatasetNFT.connect(users.dtAdmin).setDeployerFeeModel(
+        datasetId,
+        constants.DeployerFeeModel.DEPLOYER_STORAGE
+      );
+
+      expect(await DatasetNFT.deployerFeeModels(datasetId)).to.equal(
+        constants.DeployerFeeModel.DEPLOYER_STORAGE
+      );
+    });
+
     it("Should data set owner not deploy fragment instance if already exists", async function () {
       const { DatasetNFT, datasetId, users } = await setupOnMint();
 

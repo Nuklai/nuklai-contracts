@@ -1,11 +1,9 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import { DatasetFactory, DatasetNFT } from "@typechained";
-import { constants, logs } from "../utils";
+import { constants } from "../utils";
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  logs.disableConsoleLogsOnTesting();
-
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy, fixture } = deployments;
   const { dtAdmin } = await getNamedAccounts();

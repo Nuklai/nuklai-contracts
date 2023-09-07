@@ -3,6 +3,7 @@ import {
   DatasetFactory,
   DatasetNFT,
   FragmentNFT,
+  VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
 import { ZeroAddress, ZeroHash, parseUnits } from "ethers";
@@ -11,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
 import { getEvent } from "./utils/events";
 import { setupUsers } from "./utils/users";
+import { encodeTag } from "./utils/utils";
 
 const setup = async () => {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
@@ -118,11 +120,126 @@ const setup = async () => {
     fragmentIds,
     DatasetFragment,
     users,
+    DatasetVerifierManager: (await ethers.getContractAt(
+      "VerifierManager",
+      await contracts.DatasetNFT.verifierManager(datasetId),
+      users.datasetOwner
+    )) as unknown as VerifierManager,
     ...contracts,
   };
 };
 
 describe("FragmentNFT", () => {
+  it("Should data set owner set verifiers for single tag", async function () {
+    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
+      await setup();
+
+    const acceptManuallyVerifierAddress =
+      await AcceptManuallyVerifier.getAddress();
+
+    const schemaRowsTag = encodeTag("dataset.schema.rows");
+
+    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+      ZeroAddress
+    );
+
+    await DatasetVerifierManager.connect(users.datasetOwner).setTagVerifier(
+      schemaRowsTag,
+      acceptManuallyVerifierAddress
+    );
+
+    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+      acceptManuallyVerifierAddress
+    );
+  });
+
+  it("Should data set owner set verifiers for multiple tags", async function () {
+    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
+      await setup();
+
+    const acceptManuallyVerifierAddress =
+      await AcceptManuallyVerifier.getAddress();
+
+    const schemaRowsTag = encodeTag("dataset.schema.rows");
+    const schemaColsTag = encodeTag("dataset.schema.cols");
+
+    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+      ZeroAddress
+    );
+    expect(await DatasetVerifierManager.verifiers(schemaColsTag)).to.be.equal(
+      ZeroAddress
+    );
+
+    await DatasetVerifierManager.connect(users.datasetOwner).setTagVerifiers(
+      [schemaRowsTag, schemaColsTag],
+      [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
+    );
+
+    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+      acceptManuallyVerifierAddress
+    );
+    expect(await DatasetVerifierManager.verifiers(schemaColsTag)).to.be.equal(
+      acceptManuallyVerifierAddress
+    );
+  });
+
+  it("Should revert data set owner set verifiers for tags if length does not match", async function () {
+    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
+      await setup();
+
+    const acceptManuallyVerifierAddress =
+      await AcceptManuallyVerifier.getAddress();
+
+    const schemaRowsTag = encodeTag("dataset.schema.rows");
+    const schemaColsTag = encodeTag("dataset.schema.cols");
+
+    await expect(
+      DatasetVerifierManager.connect(users.datasetOwner).setTagVerifiers(
+        [schemaRowsTag, schemaColsTag],
+        [acceptManuallyVerifierAddress]
+      )
+    ).to.be.revertedWith("Array length missmatch");
+  });
+
+  it("Should revert fragment propose if verifier is not set", async function () {
+    const { datasetId, DatasetNFT, DatasetVerifierManager, users } =
+      await setup();
+
+    await DatasetVerifierManager.connect(users.datasetOwner).setDefaultVerifier(
+      ZeroAddress
+    );
+
+    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const DatasetFragment = await ethers.getContractAt(
+      "FragmentNFT",
+      fragmentAddress
+    );
+
+    const datasetAddress = await DatasetNFT.getAddress();
+
+    const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+
+    const proposeSignatureSchemas = await users.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        datasetAddress,
+        datasetId,
+        lastFragmentPendingId + 1n,
+        users.contributor.address,
+        ZeroHash
+      )
+    );
+
+    await expect(
+      DatasetNFT.connect(users.contributor).proposeFragment(
+        datasetId,
+        users.contributor.address,
+        ZeroHash,
+        proposeSignatureSchemas
+      )
+    ).to.be.revertedWith("verifier not set");
+  });
+
   it("Should data set owner accept fragment propose", async function () {
     const {
       datasetId,
