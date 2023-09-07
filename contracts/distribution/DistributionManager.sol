@@ -159,6 +159,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         }
         // send collected and not sent yet
         _sendPayout(collectToken, collectAmount, _msgSender());
+        firstUnclaimed[_msgSender()] += 1;
     }
 
     function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
