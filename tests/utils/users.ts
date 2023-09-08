@@ -3,7 +3,7 @@ import { TestToken } from "@typechained";
 import { ethers } from "hardhat";
 import { getTestTokenContract } from "./contracts";
 
-interface Signer extends HardhatEthersSigner {
+export interface Signer extends HardhatEthersSigner {
   Token?: TestToken;
 }
 

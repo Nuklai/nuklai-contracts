@@ -11,7 +11,7 @@ import { deployments, ethers, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
 import { getEvent } from "./utils/events";
-import { setupUsers } from "./utils/users";
+import { setupUsers, Signer } from "./utils/users";
 import { encodeTag } from "./utils/utils";
 
 const setup = async () => {
@@ -130,71 +130,105 @@ const setup = async () => {
 };
 
 describe("FragmentNFT", () => {
-  it("Should data set owner set verifiers for single tag", async function () {
-    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
-      await setup();
+  let snap: string;
+  let DatasetFactory_: DatasetFactory;
+  let DatasetNFT_: DatasetNFT;
+  let FragmentNFTImplementation_: FragmentNFT;
+  let AcceptManuallyVerifier_: AcceptManuallyVerifier;
+  let DatasetVerifierManager_: VerifierManager;
+  let DatasetFragment_: FragmentNFT;
+  let users_: Record<string, Signer>;
+  let datasetId_: bigint;
+  let fragmentIds_ : bigint[];
 
+  before(async () => {
+    const {
+      DatasetFactory,
+      DatasetNFT,
+      FragmentNFTImplementation,
+      AcceptManuallyVerifier,
+      DatasetVerifierManager,
+      DatasetFragment,
+      users,
+      datasetId,
+      fragmentIds
+    } = await setup();
+
+    DatasetFactory_ = DatasetFactory;
+    DatasetNFT_ = DatasetNFT;
+    FragmentNFTImplementation_ = FragmentNFTImplementation;
+    AcceptManuallyVerifier_ = AcceptManuallyVerifier;
+    DatasetVerifierManager_ = DatasetVerifierManager;
+    DatasetFragment_ = DatasetFragment;
+    users_ = users;
+    datasetId_ = datasetId;
+    fragmentIds_ = fragmentIds;
+  });
+
+  beforeEach(async () => {
+    snap = await ethers.provider.send("evm_snapshot", []);
+  });
+
+  afterEach(async () => {
+    await ethers.provider.send("evm_revert", [snap]);
+  });
+
+  it("Should data set owner set verifiers for single tag", async function () {
     const acceptManuallyVerifierAddress =
-      await AcceptManuallyVerifier.getAddress();
+      await AcceptManuallyVerifier_.getAddress();
 
     const schemaRowsTag = encodeTag("dataset.schema.rows");
 
-    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
       ZeroAddress
     );
 
-    await DatasetVerifierManager.connect(users.datasetOwner).setTagVerifier(
+    await DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifier(
       schemaRowsTag,
       acceptManuallyVerifierAddress
     );
 
-    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
       acceptManuallyVerifierAddress
     );
   });
 
   it("Should data set owner set verifiers for multiple tags", async function () {
-    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
-      await setup();
-
     const acceptManuallyVerifierAddress =
-      await AcceptManuallyVerifier.getAddress();
+      await AcceptManuallyVerifier_.getAddress();
 
     const schemaRowsTag = encodeTag("dataset.schema.rows");
     const schemaColsTag = encodeTag("dataset.schema.cols");
 
-    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
       ZeroAddress
     );
-    expect(await DatasetVerifierManager.verifiers(schemaColsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaColsTag)).to.be.equal(
       ZeroAddress
     );
 
-    await DatasetVerifierManager.connect(users.datasetOwner).setTagVerifiers(
+    await DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifiers(
       [schemaRowsTag, schemaColsTag],
       [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
     );
 
-    expect(await DatasetVerifierManager.verifiers(schemaRowsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
       acceptManuallyVerifierAddress
     );
-    expect(await DatasetVerifierManager.verifiers(schemaColsTag)).to.be.equal(
+    expect(await DatasetVerifierManager_.verifiers(schemaColsTag)).to.be.equal(
       acceptManuallyVerifierAddress
     );
   });
 
   it("Should revert data set owner set verifiers for tags if length does not match", async function () {
-    const { AcceptManuallyVerifier, DatasetVerifierManager, users } =
-      await setup();
-
     const acceptManuallyVerifierAddress =
-      await AcceptManuallyVerifier.getAddress();
+      await AcceptManuallyVerifier_.getAddress();
 
     const schemaRowsTag = encodeTag("dataset.schema.rows");
     const schemaColsTag = encodeTag("dataset.schema.cols");
 
     await expect(
-      DatasetVerifierManager.connect(users.datasetOwner).setTagVerifiers(
+      DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifiers(
         [schemaRowsTag, schemaColsTag],
         [acceptManuallyVerifierAddress]
       )
@@ -202,38 +236,35 @@ describe("FragmentNFT", () => {
   });
 
   it("Should revert fragment propose if verifier is not set", async function () {
-    const { datasetId, DatasetNFT, DatasetVerifierManager, users } =
-      await setup();
-
-    await DatasetVerifierManager.connect(users.datasetOwner).setDefaultVerifier(
+    await DatasetVerifierManager_.connect(users_.datasetOwner).setDefaultVerifier(
       ZeroAddress
     );
 
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const DatasetFragment = await ethers.getContractAt(
       "FragmentNFT",
       fragmentAddress
     );
 
-    const datasetAddress = await DatasetNFT.getAddress();
+    const datasetAddress = await DatasetNFT_.getAddress();
 
     const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
 
-    const proposeSignatureSchemas = await users.dtAdmin.signMessage(
+    const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
       signature.getDatasetFragmentProposeMessage(
         network.config.chainId!,
         datasetAddress,
-        datasetId,
+        datasetId_,
         lastFragmentPendingId + 1n,
-        users.contributor.address,
+        users_.contributor.address,
         ZeroHash
       )
     );
 
     await expect(
-      DatasetNFT.connect(users.contributor).proposeFragment(
-        datasetId,
-        users.contributor.address,
+      DatasetNFT_.connect(users_.contributor).proposeFragment(
+        datasetId_,
+        users_.contributor.address,
         ZeroHash,
         proposeSignatureSchemas
       )
@@ -241,134 +272,99 @@ describe("FragmentNFT", () => {
   });
 
   it("Should data set owner accept fragment propose", async function () {
-    const {
-      datasetId,
-      fragmentIds,
-      DatasetNFT,
-      AcceptManuallyVerifier,
-      users,
-    } = await setup();
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const DatasetFragment = await ethers.getContractAt(
       "FragmentNFT",
       fragmentAddress
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
         fragmentAddress,
-        fragmentIds[0],
+        fragmentIds_[0],
         true
       )
     )
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[0])
+      .withArgs(ZeroAddress, users_.contributor.address, fragmentIds_[0])
       .to.emit(DatasetFragment, "FragmentAccepted")
-      .withArgs(fragmentIds[0]);
+      .withArgs(fragmentIds_[0]);
   });
 
   it("Should data set owner accept multiple fragments proposes", async function () {
-    const {
-      datasetId,
-      fragmentIds,
-      DatasetNFT,
-      AcceptManuallyVerifier,
-      users,
-    } = await setup();
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const DatasetFragment = await ethers.getContractAt(
       "FragmentNFT",
       fragmentAddress
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolveMany(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolveMany(
         fragmentAddress,
-        fragmentIds,
+        fragmentIds_,
         true
       )
     )
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[0])
+      .withArgs(ZeroAddress, users_.contributor.address, fragmentIds_[0])
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[1])
+      .withArgs(ZeroAddress, users_.contributor.address, fragmentIds_[1])
       .to.emit(DatasetFragment, "Transfer")
-      .withArgs(ZeroAddress, users.contributor.address, fragmentIds[2])
+      .withArgs(ZeroAddress, users_.contributor.address, fragmentIds_[2])
       .to.emit(DatasetFragment, "FragmentAccepted")
-      .withArgs(fragmentIds[0])
+      .withArgs(fragmentIds_[0])
       .to.emit(DatasetFragment, "FragmentAccepted")
-      .withArgs(fragmentIds[1])
+      .withArgs(fragmentIds_[1])
       .to.emit(DatasetFragment, "FragmentAccepted")
-      .withArgs(fragmentIds[2]);
+      .withArgs(fragmentIds_[2]);
   });
 
   it("Should data set owner reject fragment propose", async function () {
-    const {
-      datasetId,
-      fragmentIds,
-      DatasetNFT,
-      AcceptManuallyVerifier,
-      users,
-    } = await setup();
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const DatasetFragment = await ethers.getContractAt(
       "FragmentNFT",
       fragmentAddress
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
         fragmentAddress,
-        fragmentIds[0],
+        fragmentIds_[0],
         false
       )
     )
       .to.emit(DatasetFragment, "FragmentRejected")
-      .withArgs(fragmentIds[0]);
+      .withArgs(fragmentIds_[0]);
   });
 
   it("Should data set owner reject multiple fragments proposes", async function () {
-    const {
-      datasetId,
-      fragmentIds,
-      DatasetNFT,
-      AcceptManuallyVerifier,
-      users,
-    } = await setup();
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const DatasetFragment = await ethers.getContractAt(
       "FragmentNFT",
       fragmentAddress
     );
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolveMany(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolveMany(
         fragmentAddress,
-        fragmentIds,
+        fragmentIds_,
         false
       )
     )
       .to.emit(DatasetFragment, "FragmentRejected")
-      .withArgs(fragmentIds[0])
+      .withArgs(fragmentIds_[0])
       .to.emit(DatasetFragment, "FragmentRejected")
-      .withArgs(fragmentIds[1])
+      .withArgs(fragmentIds_[1])
       .to.emit(DatasetFragment, "FragmentRejected")
-      .withArgs(fragmentIds[2]);
+      .withArgs(fragmentIds_[2]);
   });
 
   it("Should revert accept/reject fragment propose if fragment id does not exists", async function () {
-    const { datasetId, DatasetNFT, AcceptManuallyVerifier, users } =
-      await setup();
-
-    const fragmentAddress = await DatasetNFT.fragments(datasetId);
+    const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
     const wrongFragmentId = 1232131231;
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
         fragmentAddress,
         wrongFragmentId,
         false
@@ -376,7 +372,7 @@ describe("FragmentNFT", () => {
     ).to.be.revertedWith("Not a pending fragment");
 
     await expect(
-      AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
+      AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
         fragmentAddress,
         wrongFragmentId,
         true
@@ -385,36 +381,30 @@ describe("FragmentNFT", () => {
   });
 
   it("Should data set owner remove a fragment", async function () {
-    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier, users } =
-      await setup();
-
-    await AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
-      await DatasetFragment.getAddress(),
-      fragmentIds[0],
+    await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+      await DatasetFragment_.getAddress(),
+      fragmentIds_[0],
       true
     );
 
     await expect(
-      DatasetFragment.connect(users.datasetOwner).remove(fragmentIds[0])
+      DatasetFragment_.connect(users_.datasetOwner).remove(fragmentIds_[0])
     )
-      .to.emit(DatasetFragment, "FragmentRemoved")
-      .withArgs(fragmentIds[0]);
+      .to.emit(DatasetFragment_, "FragmentRemoved")
+      .withArgs(fragmentIds_[0]);
 
-    expect(await DatasetFragment.tags(fragmentIds[0])).to.equal(ZeroHash);
+    expect(await DatasetFragment_.tags(fragmentIds_[0])).to.equal(ZeroHash);
   });
 
   it("Should revert if user tries to remove a fragment", async function () {
-    const { fragmentIds, DatasetFragment, AcceptManuallyVerifier, users } =
-      await setup();
-
-    await AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
-      await DatasetFragment.getAddress(),
-      fragmentIds[0],
+    await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+      await DatasetFragment_.getAddress(),
+      fragmentIds_[0],
       true
     );
 
     await expect(
-      DatasetFragment.connect(users.user).remove(fragmentIds[0])
-    ).to.be.revertedWithCustomError(DatasetFragment, "NOT_ADMIN");
+      DatasetFragment_.connect(users_.user).remove(fragmentIds_[0])
+    ).to.be.revertedWithCustomError(DatasetFragment_, "NOT_ADMIN");
   });
 });

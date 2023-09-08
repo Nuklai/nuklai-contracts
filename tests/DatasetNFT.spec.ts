@@ -1,12 +1,13 @@
 import { expect } from "chai";
 import { deployments, ethers, network } from "hardhat";
 import { DatasetFactory, DatasetNFT, FragmentNFT } from "@typechained";
-import { getBytes, parseUnits, ZeroAddress, ZeroHash } from "ethers";
+import { Contract, ContractFactory, getBytes, parseUnits, ZeroAddress, ZeroHash } from "ethers";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
 import { constants } from "../utils";
 import { getEvent } from "./utils/events";
 import { setupUsers } from "./utils/users";
+import {Signer} from "./utils/users";
 
 async function setup() {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
@@ -109,83 +110,96 @@ const setupOnMint = async () => {
 };
 
 describe("DatasetNFT", () => {
+  let snap: string;
+  let users_: Record<string, Signer>;
+  let DatasetNFT_: DatasetNFT;
+  let DatasetFactory_: DatasetFactory;
+  let FragmentNFTImplementation_: FragmentNFT;
+
+  before(async () => {
+    const {DatasetNFT, DatasetFactory, FragmentNFTImplementation, users} = await setup();
+
+    users_ = users;
+    DatasetNFT_ = DatasetNFT;
+    DatasetFactory_ = DatasetFactory;
+    FragmentNFTImplementation_ = FragmentNFTImplementation;
+
+  });
+  
+  beforeEach(async () => {
+    snap = await ethers.provider.send("evm_snapshot", []);
+  });
+
+  afterEach(async () => {
+    await ethers.provider.send("evm_revert", [snap]);
+  });
+
+
   it("Should dataset name be set on deploy", async function () {
-    const { DatasetNFT } = await setup();
-    expect(await DatasetNFT.name()).to.equal(
+    expect(await DatasetNFT_.name()).to.equal(
       "AllianceBlock DataTunnel Dataset"
     );
   });
 
   it("Should dataset symbol be set on deploy", async function () {
-    const { DatasetNFT } = await setup();
-    expect(await DatasetNFT.symbol()).to.equal("ABDTDS");
+    expect(await DatasetNFT_.symbol()).to.equal("ABDTDS");
   });
 
   it("Should dataset fragment implementation be set on deploy", async function () {
-    const { DatasetNFT, FragmentNFTImplementation } = await setup();
-    expect(await DatasetNFT.fragmentImplementation()).to.equal(
-      await FragmentNFTImplementation.getAddress()
+    expect(await DatasetNFT_.fragmentImplementation()).to.equal(
+      await FragmentNFTImplementation_.getAddress()
     );
   });
 
   it("Should DT admin be a signer", async function () {
-    const { DatasetNFT, users } = await setup();
-    expect(await DatasetNFT.isSigner(users.dtAdmin)).to.be.true;
+    expect(await DatasetNFT_.isSigner(users_.dtAdmin)).to.be.true;
   });
 
   it("Should DT admin set a deployer beneficiary for fees", async function () {
-    const { DatasetNFT, users } = await setup();
-
-    await DatasetNFT.connect(users.dtAdmin).setDeployerFeeBeneficiary(
-      users.dtAdmin.address
+    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(
+      users_.dtAdmin.address
     );
 
-    expect(await DatasetNFT.deployerFeeBeneficiary()).to.equal(
-      users.dtAdmin.address
+    expect(await DatasetNFT_.deployerFeeBeneficiary()).to.equal(
+      users_.dtAdmin.address
     );
   });
 
   it("Should DT admin set fee model percentage for deployer", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const percentage = parseUnits("0.35", 18);
 
-    await DatasetNFT.connect(users.dtAdmin).setDeployerFeeModelPercentages(
+    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
       [constants.DeployerFeeModel.DEPLOYER_STORAGE],
       [percentage]
     );
 
     expect(
-      await DatasetNFT.deployerFeeModelPercentage(
+      await DatasetNFT_.deployerFeeModelPercentage(
         constants.DeployerFeeModel.DEPLOYER_STORAGE
       )
     ).to.equal(percentage);
   });
 
   it("Should DT admin set fee model percentage for data set owners", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const percentage = parseUnits("0.1", 18);
 
-    await DatasetNFT.connect(users.dtAdmin).setDeployerFeeModelPercentages(
+    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
       [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
       [percentage]
     );
 
     expect(
-      await DatasetNFT.deployerFeeModelPercentage(
+      await DatasetNFT_.deployerFeeModelPercentage(
         constants.DeployerFeeModel.DATASET_OWNER_STORAGE
       )
     ).to.equal(percentage);
   });
 
   it("Should revert set deployer fee model percentage if goes over 100%", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const percentage = parseUnits("1.1", 18);
 
     await expect(
-      DatasetNFT.connect(users.dtAdmin).setDeployerFeeModelPercentages(
+      DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DEPLOYER_STORAGE],
         [percentage]
       )
@@ -193,50 +207,44 @@ describe("DatasetNFT", () => {
   });
 
   it("Should revert set deployer fee model percentage if not DT admin", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const percentage = parseUnits("1", 18);
 
     await expect(
-      DatasetNFT.connect(users.user).setDeployerFeeModelPercentages(
+      DatasetNFT_.connect(users_.user).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
         [percentage]
       )
     ).to.be.revertedWith(
-      `AccessControl: account ${users.user.address.toLowerCase()} is missing role ${ZeroHash}`
+      `AccessControl: account ${users_.user.address.toLowerCase()} is missing role ${ZeroHash}`
     );
   });
 
   it("Should fee model percentage NO_FEE be zero", async function () {
-    const { DatasetNFT } = await setup();
-
     expect(
-      await DatasetNFT.deployerFeeModelPercentage(
+      await DatasetNFT_.deployerFeeModelPercentage(
         constants.DeployerFeeModel.NO_FEE
       )
     ).to.equal(0);
   });
 
   it("Should first DT admin set UUID before data set owner mints the data set", async function () {
-    const { DatasetNFT, DatasetFactory, users } = await setup();
-
     const datasetUUID = uuidv4();
 
     const uuidSetTxReceipt = await (
-      await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID)
+      await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
 
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
-      DatasetNFT
+      DatasetNFT_
     )!.args as unknown as [string, bigint];
 
-    expect(await DatasetNFT.uuids(datasetId)).to.equal(datasetUUID);
+    expect(await DatasetNFT_.uuids(datasetId)).to.equal(datasetUUID);
     expect(datasetUUID).to.equal(uuid);
 
-    const datasetAddress = await DatasetNFT.getAddress();
-    const signedMessage = await users.dtAdmin.signMessage(
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const signedMessage = await users_.dtAdmin.signMessage(
       signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
@@ -250,34 +258,32 @@ describe("DatasetNFT", () => {
     const dsOwnerPercentage = parseUnits("0.001", 18);
 
     await expect(
-      DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-        users.datasetOwner.address,
+      DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
-        await users.datasetOwner.Token!.getAddress(),
+        await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
         [parseUnits("1", 18)]
       )
     )
-      .to.be.emit(DatasetNFT, "ManagersConfigChange")
+      .to.emit(DatasetNFT_, "ManagersConfigChange")
       .withArgs(datasetId)
-      .to.be.emit(DatasetNFT, "Transfer")
-      .withArgs(ZeroAddress, await DatasetFactory.getAddress(), datasetId)
-      .to.be.emit(DatasetNFT, "Transfer")
+      .to.emit(DatasetNFT_, "Transfer")
+      .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), datasetId)
+      .to.emit(DatasetNFT_, "Transfer")
       .withArgs(
-        await DatasetFactory.getAddress(),
-        users.datasetOwner.address,
+        await DatasetFactory_.getAddress(),
+        users_.datasetOwner.address,
         datasetId
       );
   });
 
   it("Should revert if DT admin not set UUID before data set owner mints the data set", async function () {
-    const { DatasetNFT, DatasetFactory, users } = await setup();
-
-    const datasetAddress = await DatasetNFT.getAddress();
-    const signedMessage = await users.dtAdmin.signMessage(
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const signedMessage = await users_.dtAdmin.signMessage(
       signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
@@ -291,11 +297,11 @@ describe("DatasetNFT", () => {
     const dsOwnerPercentage = parseUnits("0.001", 18);
 
     await expect(
-      DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-        users.datasetOwner.address,
+      DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
-        await users.datasetOwner.Token!.getAddress(),
+        await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
@@ -305,24 +311,22 @@ describe("DatasetNFT", () => {
   });
 
   it("Should a data set owner mint dataset", async function () {
-    const { DatasetNFT, DatasetFactory, users } = await setup();
-
     const datasetUUID = uuidv4();
 
     const uuidSetTxReceipt = await (
-      await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID)
+      await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
 
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
-      DatasetNFT
+      DatasetNFT_
     )!.args as unknown as [string, bigint];
 
     expect(datasetUUID).to.equal(uuid);
 
-    const datasetAddress = await DatasetNFT.getAddress();
-    const signedMessage = await users.dtAdmin.signMessage(
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const signedMessage = await users_.dtAdmin.signMessage(
       signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
@@ -336,48 +340,46 @@ describe("DatasetNFT", () => {
     const dsOwnerPercentage = parseUnits("0.001", 18);
 
     await expect(
-      DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-        users.datasetOwner.address,
+      DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
-        await users.datasetOwner.Token!.getAddress(),
+        await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
         [parseUnits("1", 18)]
       )
     )
-      .to.be.emit(DatasetNFT, "ManagersConfigChange")
+      .to.emit(DatasetNFT_, "ManagersConfigChange")
       .withArgs(datasetId)
-      .to.be.emit(DatasetNFT, "Transfer")
-      .withArgs(ZeroAddress, await DatasetFactory.getAddress(), datasetId)
-      .to.be.emit(DatasetNFT, "Transfer")
+      .to.emit(DatasetNFT_, "Transfer")
+      .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), datasetId)
+      .to.emit(DatasetNFT_, "Transfer")
       .withArgs(
-        await DatasetFactory.getAddress(),
-        users.datasetOwner.address,
+        await DatasetFactory_.getAddress(),
+        users_.datasetOwner.address,
         datasetId
       );
   });
 
   it("Should data set owner not mint a dataset twice", async function () {
-    const { DatasetNFT, DatasetFactory, users } = await setup();
-
     const datasetUUID = uuidv4();
 
     const uuidSetTxReceipt = await (
-      await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID)
+      await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
 
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
-      DatasetNFT
+      DatasetNFT_
     )!.args as unknown as [string, bigint];
 
     expect(datasetUUID).to.equal(uuid);
 
-    const datasetAddress = await DatasetNFT.getAddress();
-    const signedMessage = await users.dtAdmin.signMessage(
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const signedMessage = await users_.dtAdmin.signMessage(
       signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
@@ -390,11 +392,11 @@ describe("DatasetNFT", () => {
     const feeAmount = parseUnits("0.1", 18);
     const dsOwnerPercentage = parseUnits("0.001", 18);
 
-    await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-      users.datasetOwner.address,
+    await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+      users_.datasetOwner.address,
       signedMessage,
       defaultVerifierAddress,
-      await users.datasetOwner.Token!.getAddress(),
+      await users_.datasetOwner.Token!.getAddress(),
       feeAmount,
       dsOwnerPercentage,
       [ZeroHash],
@@ -402,11 +404,11 @@ describe("DatasetNFT", () => {
     );
 
     await expect(
-      DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-        users.datasetOwner.address,
+      DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
-        await users.datasetOwner.Token!.getAddress(),
+        await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
@@ -416,41 +418,37 @@ describe("DatasetNFT", () => {
   });
 
   it("Should revert mint dataset if DT admin signature is wrong", async function () {
-    const { DatasetNFT, users } = await setup();
-
-    const signedMessage = await users.datasetOwner.signMessage(getBytes("0x"));
+    const signedMessage = await users_.datasetOwner.signMessage(getBytes("0x"));
 
     const datasetUUID = uuidv4();
 
-    await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID);
+    await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID);
 
     await expect(
-      DatasetNFT.connect(users.datasetOwner).mint(
-        users.datasetOwner.address,
+      DatasetNFT_.connect(users_.datasetOwner).mint(
+        users_.datasetOwner.address,
         signedMessage
       )
-    ).to.be.revertedWithCustomError(DatasetNFT, "BAD_SIGNATURE");
+    ).to.be.revertedWithCustomError(DatasetNFT_, "BAD_SIGNATURE");
   });
 
   it("Should revert mint dataset if DT admin signer role is not granted", async function () {
-    const { DatasetNFT, DatasetFactory, users } = await setup();
-
     const datasetUUID = uuidv4();
 
     const uuidSetTxReceipt = await (
-      await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID)
+      await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
     ).wait();
 
     const [uuid, datasetId] = getEvent(
       "DatasetUuidSet",
       uuidSetTxReceipt?.logs!,
-      DatasetNFT
+      DatasetNFT_
     )!.args as unknown as [string, bigint];
 
     expect(datasetUUID).to.equal(uuid);
 
-    const datasetAddress = await DatasetNFT.getAddress();
-    const signedMessage = await users.user.signMessage(
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const signedMessage = await users_.user.signMessage(
       signature.getDatasetMintMessage(
         network.config.chainId!,
         datasetAddress,
@@ -464,196 +462,205 @@ describe("DatasetNFT", () => {
     const dsOwnerPercentage = parseUnits("0.001", 18);
 
     await expect(
-      DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-        users.datasetOwner.address,
+      DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
-        await users.datasetOwner.Token!.getAddress(),
+        await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
         [parseUnits("1", 18)]
       )
-    ).to.be.revertedWithCustomError(DatasetNFT, "BAD_SIGNATURE");
+    ).to.be.revertedWithCustomError(DatasetNFT_, "BAD_SIGNATURE");
   });
 
   it("Should DatasetNFT admin contract set a new fragment implementation", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const newFragmentImplementation = await deployments.deploy(
       "FragmentNFT_new",
       {
         contract: "FragmentNFT",
-        from: await users.dtAdmin.getAddress(),
+        from: users_.dtAdmin.address,
       }
     );
 
-    await DatasetNFT.connect(users.dtAdmin).setFragmentImplementation(
+    await DatasetNFT_.connect(users_.dtAdmin).setFragmentImplementation(
       newFragmentImplementation.address
     );
 
-    expect(await DatasetNFT.fragmentImplementation()).to.equal(
+    expect(await DatasetNFT_.fragmentImplementation()).to.equal(
       newFragmentImplementation.address
     );
   });
 
   it("Should revert if normal user tries to set fragment implementation address", async function () {
-    const { DatasetNFT, users } = await setup();
-
     const newFragmentImplementation = await deployments.deploy(
-      "FragmentNFT_new",
+      "FragmentNFT_new2",
       {
         contract: "FragmentNFT",
-        from: await users.user.getAddress(),
+        from: users_.user.address
       }
     );
-
+    
     await expect(
-      DatasetNFT.connect(users.user).setFragmentImplementation(
+      DatasetNFT_.connect(users_.user).setFragmentImplementation(
         newFragmentImplementation.address
       )
     ).to.be.revertedWith(
       `AccessControl: account ${(
-        await users.user.getAddress()
+        users_.user.address
       ).toLowerCase()} is missing role ${ZeroHash}`
     );
   });
 
   it("Should revert on set fragment implementation if address is a wallet", async function () {
-    const { DatasetNFT, users } = await setup();
-
     await expect(
-      DatasetNFT.connect(users.dtAdmin).setFragmentImplementation(
-        users.user.address
+      DatasetNFT_.connect(users_.dtAdmin).setFragmentImplementation(
+        users_.user.address
       )
     ).to.be.revertedWith("invalid fragment implementation address");
   });
 
+  // ------------------------------------------------------------------------------------
+
   describe("On mint", () => {
-    it("Should DT admin set deployer fee model for a data set", async function () {
-      const { DatasetNFT, datasetId, users } = await setupOnMint();
+    let snap: string;
+    let DatasetNFT_: DatasetNFT;
+    let DatasetFragment_: FragmentNFT;
+    let ERC20SubscriptionManagerFactory_: ContractFactory<any[], Contract>;
+    let DistributionManagerFactory_: ContractFactory<any[], Contract>;
+    let VerifierManagerFactory_: ContractFactory<any[], Contract>;
+    let AcceptAllVerifierFactory_: ContractFactory<any[], Contract>;
+    let AcceptManuallyVerifierFactory_: ContractFactory<any[], Contract>;
+    let datasetId_: bigint;
+    let users_: Record<string, Signer>;
 
-      await DatasetNFT.connect(users.dtAdmin).setDeployerFeeModel(
-        datasetId,
-        constants.DeployerFeeModel.DEPLOYER_STORAGE
-      );
-
-      expect(await DatasetNFT.deployerFeeModels(datasetId)).to.equal(
-        constants.DeployerFeeModel.DEPLOYER_STORAGE
-      );
-    });
-
-    it("Should data set owner not deploy fragment instance if already exists", async function () {
-      const { DatasetNFT, datasetId, users } = await setupOnMint();
-
-      await expect(
-        DatasetNFT.connect(users.datasetOwner).deployFragmentInstance(datasetId)
-      ).to.be.revertedWith("fragment instance already deployed");
-    });
-
-    it("Should data set owner set managers", async function () {
+    before(async () => {
       const {
-        DatasetNFT,
-        datasetId,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-
-      await expect(
-        DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
-          subscriptionManager: await SubscriptionManager.getAddress(),
-          distributionManager: await DistributionManager.getAddress(),
-          verifierManager: await VerifierManager.getAddress(),
-        })
-      )
-        .to.emit(DatasetNFT, "ManagersConfigChange")
-        .withArgs(datasetId);
-    });
-
-    it("Should revert set dataset nft managers if data set does not exists", async function () {
-      const wrongDatasetId = 11231231;
-      const {
-        DatasetNFT,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
-      ).deploy();
-
-      await expect(
-        DatasetNFT.connect(users.datasetOwner).setManagers(wrongDatasetId, {
-          subscriptionManager: await SubscriptionManager.getAddress(),
-          distributionManager: await DistributionManager.getAddress(),
-          verifierManager: await VerifierManager.getAddress(),
-        })
-      )
-        .to.be.revertedWithCustomError(DatasetNFT, "NOT_OWNER")
-        .withArgs(wrongDatasetId, users.datasetOwner.address);
-    });
-
-    it("Should contributor propose a fragment - default AcceptManuallyVerifier", async function () {
-      const {
-        datasetId,
         DatasetNFT,
         DatasetFragment,
         ERC20SubscriptionManagerFactory,
         DistributionManagerFactory,
         VerifierManagerFactory,
+        AcceptAllVerifierFactory,
         AcceptManuallyVerifierFactory,
-        users,
+        datasetId,
+        users
       } = await setupOnMint();
 
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
+      DatasetNFT_ = DatasetNFT;
+      DatasetFragment_ = DatasetFragment;
+      ERC20SubscriptionManagerFactory_ = ERC20SubscriptionManagerFactory;
+      DistributionManagerFactory_ = DistributionManagerFactory;
+      VerifierManagerFactory_ = VerifierManagerFactory;
+      AcceptAllVerifierFactory_ = AcceptAllVerifierFactory;
+      AcceptManuallyVerifierFactory_ = AcceptManuallyVerifierFactory;
+      datasetId_ = datasetId;
+      users_ = users;
+    });
+
+    beforeEach(async () => {
+      snap = await ethers.provider.send("evm_snapshot", []);
+    });
+  
+    afterEach(async () => {
+      await ethers.provider.send("evm_revert", [snap]);
+    });
+
+
+    it("Should DT admin set deployer fee model for a data set", async function () {
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModel(
+        datasetId_,
+        constants.DeployerFeeModel.DEPLOYER_STORAGE
+      );
+
+      expect(await DatasetNFT_.deployerFeeModels(datasetId_)).to.equal(
+        constants.DeployerFeeModel.DEPLOYER_STORAGE
+      );
+    });
+
+    it("Should data set owner not deploy fragment instance if already exists", async function () {
+      await expect(
+        DatasetNFT_.connect(users_.datasetOwner).deployFragmentInstance(datasetId_)
+      ).to.be.revertedWith("fragment instance already deployed");
+    });
+
+    it("Should data set owner set managers", async function () {
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
-      await DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
+      await expect(
+        DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
+          subscriptionManager: await SubscriptionManager.getAddress(),
+          distributionManager: await DistributionManager.getAddress(),
+          verifierManager: await VerifierManager.getAddress(),
+        })
+      )
+        .to.emit(DatasetNFT_, "ManagersConfigChange")
+        .withArgs(datasetId_);
+    });
+
+    it("Should revert set dataset nft managers if data set does not exists", async function () {
+      const wrongDatasetId = 11231231;
+
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+
+      await expect(
+        DatasetNFT_.connect(users_.datasetOwner).setManagers(wrongDatasetId, {
+          subscriptionManager: await SubscriptionManager.getAddress(),
+          distributionManager: await DistributionManager.getAddress(),
+          verifierManager: await VerifierManager.getAddress(),
+        })
+      )
+        .to.be.revertedWithCustomError(DatasetNFT_, "NOT_OWNER")
+        .withArgs(wrongDatasetId, users_.datasetOwner.address);
+    });
+
+    it("Should contributor propose a fragment - default AcceptManuallyVerifier", async function () {
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
+      ).deploy();
+
+      await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
         subscriptionManager: await SubscriptionManager.getAddress(),
         distributionManager: await DistributionManager.getAddress(),
         verifierManager: await VerifierManager.getAddress(),
       });
 
-      const datasetVerifierManagerAddress = await DatasetNFT.verifierManager(
-        datasetId
+      const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(
+        datasetId_
       );
 
       const DatasetVerifierManager = await ethers.getContractAt(
         "VerifierManager",
         datasetVerifierManagerAddress,
-        users.datasetOwner
+        users_.datasetOwner
       );
 
       const AcceptManuallyVerifier =
-        await AcceptManuallyVerifierFactory.connect(
-          users.datasetOwner
+        await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
         ).deploy();
 
       DatasetVerifierManager.setDefaultVerifier(
@@ -663,72 +670,61 @@ describe("DatasetNFT", () => {
       const tag = utils.encodeTag("dataset.schemas");
 
       const lastFragmentPendingId =
-        await DatasetFragment.lastFragmentPendingId();
+        await DatasetFragment_.lastFragmentPendingId();
 
-      const proposeSignature = await users.dtAdmin.signMessage(
+      const proposeSignature = await users_.dtAdmin.signMessage(
         signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
-          await DatasetNFT.getAddress(),
-          datasetId,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
           lastFragmentPendingId + 1n,
-          users.contributor.address,
+          users_.contributor.address,
           tag
         )
       );
 
       await expect(
-        DatasetNFT.connect(users.contributor).proposeFragment(
-          datasetId,
-          users.contributor.address,
+        DatasetNFT_.connect(users_.contributor).proposeFragment(
+          datasetId_,
+          users_.contributor.address,
           tag,
           proposeSignature
         )
       )
-        .to.emit(DatasetFragment, "FragmentPending")
-        .withArgs(datasetId, tag);
+        .to.emit(DatasetFragment_, "FragmentPending")
+        .withArgs(datasetId_, tag);
     });
 
     it("Should contributor propose multiple fragments - default AcceptManuallyVerifier", async function () {
-      const {
-        datasetId,
-        DatasetNFT,
-        DatasetFragment,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        AcceptManuallyVerifierFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
-      await DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
+      await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
         subscriptionManager: await SubscriptionManager.getAddress(),
         distributionManager: await DistributionManager.getAddress(),
         verifierManager: await VerifierManager.getAddress(),
       });
 
-      const datasetVerifierManagerAddress = await DatasetNFT.verifierManager(
-        datasetId
+      const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(
+        datasetId_
       );
 
       const DatasetVerifierManager = await ethers.getContractAt(
         "VerifierManager",
         datasetVerifierManagerAddress,
-        users.datasetOwner
+        users_.datasetOwner
       );
 
       const AcceptManuallyVerifier =
-        await AcceptManuallyVerifierFactory.connect(
-          users.datasetOwner
+        await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
         ).deploy();
 
       DatasetVerifierManager.setDefaultVerifier(
@@ -740,84 +736,73 @@ describe("DatasetNFT", () => {
       const tagData = utils.encodeTag("dataset.data");
 
       const lastFragmentPendingId =
-        await DatasetFragment.lastFragmentPendingId();
+        await DatasetFragment_.lastFragmentPendingId();
 
-      const proposeManySignature = await users.dtAdmin.signMessage(
+      const proposeManySignature = await users_.dtAdmin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
-          await DatasetNFT.getAddress(),
-          datasetId,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
           lastFragmentPendingId,
           [
-            users.contributor.address,
-            users.contributor.address,
-            users.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
           ],
           [tagSchemas, tagRows, tagData]
         )
       );
 
       await expect(
-        DatasetNFT.connect(users.contributor).proposeManyFragments(
-          datasetId,
+        DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+          datasetId_,
           [
-            users.contributor.address,
-            users.contributor.address,
-            users.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
           ],
           [tagSchemas, tagRows, tagData],
           proposeManySignature
         )
       )
-        .to.emit(DatasetFragment, "FragmentPending")
+        .to.emit(DatasetFragment_, "FragmentPending")
         .withArgs(lastFragmentPendingId + 1n, tagSchemas)
-        .to.emit(DatasetFragment, "FragmentPending")
+        .to.emit(DatasetFragment_, "FragmentPending")
         .withArgs(lastFragmentPendingId + 2n, tagRows)
-        .to.emit(DatasetFragment, "FragmentPending")
+        .to.emit(DatasetFragment_, "FragmentPending")
         .withArgs(lastFragmentPendingId + 3n, tagData);
     });
 
     it("Should revert contributor propose multiple fragments if proposes length is not correct", async function () {
-      const {
-        datasetId,
-        DatasetNFT,
-        DatasetFragment,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        AcceptManuallyVerifierFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
-      await DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
+      await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
         subscriptionManager: await SubscriptionManager.getAddress(),
         distributionManager: await DistributionManager.getAddress(),
         verifierManager: await VerifierManager.getAddress(),
       });
 
-      const datasetVerifierManagerAddress = await DatasetNFT.verifierManager(
-        datasetId
+      const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(
+        datasetId_
       );
 
       const DatasetVerifierManager = await ethers.getContractAt(
         "VerifierManager",
         datasetVerifierManagerAddress,
-        users.datasetOwner
+        users_.datasetOwner
       );
 
       const AcceptManuallyVerifier =
-        await AcceptManuallyVerifierFactory.connect(
-          users.datasetOwner
+        await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
         ).deploy();
 
       DatasetVerifierManager.setDefaultVerifier(
@@ -829,27 +814,27 @@ describe("DatasetNFT", () => {
       const tagData = utils.encodeTag("dataset.data");
 
       const lastFragmentPendingId =
-        await DatasetFragment.lastFragmentPendingId();
+        await DatasetFragment_.lastFragmentPendingId();
 
-      const proposeManySignature = await users.dtAdmin.signMessage(
+      const proposeManySignature = await users_.dtAdmin.signMessage(
         signature.getDatasetFragmentProposeBatchMessage(
           network.config.chainId!,
-          await DatasetNFT.getAddress(),
-          datasetId,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
           lastFragmentPendingId,
           [
-            users.contributor.address,
-            users.contributor.address,
-            users.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
+            users_.contributor.address,
           ],
           [tagSchemas, tagRows, tagData]
         )
       );
 
       await expect(
-        DatasetNFT.connect(users.contributor).proposeManyFragments(
-          datasetId,
-          [users.contributor.address, users.contributor.address],
+        DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+          datasetId_,
+          [users_.contributor.address, users_.contributor.address],
           [tagSchemas],
           proposeManySignature
         )
@@ -857,45 +842,34 @@ describe("DatasetNFT", () => {
     });
 
     it("Should contributor propose a fragment - default AcceptAllVerifier", async function () {
-      const {
-        datasetId,
-        DatasetNFT,
-        DatasetFragment,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        AcceptAllVerifierFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
-      await DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
+      await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
         subscriptionManager: await SubscriptionManager.getAddress(),
         distributionManager: await DistributionManager.getAddress(),
         verifierManager: await VerifierManager.getAddress(),
       });
 
-      const datasetVerifierManagerAddress = await DatasetNFT.verifierManager(
-        datasetId
+      const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(
+        datasetId_
       );
 
       const DatasetVerifierManager = await ethers.getContractAt(
         "VerifierManager",
         datasetVerifierManagerAddress,
-        users.datasetOwner
+        users_.datasetOwner
       );
 
-      const AcceptAllVerifier = await AcceptAllVerifierFactory.connect(
-        users.datasetOwner
+      const AcceptAllVerifier = await AcceptAllVerifierFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
       DatasetVerifierManager.setDefaultVerifier(
@@ -905,71 +879,61 @@ describe("DatasetNFT", () => {
       const tag = utils.encodeTag("dataset.schemas");
 
       const lastFragmentPendingId =
-        await DatasetFragment.lastFragmentPendingId();
+        await DatasetFragment_.lastFragmentPendingId();
 
-      const proposeSignature = await users.dtAdmin.signMessage(
+      const proposeSignature = await users_.dtAdmin.signMessage(
         signature.getDatasetFragmentProposeMessage(
           network.config.chainId!,
-          await DatasetNFT.getAddress(),
-          datasetId,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
           lastFragmentPendingId + 1n,
-          users.contributor.address,
+          users_.contributor.address,
           tag
         )
       );
 
       await expect(
-        DatasetNFT.connect(users.contributor).proposeFragment(
-          datasetId,
-          users.contributor.address,
+        DatasetNFT_.connect(users_.contributor).proposeFragment(
+          datasetId_,
+          users_.contributor.address,
           tag,
           proposeSignature
         )
       )
-        .to.emit(DatasetFragment, "FragmentPending")
-        .withArgs(datasetId, tag);
+        .to.emit(DatasetFragment_, "FragmentPending")
+        .withArgs(datasetId_, tag);
     });
 
     it("Should revert a propose if signature is wrong", async function () {
-      const {
-        DatasetNFT,
-        datasetId,
-        ERC20SubscriptionManagerFactory,
-        DistributionManagerFactory,
-        VerifierManagerFactory,
-        AcceptManuallyVerifierFactory,
-        users,
-      } = await setupOnMint();
-
-      const SubscriptionManager = await ERC20SubscriptionManagerFactory.connect(
-        users.datasetOwner
+      const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const DistributionManager = await DistributionManagerFactory.connect(
-        users.datasetOwner
+      const DistributionManager = await DistributionManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
-      const VerifierManager = await VerifierManagerFactory.connect(
-        users.datasetOwner
+      const VerifierManager = await VerifierManagerFactory_.connect(
+        users_.datasetOwner
       ).deploy();
 
-      await DatasetNFT.connect(users.datasetOwner).setManagers(datasetId, {
+      await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
         subscriptionManager: await SubscriptionManager.getAddress(),
         distributionManager: await DistributionManager.getAddress(),
         verifierManager: await VerifierManager.getAddress(),
       });
 
-      const datasetVerifierManagerAddress = await DatasetNFT.verifierManager(
-        datasetId
+      const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(
+        datasetId_
       );
 
       const DatasetVerifierManager = await ethers.getContractAt(
         "VerifierManager",
         datasetVerifierManagerAddress,
-        users.datasetOwner
+        users_.datasetOwner
       );
 
       const AcceptManuallyVerifier =
-        await AcceptManuallyVerifierFactory.connect(
-          users.datasetOwner
+        await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
         ).deploy();
 
       DatasetVerifierManager.setDefaultVerifier(
@@ -978,16 +942,16 @@ describe("DatasetNFT", () => {
 
       const tag = utils.encodeTag("dataset.schemas");
 
-      const proposeSignature = await users.dtAdmin.signMessage(getBytes("0x"));
+      const proposeSignature = await users_.dtAdmin.signMessage(getBytes("0x"));
 
       await expect(
-        DatasetNFT.connect(users.contributor).proposeFragment(
-          datasetId,
-          users.contributor.address,
+        DatasetNFT_.connect(users_.contributor).proposeFragment(
+          datasetId_,
+          users_.contributor.address,
           tag,
           proposeSignature
         )
-      ).to.be.revertedWithCustomError(DatasetNFT, "BAD_SIGNATURE");
+      ).to.be.revertedWithCustomError(DatasetNFT_, "BAD_SIGNATURE");
     });
   });
 });
