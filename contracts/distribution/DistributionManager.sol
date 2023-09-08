@@ -123,9 +123,18 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         emit PaymentReceived();
     }
 
-    function claimDatasetOwnerPayouts(address token, uint256 amount, address beneficiary, bytes calldata signature) external onlyDatasetOwner {
+    function claimDatasetOwnerPayouts(
+        address token, 
+        uint256 amount, 
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill,
+        bytes calldata signature
+    ) external onlyDatasetOwner {
+        // Validate signature
+        require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
         require(pendingOwnerFee[token] >= amount, "not enough amount");
-        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary);
+        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         pendingOwnerFee[token] -= amount;
@@ -205,13 +214,21 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
 
-    function _ownerClaimMessageHash(address token, uint256 amount, address beneficiary) private view returns(bytes32) {
+    function _ownerClaimMessageHash(
+        address token, 
+        uint256 amount,
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill
+    ) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
             token,
             amount,
-            beneficiary
+            beneficiary,
+            sigValidSince,
+            sigValidTill
         ));
     }
 
