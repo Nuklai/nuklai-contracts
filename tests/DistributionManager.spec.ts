@@ -152,7 +152,7 @@ describe("DistributionManager", () => {
       DatasetDistributionManager,
       DatasetVerifierManager,
       users,
-      datasetId
+      datasetId,
     } = await setup();
 
     DatasetFactory_ = DatasetFactory;
@@ -200,17 +200,16 @@ describe("DistributionManager", () => {
     const percentage = parseUnits("1.01", 18);
 
     await expect(
-      DatasetDistributionManager_.connect(users_.user).setDatasetOwnerPercentage(
-        percentage
-      )
+      DatasetDistributionManager_.connect(
+        users_.user
+      ).setDatasetOwnerPercentage(percentage)
     ).to.be.revertedWith("Not a Dataset owner");
   });
 
   it("Should data set owner set data set tag weights", async function () {
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
   });
 
   it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
@@ -225,7 +224,7 @@ describe("DistributionManager", () => {
     ).to.be.revertedWith("Invalid weights summ");
   });
 
-  it("Should data set owner claim revenue", async function () {
+  it("Should data set owner claim revenue after locking period (two weeks)", async function () {
     const nextPendingFragmentId =
       (await DatasetFragment_.lastFragmentPendingId()) + 1n;
 
@@ -271,10 +270,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.00000001", 18);
 
@@ -297,15 +295,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -314,6 +322,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -371,10 +381,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.00000001", 18);
 
@@ -397,15 +406,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    let validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    let validTill = validSince + constants.ONE_DAY;
+
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -414,6 +433,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -430,15 +451,25 @@ describe("DistributionManager", () => {
 
     expect(claimableAmount).to.be.equal(0);
 
+    validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    validTill = validSince + constants.ONE_DAY;
+
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -447,6 +478,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount + 1n,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     ).to.be.rejectedWith("not enough amount");
@@ -498,10 +531,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.1", 18);
 
@@ -524,15 +556,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.contributor.address
+        users_.contributor.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -541,6 +583,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.contributor.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     ).to.be.revertedWith("Not a Dataset owner");
@@ -592,10 +636,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.1", 18);
 
@@ -618,7 +661,15 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage("0x");
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -627,6 +678,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.dtAdmin.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     ).to.be.revertedWithCustomError(
@@ -681,10 +734,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
@@ -781,10 +833,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
@@ -850,12 +901,9 @@ describe("DistributionManager", () => {
     subscriptionStart =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
-    await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
-      datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK * 4,
-      1
-    );
+    await DatasetSubscriptionManager_.connect(
+      users_.secondSubscriber
+    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -943,10 +991,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
@@ -969,15 +1016,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    let validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    let validTill = validSince + constants.ONE_DAY;
+
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -986,6 +1043,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -1004,16 +1063,19 @@ describe("DistributionManager", () => {
     subscriptionStart =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
-    await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
-      datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK * 4,
-      1
-    );
+    await DatasetSubscriptionManager_.connect(
+      users_.secondSubscriber
+    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
 
     claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
       tokenAddress
     );
+
+    validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    validTill = validSince + constants.ONE_DAY;
 
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
@@ -1021,9 +1083,13 @@ describe("DistributionManager", () => {
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -1032,6 +1098,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -1049,6 +1117,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     ).to.be.revertedWith("not enough amount");
@@ -1100,10 +1170,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
@@ -1165,15 +1234,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    validTill = validSince + constants.ONE_DAY;
+
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -1182,6 +1261,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -1200,12 +1281,9 @@ describe("DistributionManager", () => {
     subscriptionStart =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
 
-    await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
-      datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK * 4,
-      1
-    );
+    await DatasetSubscriptionManager_.connect(
+      users_.secondSubscriber
+    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -1250,15 +1328,25 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    validTill = validSince + constants.ONE_DAY;
+
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         tokenAddress,
         claimableAmount,
-        users_.datasetOwner.address
+        users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill)
       )
     );
+
+    await time.increase(constants.ONE_WEEK * 2);
 
     await expect(
       DatasetDistributionManager_.connect(
@@ -1267,6 +1355,8 @@ describe("DistributionManager", () => {
         tokenAddress,
         claimableAmount,
         users_.datasetOwner.address,
+        BigInt(validSince),
+        BigInt(validTill),
         claimDatasetOwnerSignature
       )
     )
@@ -1324,10 +1414,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
@@ -1432,10 +1521,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.1", 18);
 
@@ -1524,10 +1612,9 @@ describe("DistributionManager", () => {
       MaxUint256
     );
 
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.001", 18);
 
