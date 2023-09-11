@@ -8,7 +8,7 @@ import {
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import { MaxUint256, ZeroHash, parseUnits } from "ethers";
+import { ZeroHash, parseUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { constants, signature } from "./utils";
@@ -107,7 +107,7 @@ const setupOnSubscribe = async () => {
 
   await users.subscriber.Token!.approve(
     await DatasetSubscriptionManager.getAddress(),
-    MaxUint256
+    parseUnits("0.00864", 18)
   );
 
   await DatasetDistributionManager.connect(
@@ -118,7 +118,7 @@ const setupOnSubscribe = async () => {
     users.datasetOwner
   ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-  const feeAmount = parseUnits("0.0000001", 18);
+  const feeAmount = parseUnits("0.0000001", 18); // totalSubscriptionFee for 1 day & 1 consumer :: 86400 * 1 * 0.0000001 * 1 = 0.00864
 
   await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
     await users.datasetOwner.Token!.getAddress(),
@@ -281,7 +281,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -316,14 +316,14 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.0000001", 18); 
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
@@ -356,7 +356,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -389,7 +389,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -422,7 +422,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -459,7 +459,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -499,7 +499,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864", 18)
     );
 
     await DatasetDistributionManager_.connect(
@@ -541,14 +541,14 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.01728", 18)
     );
 
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.0000001", 18); // totalSubscriptionFee for 1 day & 2 consumers ::  86400 * 1 * 0.0000001 * 2 = 0.01728
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
@@ -578,7 +578,7 @@ describe("SubscriptionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.00864")
     );
 
     await DatasetDistributionManager_.connect(
@@ -883,6 +883,11 @@ describe("SubscriptionManager", () => {
     it("Should subscriber extends his subscription if expired", async () => {
       await time.increase(constants.ONE_DAY * 3);
 
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits("0.06048", 18) // oneweek and 1 subscriber :: 86400 * 7 * 0.0000001 * 1 = 
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
@@ -911,6 +916,12 @@ describe("SubscriptionManager", () => {
     it("Should revert if subscriber tries to extend non expired subscription when remainig duration < 30 days", async () => {
       // Currently subscriber has subscription with remaining duration == 1 day
 
+      // For 4 months and 1 subscriber :: 86400 * * 30 * 4 * 0.0000001 * 1 = 1.0368
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits("1.0368")
+        );
+
       // Subscriber extends the subscription for 4 months (should pass since remaining <= 30 days)
       await DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
@@ -927,6 +938,12 @@ describe("SubscriptionManager", () => {
 
       // Current remaining duration == 4 months + 1 day, increase time so that remaining < 30 days
       await time.increase(constants.ONE_MONTH * 3 + (constants.ONE_DAY  + 400));
+
+      // For 1 Year and 1 subscriber :: 86400 * 365 * 0.0000001 * 1 = 3.1536
+      await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      parseUnits("3.1536")
+      );
       
       // Now extension should not revert since remaining duration < 30 days
       await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
@@ -945,6 +962,14 @@ describe("SubscriptionManager", () => {
     });
 
     it("Should subscriber extends his subscription if not expired", async () => {
+      // Has 1 dat left < 30 days thus he should be able to extend
+
+      // subscriptionFee for oneWeek and 1 consumer :: 86400 * 7 * 0.0000001 * 1 = 0.06048
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits("0.06048")
+        );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
