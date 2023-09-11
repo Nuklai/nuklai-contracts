@@ -308,6 +308,147 @@ describe("SubscriptionManager", () => {
     ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
   });
 
+  it("Should revert if user tries to subscribe for duration % day != 0 OR duration > 1year", async () => {
+    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await users_.datasetOwner.Token!.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_DAY + 1,
+      1
+    )).to.be.revertedWith("Invalid subscription duration");
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart + constants.ONE_DAY,
+      constants.ONE_YEAR + 1,
+      1
+    )).to.be.revertedWith("Invalid subscription duration");
+  });
+
+  it("Should revert if user tries to subscribe for duration == 0", async () => {
+    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await users_.datasetOwner.Token!.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      0,
+      1
+    )).to.be.revertedWith("Duration is too low");
+  });
+
+  it("Should revert if user tries to subscribe for 0 consumers", async () => {
+    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await users_.datasetOwner.Token!.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_MONTH,
+      0
+    )).to.be.revertedWith("Should be at least 1 consumer");
+  });
+
+  it("Should revert on subscribe when start timestamp has elapsed", async () => {
+    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+      [ZeroHash],
+      [parseUnits("1", 18)]
+    );
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      MaxUint256
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+
+    const feeAmount = parseUnits("0.0000001", 18);
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await users_.datasetOwner.Token!.getAddress(),
+      feeAmount
+    );
+
+    const subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await time.increase(constants.ONE_DAY);
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_MONTH,
+      1
+    )).to.be.revertedWith("Start timestamp already passed");
+  });
+
   it("Should revert user pay data set subscription if wrong data set id is used", async function () {
     const wrongDatasetId = 123123123n;
     
@@ -749,6 +890,58 @@ describe("SubscriptionManager", () => {
           0
         )
       ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
+    });
+
+    it("Should revert if subscriber tries to extend non expired subscription with extraDuration % 1 day != 0", async () => {
+      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        subscriptionId_,
+        constants.ONE_WEEK + 1,
+        0
+      )).to.be.revertedWith("Invalid extra duration provided");
+    });
+
+    it("Should revert if subscriber tries to extend non expired subscription with extraDuration > 365 days", async () => {
+      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        subscriptionId_,
+        constants.ONE_YEAR + 1,
+        0
+      )).to.be.revertedWith("Invalid extra duration provided");
+    });
+
+    it("Should revert if subscriber tries to extend non expired subscription when remainig duration < 30 days", async () => {
+      // Currently subscriber has subscription with remaining duration == 1 day
+
+      // Subscriber extends the subscription for 4 months (should pass since remaining <= 30 days)
+      await DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+          subscriptionId_,
+          constants.FOUR_MONTHS,
+          0
+      );
+
+      //remaining duration :: 4months +1day > 30days (extension should revert)
+      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        subscriptionId_,
+        constants.ONE_YEAR,
+        0
+      )).to.be.revertedWith("Remaining duration > 30 days");
+
+      // Current remaining duration == 4 months + 1 day, increase time so that remaining < 30 days
+      await time.increase(constants.ONE_MONTH * 3 + (constants.ONE_DAY  + 400));
+      
+      // Now extension should not revert since remaining duration < 30 days
+      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        subscriptionId_,
+        constants.ONE_YEAR,
+        0
+      )).to.not.be.reverted;
+    });
+
+    it("Should revert if subscriber tries to extend with 0 extraDuration & 0 extraConsumers", async () => {
+      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        subscriptionId_,
+        0,
+        0
+      )).to.be.revertedWith("Nothing to pay");
     });
 
     it("Should subscriber extends his subscription if not expired", async () => {
