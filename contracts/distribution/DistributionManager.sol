@@ -95,7 +95,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         uint256 snapshotId = fragmentNFT.snapshot();
         
         // Deployer fee
-        uint256 deployerFee = amount * dataset.deployerFeePercentage(datasetId);
+        uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / 1e18;
         if(deployerFee > 0) {
             address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
             require(deployerFeeBeneficiary != address(0), "bad deployer fee beneficiary");
