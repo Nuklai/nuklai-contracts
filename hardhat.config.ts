@@ -8,11 +8,7 @@ import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import { network } from "./utils";
-
-import "./tasks/set_deployer_fee_model_percentage";
-import "./tasks/set_deployer_fee_beneficiary";
-import "./tasks/set_dataset_fee_model";
-import "./tasks/set_fragment_implementation";
+import "./tasks";
 
 const config: HardhatUserConfig = {
   solidity: {
