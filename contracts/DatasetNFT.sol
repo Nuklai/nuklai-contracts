@@ -73,18 +73,23 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id)  {
+        bool changed;
         if(configurations[id].subscriptionManager != config.subscriptionManager) {
             proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+            changed = true;
         }
         if(configurations[id].distributionManager != config.distributionManager) {
             proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+            changed = true;
         }
         if(configurations[id].verifierManager != config.verifierManager) {
             proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+            changed = true;
         }
-
-        configurations[id] = config;
-        emit ManagersConfigChange(id);
+        if (changed) {
+            configurations[id] = config;
+            emit ManagersConfigChange(id);
+        }
     }
 
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -103,6 +108,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(deployerFeeBeneficiary_ != address(0), "invalid zero address provided");
         deployerFeeBeneficiary = deployerFeeBeneficiary_;
     }
 
