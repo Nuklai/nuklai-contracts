@@ -6,7 +6,7 @@ import {
   VerifierManager,
 } from "@typechained";
 import { expect } from "chai";
-import { ZeroAddress, ZeroHash, parseUnits } from "ethers";
+import { ZeroAddress, ZeroHash, parseUnits, EventLog } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
@@ -60,11 +60,13 @@ const setup = async () => {
       datasetId
     )
   );
-  const defaultVerifierAddress = await (
-    await ethers.getContract("AcceptManuallyVerifier")
-  ).getAddress();
+  
+  const defaultVerifierAddress = await contracts.AcceptManuallyVerifier.getAddress();
+
   const feeAmount = parseUnits("0.1", 18);
   const dsOwnerPercentage = parseUnits("0.001", 18);
+
+  const tag = utils.encodeTag("dataset.schemas");
 
   await contracts.DatasetFactory.connect(
     users.datasetOwner
@@ -75,11 +77,11 @@ const setup = async () => {
     await users.subscriber.Token!.getAddress(),
     feeAmount,
     dsOwnerPercentage,
-    [ZeroHash],
+    [tag],
     [parseUnits("1", 18)]
   );
 
-  const tag = utils.encodeTag("dataset.schemas");
+  //const tag = utils.encodeTag("dataset.schemas");
 
   const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
   const DatasetFragment = (await ethers.getContractAt(
@@ -88,7 +90,8 @@ const setup = async () => {
   )) as unknown as FragmentNFT;
 
   let fragmentIds: bigint[] = [];
-
+  
+  // Propose 3 contributions of the tag `tag`
   for (const _ of [1, 1, 1]) {
     const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
 
@@ -444,6 +447,74 @@ describe("FragmentNFT", () => {
     ).to.be.revertedWithCustomError(DatasetFragment_, "NOT_ADMIN");
   });
 
+  it("Should tagCountAt() return the correct tags and their number of times approved for the snapshotId provided", async () => {
+    const tag1 = encodeTag("dataset.schemas");
+    const tag2 = encodeTag("dataset.rows");
+    const tag3 = encodeTag("dataset.columns");
+    const tag4 = encodeTag("dataset.metadata");
+
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const fragmentAddress = await DatasetFragment_.getAddress();
+    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId());
+
+    expect(fragmentCnt).to.equal(3); // Already 3 proposals have been made (during setup, but not resolved yet)
+
+    const fragmentOwner = users_.contributor.address;
+
+    const expectedFragmentIds = [fragmentCnt +1n, fragmentCnt + 2n, fragmentCnt + 3n, fragmentCnt + 4n];
+    
+    const proposeFragmentsSig = await users_.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeBatchMessage(
+        network.config.chainId!,
+        datasetAddress,
+        datasetId_,
+        fragmentCnt,
+        [fragmentOwner, fragmentOwner, fragmentOwner, fragmentOwner],
+        [tag1, tag2, tag3, tag4]
+      )
+    );
+
+    await expect(await DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+      datasetId_,
+      [fragmentOwner, fragmentOwner, fragmentOwner, fragmentOwner],
+      [tag1, tag2, tag3, tag4],
+      proposeFragmentsSig
+    ))
+    .to.emit(DatasetFragment_, "FragmentPending")
+    .withArgs(expectedFragmentIds[0], tag1)
+    .to.emit(DatasetFragment_, "FragmentPending")
+    .withArgs(expectedFragmentIds[1], tag2)
+    .to.emit(DatasetFragment_, "FragmentPending")
+    .withArgs(expectedFragmentIds[2], tag3)
+    .to.emit(DatasetFragment_, "FragmentPending")
+    .withArgs(expectedFragmentIds[3], tag4);
+    
+    // Only when fragments are approved will the respective snapshot struct be populated 
+    await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolveMany(fragmentAddress, expectedFragmentIds, true);
+    
+    let snapshotIdx = await DatasetFragment_.currentSnapshotId();
+
+    const result = await DatasetFragment_.tagCountAt(snapshotIdx);
+    
+    const tagsReturned = result[0];
+    const numberOfApprovalsForEachTag = result[1];
+
+    // Currently only 4 tags have been approved-resolved, and a single fragment for each exists
+    // (i.e only one fragment exists corresponding to tag1, only one fragment exists corresponding to tag2, etc..)
+    expect(tagsReturned.length).to.equal(4);
+    expect(numberOfApprovalsForEachTag.length).to.equal(4);
+
+    expect(tagsReturned[0]).to.equal(tag1);
+    expect(tagsReturned[1]).to.equal(tag2);
+    expect(tagsReturned[2]).to.equal(tag3);
+    expect(tagsReturned[3]).to.equal(tag4);
+
+    expect(numberOfApprovalsForEachTag[0]).to.equal(1);
+    expect(numberOfApprovalsForEachTag[1]).to.equal(1);
+    expect(numberOfApprovalsForEachTag[2]).to.equal(1);
+    expect(numberOfApprovalsForEachTag[3]).to.equal(1);
+  });
+
   it("Should snapshot() revert if msgSender is not the configured DistributionManager", async () => {
     await expect(DatasetFragment_.connect(users_.dtAdmin).snapshot())
     .to.be.revertedWithCustomError(DatasetFragment_, "NOT_DISTRIBUTION_MANAGER").withArgs(users_.dtAdmin.address);
@@ -455,15 +526,17 @@ describe("FragmentNFT", () => {
   it("Should propose() revert if msgSender is not the DatasetNFT", async () => {
     const mockTag = encodeTag("mock");
     const datasetAddress = await DatasetNFT_.getAddress();
-    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId());
 
-    const mockSignature = signature.getDatasetFragmentProposeMessage(
-      network.config.chainId!,
-      datasetAddress,
-      datasetId_,
-      fragmentCnt,
-      users_.contributor.address,
-      mockTag
+    const mockSignature = await users_.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        datasetAddress,
+        datasetId_,
+        fragmentCnt,
+        users_.contributor.address,
+        mockTag
+      )
     );
 
     await expect(DatasetFragment_.connect(users_.dtAdmin).propose(users_.contributor.address, mockTag, mockSignature))
@@ -474,15 +547,17 @@ describe("FragmentNFT", () => {
     const mockTag1 = encodeTag("mock1");
     const mockTag2 = encodeTag("mock2");
     const datasetAddress = await DatasetNFT_.getAddress();
-    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId());
 
-    const mockSignature = signature.getDatasetFragmentProposeBatchMessage(
-      network.config.chainId!,
-      datasetAddress,
-      datasetId_,
-      fragmentCnt,
-      [users_.contributor.address, users_.contributor.address],
-      [mockTag1, mockTag2]
+    const mockSignature = await users_.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeBatchMessage(
+        network.config.chainId!,
+        datasetAddress,
+        datasetId_,
+        fragmentCnt,
+        [users_.contributor.address, users_.contributor.address],
+        [mockTag1, mockTag2]
+      )
     );
 
     await expect(DatasetFragment_.connect(users_.dtAdmin).proposeMany(
