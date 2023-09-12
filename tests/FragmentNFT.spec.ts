@@ -13,6 +13,12 @@ import { signature, utils } from "./utils";
 import { getEvent } from "./utils/events";
 import { setupUsers, Signer } from "./utils/users";
 import { encodeTag } from "./utils/utils";
+import {
+  IFragmentNFT_Interface_Id,
+  IERC165_Interface_Id,
+  IERC721_Interface_Id,
+  IERC721Metadata_Interface_Id
+} from "./utils/selectors";
 
 const setup = async () => {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
@@ -220,6 +226,36 @@ describe("FragmentNFT", () => {
     );
   });
 
+  it("Should currentSnapshotId() return the correct index of Snapshots array", async () => {
+    // Currently only 1 element is pushed into the snapshots array (during initialize() call)
+    const expectedIndex = 0; 
+
+    const idx = await DatasetFragment_.currentSnapshotId();
+    expect(idx).to.equal(expectedIndex);
+  });
+
+  it("Should tagCountAt() revert when provided snapshotId is not valid", async () => {
+    const lastSnapshotIdx = await DatasetFragment_.currentSnapshotId();
+    const invalidSnapshotIdx = lastSnapshotIdx + BigInt(1);
+
+    await expect(DatasetFragment_.tagCountAt(invalidSnapshotIdx)).to.be.revertedWith("bad snapshot id");
+  });
+
+  it("Should accountTagCountAt() revert when provided snapshotId is not valid", async () => {
+    const lastSnapshotIdx = await DatasetFragment_.currentSnapshotId();
+    const invalidSnapshotIdx = lastSnapshotIdx + BigInt(1);
+
+    await expect(DatasetFragment_.accountTagCountAt(invalidSnapshotIdx, ZeroAddress)).to.be.revertedWith("bad snapshot id");
+  });
+
+  it("Should accountTagPercentageAt() revert when provided snapshotId is not valid", async () => {
+    const lastSnapshotIdx = await DatasetFragment_.currentSnapshotId();
+    const invalidSnapshotIdx = lastSnapshotIdx + BigInt(1);
+    const mockTag = encodeTag("mock");
+
+    await expect(DatasetFragment_.accountTagPercentageAt(invalidSnapshotIdx, ZeroAddress, [mockTag])).to.be.revertedWith("bad snapshot id");
+  });
+
   it("Should revert data set owner set verifiers for tags if length does not match", async function () {
     const acceptManuallyVerifierAddress =
       await AcceptManuallyVerifier_.getAddress();
@@ -406,5 +442,89 @@ describe("FragmentNFT", () => {
     await expect(
       DatasetFragment_.connect(users_.user).remove(fragmentIds_[0])
     ).to.be.revertedWithCustomError(DatasetFragment_, "NOT_ADMIN");
+  });
+
+  it("Should snapshot() revert if msgSender is not the configured DistributionManager", async () => {
+    await expect(DatasetFragment_.connect(users_.dtAdmin).snapshot())
+    .to.be.revertedWithCustomError(DatasetFragment_, "NOT_DISTRIBUTION_MANAGER").withArgs(users_.dtAdmin.address);
+
+    await expect(DatasetFragment_.connect(users_.datasetOwner).snapshot())
+    .to.be.revertedWithCustomError(DatasetFragment_, "NOT_DISTRIBUTION_MANAGER").withArgs(users_.datasetOwner.address);
+  });
+
+  it("Should propose() revert if msgSender is not the DatasetNFT", async () => {
+    const mockTag = encodeTag("mock");
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+    const mockSignature = signature.getDatasetFragmentProposeMessage(
+      network.config.chainId!,
+      datasetAddress,
+      datasetId_,
+      fragmentCnt,
+      users_.contributor.address,
+      mockTag
+    );
+
+    await expect(DatasetFragment_.connect(users_.dtAdmin).propose(users_.contributor.address, mockTag, mockSignature))
+    .to.be.revertedWithCustomError(DatasetFragment_, "NOT_DATASET_NFT").withArgs(users_.dtAdmin.address);
+  });
+
+  it("Should proposeMany() revert if msgSender is not the DatasetNFT", async () => {
+    const mockTag1 = encodeTag("mock1");
+    const mockTag2 = encodeTag("mock2");
+    const datasetAddress = await DatasetNFT_.getAddress();
+    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+    const mockSignature = signature.getDatasetFragmentProposeBatchMessage(
+      network.config.chainId!,
+      datasetAddress,
+      datasetId_,
+      fragmentCnt,
+      [users_.contributor.address, users_.contributor.address],
+      [mockTag1, mockTag2]
+    );
+
+    await expect(DatasetFragment_.connect(users_.dtAdmin).proposeMany(
+      [
+        users_.contributor.address,
+        users_.contributor.address
+      ],
+      [
+        mockTag1,
+        mockTag2
+      ],
+      mockSignature
+    )).to.be.revertedWithCustomError(DatasetFragment_, "NOT_DATASET_NFT").withArgs(users_.dtAdmin.address);
+  });
+
+  it("Should accept() revert if msgSender is not the configured VerifierManager", async () => {
+    await expect(DatasetFragment_.connect(users_.dtAdmin).accept(0))
+      .to.be.revertedWithCustomError(DatasetFragment_, "NOT_VERIFIER_MANAGER").withArgs(users_.dtAdmin.address);
+  });
+
+  it("Should reject() revert if msgSender is not the configured VerifierManager", async () => {
+    await expect(DatasetFragment_.connect(users_.dtAdmin).reject(0))
+      .to.be.revertedWithCustomError(DatasetFragment_, "NOT_VERIFIER_MANAGER").withArgs(users_.dtAdmin.address);
+  });
+
+  it("Should supportsInterface() return true if id provided is either IFragmentNFT, IERC721 or IERC165", async () => {
+    let val = await DatasetFragment_.supportsInterface(IERC165_Interface_Id);
+    expect(val).to.be.true;
+
+    val = await DatasetFragment_.supportsInterface(IFragmentNFT_Interface_Id);
+    expect(val).to.be.true;
+
+    val = await DatasetFragment_.supportsInterface(IERC721_Interface_Id);
+    expect(val).to.be.true;
+
+    val = await DatasetFragment_.supportsInterface(IERC721Metadata_Interface_Id);
+    expect(val).to.be.true;
+  });
+
+  it("Should supportsInterface() return false if provided id is not supported", async () => {
+    const mockInterfaceId = "0xff123456";
+    let val = await DatasetFragment_.supportsInterface(mockInterfaceId);
+    expect(val).to.be.false;
   });
 });
