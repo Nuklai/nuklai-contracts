@@ -83,11 +83,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         return snapshots.length - 1;
     }
 
-    function currentSnapshotId() external view returns(uint256) {
+    function currentSnapshotId() external view returns (uint256) {
         return snapshots.length - 1;
     }
 
-    function tagCountAt(uint256 snapshotId) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+    function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
         tags_ = tagCount.keys();
@@ -96,7 +96,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+    function accountTagCountAt(uint256 snapshotId, address account) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_latestAccountSnapshotId(account, snapshotId)].accountTagCount[account];
         tags_ = tagCount.keys();
@@ -105,7 +105,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns(uint256[] memory percentages) {
+    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns (uint256[] memory percentages) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         uint256 latestAccountSnapshot = _latestAccountSnapshotId(account, snapshotId);
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[latestAccountSnapshot].totalTagCount;
@@ -178,7 +178,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function lastFragmentPendingId() external view returns(uint256) {
+    function lastFragmentPendingId() external view returns (uint256) {
         return mintCounter;
     }
 
@@ -263,7 +263,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
+    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns (uint256) {
         uint256 lastAccountSnapshot = lastSnapshots[account];
         return (lastAccountSnapshot < targetSnapshotId)?lastAccountSnapshot:targetSnapshotId;
     }
