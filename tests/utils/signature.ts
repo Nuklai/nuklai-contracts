@@ -50,11 +50,29 @@ export const getDatasetOwnerClaimMessage = (
   distributionAddress: AddressLike,
   token: AddressLike,
   amount: bigint,
-  beneficiary: AddressLike
+  beneficiary: AddressLike,
+  signatureValidSince: bigint,
+  signatureValidTill: bigint
 ): Uint8Array => {
   const datasetOwnerClaimMessage = solidityPacked(
-    ["uint256", "address", "address", "uint256", "address"],
-    [chainId, distributionAddress, token, amount, beneficiary]
+    [
+      "uint256",
+      "address",
+      "address",
+      "uint256",
+      "address",
+      "uint256",
+      "uint256",
+    ],
+    [
+      chainId,
+      distributionAddress,
+      token,
+      amount,
+      beneficiary,
+      signatureValidSince,
+      signatureValidTill,
+    ]
   );
 
   return getBytes(datasetOwnerClaimMessage);
