@@ -24,6 +24,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     error NOT_ADMIN(address account);
     error NOT_VERIFIER_MANAGER(address account);
     error NOT_DISTRIBUTION_MANAGER(address account);
+    error NOT_DATASET_NFT(address account);
 
     struct Snapshot {
         EnumerableMap.Bytes32ToUintMap totalTagCount;
@@ -53,7 +54,13 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     modifier onlyDistributionManager() {
         if (dataset.distributionManager(datasetId) != _msgSender())
             revert NOT_DISTRIBUTION_MANAGER(_msgSender());
-            _;
+        _;
+    }
+
+    modifier onlyDatasetNFT() {
+        if (address(dataset) != _msgSender())
+            revert NOT_DATASET_NFT(_msgSender());
+        _;
     }
 
     constructor() ERC721(NAME, SYMBOL) {
@@ -126,7 +133,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address to,
         bytes32 tag,
         bytes calldata signature
-    ) external {
+    ) external onlyDatasetNFT {
         uint256 id = ++mintCounter;
         bytes32 msgHash = _proposeMessageHash(id, to, tag);
         address signer = ECDSA.recover(msgHash, signature);
@@ -151,7 +158,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address[] memory owners,
         bytes32[] memory tags_,
         bytes calldata signature
-    ) external {
+    ) external onlyDatasetNFT {
         require(tags_.length == owners.length, "invalid length of fragments items");
         bytes32 msgHash = _proposeManyMessageHash(mintCounter, owners, tags_);
         address signer = ECDSA.recover(msgHash, signature);
@@ -192,7 +199,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function remove(uint256 id) external onlyAdmin {
-        delete pendingFragmentOwners[id]; // in case we are deliting pending one
+        delete pendingFragmentOwners[id]; // in case we are deleting pending one
         _burn(id);
         delete tags[id];
         emit FragmentRemoved(id);
