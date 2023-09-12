@@ -7,6 +7,6 @@ import "./VerifierManager.sol";
 contract AcceptAllVerifier is IVerifier{
 
     function propose(address /*fragmentNFT*/, uint256 id, bytes32 /*tag*/) external {
-        VerifierManager(msg.sender).resolve(id,true);
+        VerifierManager(msg.sender).resolve(id, true);
     }
 }
