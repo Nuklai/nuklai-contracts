@@ -23,6 +23,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
     error NOT_ADMIN(address account);
     error NOT_VERIFIER_MANAGER(address account);
+    error NOT_DISTRIBUTION_MANAGER(address account);
 
     struct Snapshot {
         EnumerableMap.Bytes32ToUintMap totalTagCount;
@@ -49,6 +50,12 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         _;
     }
 
+    modifier onlyDistributionManager() {
+        if (dataset.distributionManager(datasetId) != _msgSender())
+            revert NOT_DISTRIBUTION_MANAGER(_msgSender());
+            _;
+    }
+
     constructor() ERC721(NAME, SYMBOL) {
         _disableInitializers();
     }
@@ -64,7 +71,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     //TODO handle metadata URI stuff
 
-    function snapshot() external override returns (uint256) {
+    function snapshot() external onlyDistributionManager returns (uint256) {
         snapshots.push();
         return snapshots.length - 1;
     }
