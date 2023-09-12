@@ -671,7 +671,7 @@ describe("DatasetNFT", () => {
     expect(val).to.be.true;
   });
 
-  it("Should supportsInterface() return true if id provided is not supported", async () => {
+  it("Should supportsInterface() return false if id provided is not supported", async () => {
     const mockInterfaceId = "0xff123456";
     let val = await DatasetNFT_.supportsInterface(mockInterfaceId);
     expect(val).to.be.false;
