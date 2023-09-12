@@ -1534,14 +1534,14 @@ describe("DistributionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.006048", 18)
     );
 
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18);
+    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048  
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -1728,14 +1728,14 @@ describe("DistributionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("0.006048", 18)
     );
 
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18);
+    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -1866,14 +1866,14 @@ describe("DistributionManager", () => {
 
     await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      MaxUint256
+      parseUnits("60480", 18)
     );
 
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.1", 18);
+    const feeAmount = parseUnits("0.1", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.1 * 1 = 60480
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
