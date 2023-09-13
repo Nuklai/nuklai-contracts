@@ -87,19 +87,17 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         return snapshots.length - 1;
     }
 
-    function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory /*counts*/) {
+    function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
         tags_ = tagCount.keys();
 
         uint256 length = tagCount.length();
-        uint256[] memory counts_ = new uint256[](length);
+        counts = new uint256[](length);
 
         for(uint256 i; i < length; i++) {
-            counts_[i] = tagCount.get(tags_[i]);
+            counts[i] = tagCount.get(tags_[i]);
         }
-
-        return (tags_, counts_);
     }
 
     function accountTagCountAt(uint256 snapshotId, address account) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
