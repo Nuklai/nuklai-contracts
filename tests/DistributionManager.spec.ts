@@ -186,18 +186,18 @@ describe("DistributionManager", () => {
     );
   });
 
-  it("Should revert if data set owner percentage set is higher than 100%", async function () {
-    const percentage = parseUnits("1.01", 18);
+  it("Should revert if data set owner percentage set is higher than 50%", async function () {
+    const percentage = parseUnits("0.500001", 18);
 
     await expect(
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).setDatasetOwnerPercentage(percentage)
-    ).to.be.revertedWith("Can't be higher than 100%");
+    ).to.be.revertedWith("Can't be higher than 50%");
   });
 
   it("Should revert set percentage if sender is not the data set owner", async function () {
-    const percentage = parseUnits("1.01", 18);
+    const percentage = parseUnits("0.51", 18);
 
     await expect(
       DatasetDistributionManager_.connect(

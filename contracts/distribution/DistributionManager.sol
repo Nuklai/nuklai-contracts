@@ -71,10 +71,10 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
 
     /**
      * @notice Set percentage of each payment that should be sent to the Dataset Owner
-     * @param percentage Percentage encoded in a way that 100% = 1e18
+     * @param percentage Percentage encoded in a way that 50% = 5e17
      */
     function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
-        require(percentage <= 1e18, "Can't be higher than 100%");
+        require(percentage <= 5e17, "Can't be higher than 50%");
         datasetOwnerPercentage = percentage;
     }
 
