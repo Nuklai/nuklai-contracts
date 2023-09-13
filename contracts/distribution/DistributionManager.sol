@@ -141,6 +141,36 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
          _sendPayout(token, amount, beneficiary);
     }
 
+    function claimDatasetOwnerAndFragmentPayouts(
+        address token, 
+        uint256 amount, 
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill,
+        bytes calldata ownerPayoutSignature,
+        bytes calldata fragmentPayoutSignature
+    ) external onlyDatasetOwner {
+        // Validate Dataset Owner Payout signature
+        require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
+        require(pendingOwnerFee[token] >= amount, "not enough amount");
+
+        bytes32 msgHash1 = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
+        address signer1 = ECDSA.recover(msgHash1, ownerPayoutSignature);
+        if(!dataset.isSigner(signer1)) revert BAD_SIGNATURE(msgHash1, signer1);
+
+        bytes32 msgHash2 = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
+        address signer2 = ECDSA.recover(msgHash2, fragmentPayoutSignature);
+        if(signer1 != signer2 || !dataset.isSigner(signer2)) revert BAD_SIGNATURE(msgHash2, signer2);
+
+        // Send Dataset Owner Fee
+        pendingOwnerFee[token] -= amount;
+         _sendPayout(token, amount, beneficiary);
+
+        // Claim Fragment Fee
+        _claimPayouts(_msgSender());
+    }
+
+
     /**
      * @notice Claim all payouts (for Fragment owners)
      */
@@ -151,24 +181,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-        // Claim payouts
-        uint256 lastUnclaimedPayout = lastUnclaimed[_msgSender()];
-        if(lastUnclaimedPayout >= payments.length) return; // Nothing to claim
-        address collectToken = payments[lastUnclaimedPayout].token;
-        uint256 collectAmount;
-        for(uint256 i = lastUnclaimedPayout; i < payments.length; i++) {
-            Payment storage p = payments[i];
-            if(collectToken != p.token) {
-                // Payment token changed, send what we've already collected
-                _sendPayout(p.token, collectAmount, _msgSender());
-                collectToken = p.token;
-                collectAmount = 0;
-            }
-            collectAmount += _calculatePayout(p, _msgSender());
-        }
-        lastUnclaimed[_msgSender()] = payments.length;
-        // send collected and not sent yet
-        _sendPayout(collectToken, collectAmount, _msgSender());
+        _claimPayouts(_msgSender());
     }
 
     function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
@@ -182,6 +195,28 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
                 collectAmount += _calculatePayout(p, account);
             }
         }
+    }
+
+    function _claimPayouts(address beneficiary) internal {
+        // Claim payouts
+        uint256 lastUnclaimedPayout = lastUnclaimed[beneficiary];
+        if(lastUnclaimedPayout >= payments.length) return;  // Nothing to claim
+        lastUnclaimed[beneficiary] = payments.length;       // Updating lastUnclaimed before sending any tokens to prevent reentrancy
+
+        address collectToken = payments[lastUnclaimedPayout].token;
+        uint256 collectAmount;
+        for(uint256 i = lastUnclaimedPayout; i < payments.length; i++) {
+            Payment storage p = payments[i];
+            if(collectToken != p.token) {
+                // Payment token changed, send what we've already collected
+                _sendPayout(p.token, collectAmount, beneficiary);
+                collectToken = p.token;
+                collectAmount = 0;
+            }
+            collectAmount += _calculatePayout(p, beneficiary);
+        }
+        // send collected and not sent yet
+        _sendPayout(collectToken, collectAmount, beneficiary);
     }
 
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
