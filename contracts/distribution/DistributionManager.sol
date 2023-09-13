@@ -35,7 +35,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     uint256 public datasetOwnerPercentage;      // 100% = 1e18
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
-    EnumerableMap.Bytes32ToUintMap[] internal verisonedTagWeights;
+    EnumerableMap.Bytes32ToUintMap[] internal versionedTagWeights;
     mapping(address => uint256) internal firstUnclaimed;
 
     modifier onlyDatasetOwner() {
@@ -60,7 +60,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param weights weights of the tags
      */
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
-        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights.push();
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
         uint256 weightSumm;
         for(uint256 i; i < weights.length; i++) {
             weightSumm += weights[i];
@@ -74,7 +74,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param percentage Percentage encoded in a way that 100% = 1e18
      */
     function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
-        require(percentage <= 1e18, "Can't be higher than 100%");
+        require(percentage <= 5e17, "Can't be higher than 50%");
         datasetOwnerPercentage = percentage;
     }
 
@@ -86,7 +86,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param amount Payment amount
      */
     function receivePayment(address token, uint256 amount) external payable{
-        require(verisonedTagWeights.length > 0, "tag weights not initialized");
+        require(versionedTagWeights.length > 0, "tag weights not initialized");
         if(address(token) == address(0)){
             require(amount == msg.value, "value missmatch");
         } else {
@@ -95,7 +95,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         uint256 snapshotId = fragmentNFT.snapshot();
         
         // Deployer fee
-        uint256 deployerFee = amount * dataset.deployerFeePercentage(datasetId);
+        uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / 1e18;
         if(deployerFee > 0) {
             address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
             require(deployerFeeBeneficiary != address(0), "bad deployer fee beneficiary");
@@ -116,16 +116,25 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
                 token: token,
                 distributionAmount: amount,
                 snapshotId: snapshotId,
-                tagWeightsVersion: verisonedTagWeights.length-1
+                tagWeightsVersion: versionedTagWeights.length-1
             }));
         }
 
         emit PaymentReceived();
     }
 
-    function claimDatasetOwnerPayouts(address token, uint256 amount, address beneficiary, bytes calldata signature) external onlyDatasetOwner {
+    function claimDatasetOwnerPayouts(
+        address token, 
+        uint256 amount, 
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill,
+        bytes calldata signature
+    ) external onlyDatasetOwner {
+        // Validate signature
+        require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
         require(pendingOwnerFee[token] >= amount, "not enough amount");
-        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary);
+        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
         pendingOwnerFee[token] -= amount;
@@ -157,13 +166,30 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             }
             collectAmount += _calculatePayout(p, _msgSender());
         }
+
+        firstUnclaimed[_msgSender()] = payments.length;
+
         // send collected and not sent yet
         _sendPayout(collectToken, collectAmount, _msgSender());
     }
 
+    
+    function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
+        uint256 firstUnclaimedPayout = firstUnclaimed[account]; 
+        
+        if(firstUnclaimedPayout >= payments.length) return 0;
+
+        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+            Payment storage p = payments[i];
+            if(token == p.token) {
+                collectAmount += _calculatePayout(p, account);
+            }
+        }
+    }
+
     function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
         uint256 paymentAmount = p.distributionAmount;
-        EnumerableMap.Bytes32ToUintMap storage tagWeights = verisonedTagWeights[p.tagWeightsVersion];
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[p.tagWeightsVersion];
         bytes32[] memory tags = tagWeights.keys();
         uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
         for(uint256 i; i < tags.length; i++) {
@@ -191,13 +217,21 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
 
-    function _ownerClaimMessageHash(address token, uint256 amount, address beneficiary) private view returns(bytes32) {
+    function _ownerClaimMessageHash(
+        address token, 
+        uint256 amount,
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill
+    ) private view returns(bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
             token,
             amount,
-            beneficiary
+            beneficiary,
+            sigValidSince,
+            sigValidTill
         ));
     }
 
@@ -210,5 +244,4 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             sigValidTill
         ));
     }
-
 }

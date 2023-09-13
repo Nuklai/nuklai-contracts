@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/IDistributionManager.sol";
 import "./interfaces/ISubscriptionManager.sol";
 import "./interfaces/IVerifierManager.sol";
@@ -14,7 +15,7 @@ import "./interfaces/IDatasetNFT.sol";
 import "./interfaces/IFragmentNFT.sol";
 
 contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
-    string private constant NAME = "AllianceBlock DataTunel Dataset";
+    string private constant NAME = "AllianceBlock DataTunnel Dataset";
     string private constant SYMBOL = "ABDTDS";
 
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
@@ -24,13 +25,15 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
     event ManagersConfigChange(uint256 id);
     event FragmentInstanceDeployement(uint256 id, address instance);
-
+    event DatasetUuidSet(string uuid, uint256 ds);
 
     address public fragmentImplementation;
     address public deployerFeeBeneficiary;
+    uint256 internal mintCounter;
     mapping(uint256 id => ManagersConfig config) public configurations;
     mapping(uint256 id => ManagersConfig proxy) public proxies;
     mapping(uint256 id => IFragmentNFT fragment) public fragments;
+    mapping(uint256 => string) public uuids;
     mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
     mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
@@ -39,7 +42,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         _;
     }
 
-    constructor() ERC721(NAME, SYMBOL){
+    constructor() ERC721(NAME, SYMBOL) {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
@@ -47,33 +50,47 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
     /**
      * @notice Mints a Dataset NFT
-     * @param id Token id to mint
      * @param to Dataset admin
      * @param signature Signature from a DT service confirming creation of Dataset
      */
-    function mint(uint256 id, address to, bytes calldata signature) external {
-        bytes32 msgHash = _mintMessageHash(id);
+    function mint(address to, bytes calldata signature) external returns (uint256) {
+        require(!Strings.equal(uuids[mintCounter], ""), "No uuid set for data set id");
+        bytes32 msgHash = _mintMessageHash(mintCounter);
         address signer = ECDSA.recover(msgHash, signature);
+
         if(!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
-        _mint(to, id);
+
+        _mint(to, mintCounter);
+
+        return mintCounter;
     }
 
+    function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
+        ds = ++mintCounter;
+        uuids[ds] = uuid;
 
-    function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id)  {
+        emit DatasetUuidSet(uuid, ds);
+    }
+
+    function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+        bool changed;
         if(configurations[id].subscriptionManager != config.subscriptionManager) {
             proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+            changed = true;
         }
         if(configurations[id].distributionManager != config.distributionManager) {
             proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+            changed = true;
         }
         if(configurations[id].verifierManager != config.verifierManager) {
             proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+            changed = true;
         }
-
-        configurations[id] = config;
-        emit ManagersConfigChange(id);
+        if (changed) {
+            configurations[id] = config;
+            emit ManagersConfigChange(id);
+        }
     }
-
 
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(models.length == percentages.length, "array length missmatch");
@@ -91,15 +108,16 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(deployerFeeBeneficiary_ != address(0), "invalid zero address provided");
         deployerFeeBeneficiary = deployerFeeBeneficiary_;
     }
 
-    function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE){
+    function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(fragmentImplementation_ == address(0) || Address.isContract(fragmentImplementation_), "invalid fragment implementation address");
         fragmentImplementation = fragmentImplementation_;
     }
 
-    function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns(address){
+    function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns (address) {
         require(fragmentImplementation != address(0), "fragment creation disabled");
         require(address(fragments[id]) == address(0), "fragment instance already deployed");
         IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
@@ -108,31 +126,44 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return address(instance);
     }
 
-    function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external {
+    function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external {
         IFragmentNFT fragmentInstance = fragments[datasetId];
         require(address(fragmentInstance) != address(0), "No fragment instance deployed");
-        fragmentInstance.propose(fragmentId, to, tag, signature);
+        fragmentInstance.propose(to, tag, signature);
     }
 
+    function proposeManyFragments(
+        uint256 datasetId,
+        address[] memory owners,
+        bytes32[] memory tags,
+        bytes calldata signature
+    ) external {
+        IFragmentNFT fragmentInstance = fragments[datasetId];
+        require(address(fragmentInstance) != address(0), "No fragment instance deployed");
+        fragmentInstance.proposeMany(owners, tags, signature);
+    }
 
-    function isSigner(address account) external view returns(bool) {
+    function isSigner(address account) external view returns (bool) {
         return hasRole(SIGNER_ROLE, account);
     }
 
-    function subscriptionManager(uint256 id) external view returns(address) {
+    function subscriptionManager(uint256 id) external view returns (address) {
         return proxies[id].subscriptionManager;
     }
-    function distributionManager(uint256 id) external view returns(address) {
+
+    function distributionManager(uint256 id) external view returns (address) {
         return proxies[id].distributionManager;
     }
-    function verifierManager(uint256 id) public view returns(address) {
+
+    function verifierManager(uint256 id) public view returns (address) {
         return proxies[id].verifierManager;
     }
-    function fragmentNFT(uint256 id) external view returns(address) {
+
+    function fragmentNFT(uint256 id) external view returns (address) {
         return address(fragments[id]);
     }
 
-    function deployerFeePercentage(uint256 id) external view returns(uint256) {
+    function deployerFeePercentage(uint256 id) external view returns (uint256) {
         DeployerFeeModel m = deployerFeeModels[id];
         return deployerFeeModelPercentage[m];
     }
@@ -141,15 +172,13 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns(address proxy)  {
+    function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns (address proxy) {
         require(implementation != address(0), "bad implementation address");
         proxy = Clones.clone(implementation);
         IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
     }
 
-
-
-    function _mintMessageHash(uint256 id) private view returns(bytes32) {
+    function _mintMessageHash(uint256 id) private view returns (bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),

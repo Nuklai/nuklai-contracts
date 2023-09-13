@@ -11,5 +11,6 @@
     "paths": {
       "@typechained": ["typechain-types/index"]
     }
-  }
+  },
+  "include": ["./hardhat.config.ts", "./deploy", "./tests", "/utils"]
 }

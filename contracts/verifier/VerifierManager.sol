@@ -56,9 +56,8 @@ contract VerifierManager is IVerifierManager, Initializable, Context {
 
     function propose(uint256 id, bytes32 tag) external onlyFragmentNFT {
         address verifier = _verifierForTag(tag);
-        if(verifier == address(0)) {
-            IFragmentNFT(_msgSender()).reject(id);
-        }
+        require(verifier != address(0), "verifier not set"); 
+        
         pendingFragmentTags[id] = tag;
         IVerifier(verifier).propose(_msgSender(), id, tag);
         emit FragmentPending(id);

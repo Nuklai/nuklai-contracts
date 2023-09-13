@@ -10,7 +10,7 @@ import "./GenericSingleDatasetSubscriptionManager.sol";
 contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
 
-    string internal constant TOKEN_NAME = "DataTunel Subscription";
+    string internal constant TOKEN_NAME = "DataTunnel Subscription";
     string internal constant TOKEN_SYMBOL = "DTSUB";
 
     IERC20 public token;
@@ -21,11 +21,9 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
         _;
     }
 
-
     constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
         _disableInitializers();
     }
-
 
     function initialize(address dataset_, uint256 datasetId_) external initializer() {
         __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
@@ -57,5 +55,4 @@ contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericS
         token.approve(distributionManager, amount);
         IDistributionManager(distributionManager).receivePayment(address(token), amount);
     }
-
 }

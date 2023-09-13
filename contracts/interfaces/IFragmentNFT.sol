@@ -12,12 +12,21 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
 
     /**
      * @notice Adds a Fragment as Pending
-     * @param id Fragment id to mint
      * @param to Fragment owner
      * @param tag Hash of tag name of contribution
      * @param signature Signature from a DT service confirming creation of the Fragment
      */
-    function propose(uint256 id, address to, bytes32 tag, bytes calldata signature) external;
+    function propose(address to, bytes32 tag, bytes calldata signature) external;
+
+    /**
+     * @notice Adds a batch of Fragments as Pending
+     * @param owners Fragments owners
+     * @param tags_ Hashes of tag name of contribution
+     * @param signature Signature from a DT service confirming creation of the Fragment
+     */
+    function proposeMany(address[] memory owners, bytes32[] memory tags_, bytes calldata signature) external;
+
+    function lastFragmentPendingId() external view returns(uint256);
 
     /**
      * @notice Approve fragment as verified
