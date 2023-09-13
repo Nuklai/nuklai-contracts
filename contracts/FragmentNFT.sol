@@ -23,6 +23,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
     error NOT_ADMIN(address account);
     error NOT_VERIFIER_MANAGER(address account);
+    error NOT_DISTRIBUTION_MANAGER(address account);
+    error NOT_DATASET_NFT(address account);
 
     struct Snapshot {
         EnumerableMap.Bytes32ToUintMap totalTagCount;
@@ -49,6 +51,18 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         _;
     }
 
+    modifier onlyDistributionManager() {
+        if (dataset.distributionManager(datasetId) != _msgSender())
+            revert NOT_DISTRIBUTION_MANAGER(_msgSender());
+        _;
+    }
+
+    modifier onlyDatasetNFT() {
+        if (address(dataset) != _msgSender())
+            revert NOT_DATASET_NFT(_msgSender());
+        _;
+    }
+
     constructor() ERC721(NAME, SYMBOL) {
         _disableInitializers();
     }
@@ -64,25 +78,29 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     //TODO handle metadata URI stuff
 
-    function snapshot() external override returns (uint256) {
+    function snapshot() external onlyDistributionManager returns (uint256) {
         snapshots.push();
         return snapshots.length - 1;
     }
 
-    function currentSnapshotId() external view returns(uint256) {
+    function currentSnapshotId() external view returns (uint256) {
         return snapshots.length - 1;
     }
 
-    function tagCountAt(uint256 snapshotId) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+    function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
         tags_ = tagCount.keys();
-        for(uint256 i; i < tagCount.length(); i++) {
+
+        uint256 length = tagCount.length();
+        counts = new uint256[](length);
+
+        for(uint256 i; i < length; i++) {
             counts[i] = tagCount.get(tags_[i]);
         }
     }
 
-    function accountTagCountAt(uint256 snapshotId, address account) external view returns(bytes32[] memory tags_, uint256[] memory counts) {
+    function accountTagCountAt(uint256 snapshotId, address account) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_latestAccountSnapshotId(account, snapshotId)].accountTagCount[account];
         tags_ = tagCount.keys();
@@ -91,7 +109,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns(uint256[] memory percentages) {
+    function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns (uint256[] memory percentages) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         uint256 latestAccountSnapshot = _latestAccountSnapshotId(account, snapshotId);
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[latestAccountSnapshot].totalTagCount;
@@ -119,7 +137,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address to,
         bytes32 tag,
         bytes calldata signature
-    ) external {
+    ) external onlyDatasetNFT {
         uint256 id = ++mintCounter;
         bytes32 msgHash = _proposeMessageHash(id, to, tag);
         address signer = ECDSA.recover(msgHash, signature);
@@ -144,7 +162,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         address[] memory owners,
         bytes32[] memory tags_,
         bytes calldata signature
-    ) external {
+    ) external onlyDatasetNFT {
         require(tags_.length == owners.length, "invalid length of fragments items");
         bytes32 msgHash = _proposeManyMessageHash(mintCounter, owners, tags_);
         address signer = ECDSA.recover(msgHash, signature);
@@ -164,7 +182,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function lastFragmentPendingId() external view returns(uint256) {
+    function lastFragmentPendingId() external view returns (uint256) {
         return mintCounter;
     }
 
@@ -185,7 +203,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function remove(uint256 id) external onlyAdmin {
-        delete pendingFragmentOwners[id]; // in case we are deliting pending one
+        delete pendingFragmentOwners[id]; // in case we are deleting pending one
         _burn(id);
         delete tags[id];
         emit FragmentRemoved(id);
@@ -249,7 +267,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
-    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
+    function _latestAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns (uint256) {
         uint256 lastAccountSnapshot = lastSnapshots[account];
         return (lastAccountSnapshot < targetSnapshotId)?lastAccountSnapshot:targetSnapshotId;
     }

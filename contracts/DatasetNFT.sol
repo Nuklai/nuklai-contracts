@@ -42,7 +42,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         _;
     }
 
-    constructor() ERC721(NAME, SYMBOL){
+    constructor() ERC721(NAME, SYMBOL) {
         _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
     }
 
@@ -53,7 +53,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
      * @param to Dataset admin
      * @param signature Signature from a DT service confirming creation of Dataset
      */
-    function mint(address to, bytes calldata signature) external returns(uint256) {
+    function mint(address to, bytes calldata signature) external returns (uint256) {
         require(!Strings.equal(uuids[mintCounter], ""), "No uuid set for data set id");
         bytes32 msgHash = _mintMessageHash(mintCounter);
         address signer = ECDSA.recover(msgHash, signature);
@@ -65,26 +65,31 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return mintCounter;
     }
 
-    function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns(uint256 ds) {
+    function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
         ds = ++mintCounter;
         uuids[ds] = uuid;
 
         emit DatasetUuidSet(uuid, ds);
     }
 
-    function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id)  {
+    function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+        bool changed;
         if(configurations[id].subscriptionManager != config.subscriptionManager) {
             proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+            changed = true;
         }
         if(configurations[id].distributionManager != config.distributionManager) {
             proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+            changed = true;
         }
         if(configurations[id].verifierManager != config.verifierManager) {
             proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+            changed = true;
         }
-
-        configurations[id] = config;
-        emit ManagersConfigChange(id);
+        if (changed) {
+            configurations[id] = config;
+            emit ManagersConfigChange(id);
+        }
     }
 
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -103,15 +108,16 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     }
 
     function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(deployerFeeBeneficiary_ != address(0), "invalid zero address provided");
         deployerFeeBeneficiary = deployerFeeBeneficiary_;
     }
 
-    function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE){
+    function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
         require(fragmentImplementation_ == address(0) || Address.isContract(fragmentImplementation_), "invalid fragment implementation address");
         fragmentImplementation = fragmentImplementation_;
     }
 
-    function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns(address){
+    function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns (address) {
         require(fragmentImplementation != address(0), "fragment creation disabled");
         require(address(fragments[id]) == address(0), "fragment instance already deployed");
         IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
@@ -137,24 +143,27 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         fragmentInstance.proposeMany(owners, tags, signature);
     }
 
-    function isSigner(address account) external view returns(bool) {
+    function isSigner(address account) external view returns (bool) {
         return hasRole(SIGNER_ROLE, account);
     }
 
-    function subscriptionManager(uint256 id) external view returns(address) {
+    function subscriptionManager(uint256 id) external view returns (address) {
         return proxies[id].subscriptionManager;
     }
-    function distributionManager(uint256 id) external view returns(address) {
+
+    function distributionManager(uint256 id) external view returns (address) {
         return proxies[id].distributionManager;
     }
-    function verifierManager(uint256 id) public view returns(address) {
+
+    function verifierManager(uint256 id) public view returns (address) {
         return proxies[id].verifierManager;
     }
-    function fragmentNFT(uint256 id) external view returns(address) {
+
+    function fragmentNFT(uint256 id) external view returns (address) {
         return address(fragments[id]);
     }
 
-    function deployerFeePercentage(uint256 id) external view returns(uint256) {
+    function deployerFeePercentage(uint256 id) external view returns (uint256) {
         DeployerFeeModel m = deployerFeeModels[id];
         return deployerFeeModelPercentage[m];
     }
@@ -163,13 +172,13 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
     }
 
-    function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns(address proxy)  {
+    function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns (address proxy) {
         require(implementation != address(0), "bad implementation address");
         proxy = Clones.clone(implementation);
         IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
     }
 
-    function _mintMessageHash(uint256 id) private view returns(bytes32) {
+    function _mintMessageHash(uint256 id) private view returns (bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
