@@ -43,6 +43,11 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         _;
     }
 
+    modifier onlySubscriptionManager() {
+        require(dataset.subscriptionManager(datasetId) == _msgSender(), "Only Subscription manager");
+        _;
+    }
+
     constructor() {
         _disableInitializers();
     }
@@ -85,7 +90,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param token Payment token ERC20, address(0) means native currency
      * @param amount Payment amount
      */
-    function receivePayment(address token, uint256 amount) external payable{
+    function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager {
         require(versionedTagWeights.length > 0, "tag weights not initialized");
         if(address(token) == address(0)){
             require(amount == msg.value, "value missmatch");
@@ -100,14 +105,14 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
             require(deployerFeeBeneficiary != address(0), "bad deployer fee beneficiary");
             _sendPayout(token, deployerFee, deployerFeeBeneficiary);
-            amount = amount - deployerFee;
+            amount -= deployerFee;
         }
 
         // Dataset owner fee
         if(amount > 0) {
             uint256 ownerAmount = amount * datasetOwnerPercentage / 1e18;
             pendingOwnerFee[token] += ownerAmount;
-            amount = amount - ownerAmount;
+            amount -= ownerAmount;
         }
 
         // Fragment contributors fee
@@ -187,7 +192,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         }
     }
 
-    function _calculatePayout(Payment storage p, address account) internal view returns(uint256 payout) {
+    function _calculatePayout(Payment storage p, address account) internal view returns (uint256 payout) {
         uint256 paymentAmount = p.distributionAmount;
         EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[p.tagWeightsVersion];
         bytes32[] memory tags = tagWeights.keys();
@@ -223,7 +228,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         address beneficiary, 
         uint256 sigValidSince, 
         uint256 sigValidTill
-    ) private view returns(bytes32) {
+    ) private view returns (bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
@@ -235,7 +240,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         ));
     }
 
-    function _fragmentClaimMessageHash(address beneficiary, uint256 sigValidSince, uint256 sigValidTill) private view returns(bytes32) {
+    function _fragmentClaimMessageHash(address beneficiary, uint256 sigValidSince, uint256 sigValidTill) private view returns (bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
