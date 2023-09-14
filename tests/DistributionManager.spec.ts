@@ -773,12 +773,12 @@ describe("DistributionManager", () => {
 
     await time.increase(constants.ONE_WEEK * 2);
 
-   // DeployerBeneficiary is not set currently, thus 0 fee fordeployerBeneficiary
-   // Dt Owner has 0.1% feePercentage thus :: 6048* 0.001 = 6.048
-   // Amount Left for contributors is 60480 - 6.048 = 6041.9520
-   // Currently two contributors (the dtOwner himself (from setUp) & contributor from this test case)
-   // Contributor will take half since they have both proposed a fragment of the same tag, with tagWeight == 100%
-   // Contributor Fee:: 6041.9520/2 == 3020.976
+    // DeployerBeneficiary is not set currently, thus 0 fee fordeployerBeneficiary
+    // Dt Owner has 0.1% feePercentage thus :: 6048* 0.001 = 6.048
+    // Amount Left for contributors is 60480 - 6.048 = 6041.9520
+    // Currently two contributors (the dtOwner himself (from setUp) & contributor from this test case)
+    // Contributor will take half since they have both proposed a fragment of the same tag, with tagWeight == 100%
+    // Contributor Fee:: 6041.9520/2 == 3020.976
 
     await expect(
       DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
@@ -1061,7 +1061,7 @@ describe("DistributionManager", () => {
       parseUnits("0.0001", 18)
     );
 
-    await users_.subscriber.Token!.approve(
+    await users_.user.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
       parseUnits("60.48", 18)
     );
@@ -2320,7 +2320,7 @@ describe("DistributionManager", () => {
     );
 
     // 2 contributors (dtOwner & contributor, thus payout for fragment owners will be split in half:
-    // 6048(totalFee) - 6.048(ownerFee) = 6041.952 for contributors) ,two contributors thus, 6041.952/2 == 3020.976 
+    // 6048(totalFee) - 6.048(ownerFee) = 6041.952 for contributors) ,two contributors thus, 6041.952/2 == 3020.976
 
     expect(
       await DatasetDistributionManager_.calculatePayoutByToken(
