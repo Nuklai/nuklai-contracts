@@ -160,7 +160,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
             Payment storage p = payments[i];
             if(collectToken != p.token) {
                 // Payment token changed, send what we've already collected
-                _sendPayout(p.token, collectAmount, _msgSender());
+                _sendPayout(collectToken, collectAmount, _msgSender());
                 collectToken = p.token;
                 collectAmount = 0;
             }
