@@ -1,18 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../interfaces/IDistributionManager.sol";
 import "../interfaces/IDatasetNFT.sol";
 import "../interfaces/IFragmentNFT.sol";
 
-contract DistributionManager is IDistributionManager, Initializable, Context {
+contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable {
     using SafeERC20 for IERC20;
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using Address for address payable;
@@ -53,6 +53,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
     }
 
     function initialize(address dataset_, uint256 datasetId_) external initializer() {
+        __ReentrancyGuard_init();
         dataset = IDatasetNFT(dataset_);
         datasetId = datasetId_;
         fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
@@ -90,7 +91,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
      * @param token Payment token ERC20, address(0) means native currency
      * @param amount Payment amount
      */
-    function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager {
+    function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
         require(versionedTagWeights.length > 0, "tag weights not initialized");
         if(address(token) == address(0)){
             require(amount == msg.value, "value missmatch");
@@ -135,7 +136,7 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         uint256 sigValidSince, 
         uint256 sigValidTill,
         bytes calldata signature
-    ) external onlyDatasetOwner {
+    ) external onlyDatasetOwner nonReentrant {
         // Validate signature
         require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
         require(pendingOwnerFee[token] >= amount, "not enough amount");
@@ -146,10 +147,39 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
          _sendPayout(token, amount, beneficiary);
     }
 
+    function claimDatasetOwnerAndFragmentPayouts(
+        address token, 
+        uint256 amount, 
+        address beneficiary, 
+        uint256 sigValidSince, 
+        uint256 sigValidTill,
+        bytes calldata ownerPayoutSignature,
+        bytes calldata fragmentPayoutSignature
+    ) external onlyDatasetOwner nonReentrant {
+        // Validate Dataset Owner Payout signature
+        require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
+        require(pendingOwnerFee[token] >= amount, "not enough amount");
+
+        bytes32 msgHash1 = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
+        address signer1 = ECDSA.recover(msgHash1, ownerPayoutSignature);
+        if(!dataset.isSigner(signer1)) revert BAD_SIGNATURE(msgHash1, signer1);
+
+        bytes32 msgHash2 = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
+        address signer2 = ECDSA.recover(msgHash2, fragmentPayoutSignature);
+        if(signer1 != signer2 || !dataset.isSigner(signer2)) revert BAD_SIGNATURE(msgHash2, signer2);
+
+        // Send Dataset Owner Fee
+        pendingOwnerFee[token] -= amount;
+         _sendPayout(token, amount, beneficiary);
+
+        // Claim Fragment Fee
+        _claimPayouts(_msgSender());
+    }
+
     /**
      * @notice Claim all payouts (for Fragment owners)
      */
-    function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external {
+    function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external nonReentrant {
         // Validate signature
         require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
         bytes32 msgHash = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
@@ -190,6 +220,28 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
                 collectAmount += _calculatePayout(p, account);
             }
         }
+    }
+
+    function _claimPayouts(address beneficiary) internal {
+        // Claim payouts
+        uint256 firstUnclaimedPayout = firstUnclaimed[beneficiary];
+        if(firstUnclaimedPayout >= payments.length) return;  // Nothing to claim
+        firstUnclaimed[beneficiary] = payments.length;       // Updating firstUnclaimed before sending any tokens to prevent reentrancy
+
+        address collectToken = payments[firstUnclaimedPayout].token;
+        uint256 collectAmount;
+        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+            Payment storage p = payments[i];
+            if(collectToken != p.token) {
+                // Payment token changed, send what we've already collected
+                _sendPayout(collectToken, collectAmount, beneficiary);
+                collectToken = p.token;
+                collectAmount = 0;
+            }
+            collectAmount += _calculatePayout(p, beneficiary);
+        }
+        // send collected and not sent yet
+        _sendPayout(collectToken, collectAmount, beneficiary);
     }
 
     function _calculatePayout(Payment storage p, address account) internal view returns (uint256 payout) {
