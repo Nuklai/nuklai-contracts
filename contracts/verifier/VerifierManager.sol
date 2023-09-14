@@ -1,14 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import "../interfaces/IDatasetNFT.sol";
 import "../interfaces/IFragmentNFT.sol";
 import "../interfaces/IVerifierManager.sol";
 import "../interfaces/IVerifier.sol";
 
-contract VerifierManager is IVerifierManager, Initializable, Context {
+contract VerifierManager is IVerifierManager, ContextUpgradeable {
 
     event FragmentPending(uint256 id);
     event FragmentResolved(uint256 id, bool accept);
