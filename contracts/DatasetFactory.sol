@@ -12,7 +12,7 @@ contract DatasetFactory is Ownable {
     IDatasetNFT public datasetNFT;              // address of DatasetNFT
     address public subscriptionManagerImpl;     // address of deployed ERC20LinearSingleDatasetSubscriptionManager
     address public distributionManagerImpl;     // address of deployed DistributionManager 
-    address public verifierManagerImpl;             // address of deployed VerifierManager
+    address public verifierManagerImpl;         // address of deployed VerifierManager
 
     function configure(
         address dataset,
