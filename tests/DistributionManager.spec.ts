@@ -5,9 +5,10 @@ import {
   DistributionManager,
   ERC20LinearSingleDatasetSubscriptionManager,
   FragmentNFT,
+  TestToken,
   VerifierManager,
 } from "@typechained";
-import { ZeroHash, parseUnits, Contract } from "ethers";
+import { ZeroHash, parseUnits, Contract, formatUnits } from "ethers";
 import { deployments, ethers, network } from "hardhat";
 import { expect } from "chai";
 import { v4 as uuidv4 } from "uuid";
@@ -274,7 +275,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer :: 86400 * 7 * 10^-8 * 1 = 0.006048 
+    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer :: 86400 * 7 * 10^-8 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -385,7 +386,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 10^-8 * 1 = 0.006048 
+    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 10^-8 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -790,7 +791,317 @@ describe("DistributionManager", () => {
       .withArgs(
         users_.contributor.address,
         tokenAddress,
-        parseUnits("3020.976", 18) 
+        parseUnits("3020.976", 18)
+      );
+  });
+
+  it("Should contributor claim revenue if payment token has changed", async function () {
+    const nextPendingFragmentId =
+      (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+    const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT_.getAddress(),
+        datasetId_,
+        nextPendingFragmentId,
+        users_.contributor.address,
+        ZeroHash
+      )
+    );
+
+    await DatasetNFT_.connect(users_.contributor).proposeFragment(
+      datasetId_,
+      users_.contributor.address,
+      ZeroHash,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
+
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
+
+    await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+      datasetFragmentAddress,
+      nextPendingFragmentId,
+      true
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const tokenAddress = await users_.subscriber.Token!.getAddress();
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      parseUnits("6048", 18)
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+
+    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    let subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+    const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+      signature.getFragmentOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager_.getAddress(),
+        users_.contributor.address,
+        BigInt(validSince),
+        BigInt(validTill)
+      )
+    );
+
+    const NewDeployedFeeToken = await deployments.deploy("TestToken_new", {
+      contract: "TestToken",
+      from: users_.secondSubscriber.address,
+    });
+
+    const newFeeToken = (await ethers.getContractAt(
+      "TestToken",
+      NewDeployedFeeToken.address,
+      users_.secondSubscriber
+    )) as unknown as TestToken;
+
+    await newFeeToken
+      .connect(users_.secondSubscriber)
+      .mint(
+        users_.secondSubscriber.address,
+        ethers.parseUnits("100000000", 18)
+      );
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await newFeeToken.getAddress(),
+      parseUnits("0.001", 18)
+    );
+
+    await newFeeToken
+      .connect(users_.secondSubscriber)
+      .approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits("604.8", 18)
+      );
+
+    subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager_.connect(
+      users_.secondSubscriber
+    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+
+    await time.increase(constants.ONE_WEEK * 2);
+
+    await expect(
+      DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+        validSince,
+        validTill,
+        fragmentOwnerSignature
+      )
+    )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.contributor.address,
+        tokenAddress,
+        parseUnits("3020.976", 18)
+      )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.contributor.address,
+        await newFeeToken.getAddress(),
+        parseUnits("302.0976", 18)
+      );
+  });
+
+  it("Should contributor claim revenue if payment token has changed and then changed back to first payment token", async function () {
+    const nextPendingFragmentId =
+      (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+    const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+      signature.getDatasetFragmentProposeMessage(
+        network.config.chainId!,
+        await DatasetNFT_.getAddress(),
+        datasetId_,
+        nextPendingFragmentId,
+        users_.contributor.address,
+        ZeroHash
+      )
+    );
+
+    await DatasetNFT_.connect(users_.contributor).proposeFragment(
+      datasetId_,
+      users_.contributor.address,
+      ZeroHash,
+      proposeSignatureSchemas
+    );
+
+    const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
+
+    const AcceptManuallyVerifier =
+      await ethers.getContract<AcceptManuallyVerifier>(
+        "AcceptManuallyVerifier"
+      );
+
+    await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+      datasetFragmentAddress,
+      nextPendingFragmentId,
+      true
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+
+    const tokenAddress = await users_.subscriber.Token!.getAddress();
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      parseUnits("6048", 18)
+    );
+
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+
+    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      tokenAddress,
+      feeAmount
+    );
+
+    let subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    const validSince =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
+      1 +
+      constants.ONE_WEEK * 2;
+    const validTill = validSince + constants.ONE_DAY;
+    const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+      signature.getFragmentOwnerClaimMessage(
+        network.config.chainId!,
+        await DatasetDistributionManager_.getAddress(),
+        users_.contributor.address,
+        BigInt(validSince),
+        BigInt(validTill)
+      )
+    );
+
+    const NewDeployedFeeToken = await deployments.deploy("TestToken_new2", {
+      contract: "TestToken",
+      from: users_.secondSubscriber.address,
+    });
+
+    const newFeeToken = (await ethers.getContractAt(
+      "TestToken",
+      NewDeployedFeeToken.address,
+      users_.secondSubscriber
+    )) as unknown as TestToken;
+
+    await newFeeToken
+      .connect(users_.secondSubscriber)
+      .mint(
+        users_.secondSubscriber.address,
+        ethers.parseUnits("100000000", 18)
+      );
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      await newFeeToken.getAddress(),
+      parseUnits("0.001", 18)
+    );
+
+    await newFeeToken
+      .connect(users_.secondSubscriber)
+      .approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits("604.8", 18)
+      );
+
+    subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager_.connect(
+      users_.secondSubscriber
+    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+
+    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+      tokenAddress,
+      parseUnits("0.0001", 18)
+    );
+
+    await users_.subscriber.Token!.approve(
+      await DatasetSubscriptionManager_.getAddress(),
+      parseUnits("60.48", 18)
+    );
+
+    subscriptionStart =
+      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
+
+    await DatasetSubscriptionManager_.connect(users_.user).subscribe(
+      datasetId_,
+      subscriptionStart,
+      constants.ONE_WEEK,
+      1
+    );
+
+    await time.increase(constants.ONE_WEEK * 2);
+
+    await expect(
+      DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+        validSince,
+        validTill,
+        fragmentOwnerSignature
+      )
+    )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.contributor.address,
+        tokenAddress,
+        parseUnits("3020.976", 18)
+      )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.contributor.address,
+        await newFeeToken.getAddress(),
+        parseUnits("302.0976", 18)
+      )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.contributor.address,
+        tokenAddress,
+        parseUnits("30.20976", 18)
       );
   });
 
@@ -844,7 +1155,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048 
+    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -899,7 +1210,7 @@ describe("DistributionManager", () => {
         fragmentOwnerSignature
       )
     ).to.not.emit(DatasetDistributionManager_, "PayoutSent");
-      
+
     // For 4 weeks & 1 consumer totalSubscriptionFee :: 86400 * 7 * 4 * 0.01 * 1 = 24192
     await users_.secondSubscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
@@ -1010,7 +1321,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048 
+    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -1069,7 +1380,7 @@ describe("DistributionManager", () => {
         tokenAddress,
         parseUnits("6.048", 18) // 0.1% as ownerPercentageFee :: 6048 * 0.001 = 6.048
       );
-    
+
     // For 4 weeks & 1 consumer totalSubscriptionFee :: 86400 * 7 * 4 * 0.01 * 1 = 24192
     await users_.secondSubscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
@@ -1190,7 +1501,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.001 * 1 = 604.8 
+    const feeAmount = parseUnits("0.001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.001 * 1 = 604.8
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -1541,7 +1852,7 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048  
+    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
