@@ -584,22 +584,14 @@ describe("FragmentNFT", () => {
   });
 
   it("Should supportsInterface() return true if id provided is either IFragmentNFT, IERC721 or IERC165", async () => {
-    let val = await DatasetFragment_.supportsInterface(IERC165_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetFragment_.supportsInterface(IFragmentNFT_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetFragment_.supportsInterface(IERC721_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetFragment_.supportsInterface(IERC721Metadata_Interface_Id);
-    expect(val).to.be.true;
+    expect(await DatasetFragment_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+    expect(await DatasetFragment_.supportsInterface(IFragmentNFT_Interface_Id)).to.be.true;
+    expect(await DatasetFragment_.supportsInterface(IERC721_Interface_Id)).to.be.true;
+    expect(await DatasetFragment_.supportsInterface(IERC721Metadata_Interface_Id)).to.be.true;
   });
 
   it("Should supportsInterface() return false if provided id is not supported", async () => {
     const mockInterfaceId = "0xff123456";
-    let val = await DatasetFragment_.supportsInterface(mockInterfaceId);
-    expect(val).to.be.false;
+    expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
   });
 });

@@ -655,26 +655,16 @@ describe("DatasetNFT", () => {
   });
 
   it("Should supportsInterface() return true if id provided is either IDatasetNFT, IERC721, IAccessControl or IERC165", async () => {
-    let val = await DatasetNFT_.supportsInterface(IDatasetNFT_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetNFT_.supportsInterface(IERC721_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetNFT_.supportsInterface(IERC165_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetNFT_.supportsInterface(IAccessControl_Interface_Id);
-    expect(val).to.be.true;
-
-    val = await DatasetNFT_.supportsInterface(IERC721Metadata_Interface_Id);
-    expect(val).to.be.true;
+    expect(await DatasetNFT_.supportsInterface(IDatasetNFT_Interface_Id)).to.be.true;
+    expect(await DatasetNFT_.supportsInterface(IERC721_Interface_Id)).to.be.true;
+    expect(await DatasetNFT_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+    expect(await DatasetNFT_.supportsInterface(IAccessControl_Interface_Id)).to.be.true;
+    expect(await DatasetNFT_.supportsInterface(IERC721Metadata_Interface_Id)).to.be.true;
   });
 
   it("Should supportsInterface() return false if id provided is not supported", async () => {
     const mockInterfaceId = "0xff123456";
-    let val = await DatasetNFT_.supportsInterface(mockInterfaceId);
-    expect(val).to.be.false;
+    expect(await DatasetNFT_.supportsInterface(mockInterfaceId)).to.be.false;
   });
 
   // ------------------------------------------------------------------------------------
