@@ -16,6 +16,7 @@ import { constants, signature, utils } from "./utils";
 import { time } from "@nomicfoundation/hardhat-network-helpers";
 import { getEvent } from "./utils/events";
 import { setupUsers, Signer } from "./utils/users";
+import { encodeTag } from "./utils/utils";
 
 const setup = async () => {
   await deployments.fixture(["DatasetFactory", "DatasetVerifiers"]);
@@ -211,6 +212,38 @@ describe("DistributionManager", () => {
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+  });
+
+  it("Should user be able to get tag weights", async function () {
+    const tags = [ZeroHash, encodeTag("metadata")];
+    const weights = [parseUnits("0.3", 18), parseUnits("0.7", 18)];
+    await DatasetDistributionManager_.connect(
+      users_.datasetOwner
+    ).setTagWeights(tags, weights);
+
+    const tagWeights = await DatasetDistributionManager_.connect(
+      users_.user
+    ).getTagWeights(tags);
+
+    expect(tagWeights.length).to.be.equal(weights.length);
+    expect(tagWeights[0]).to.be.equal(weights[0]);
+    expect(tagWeights[1]).to.be.equal(weights[1]);
+  });
+
+  it("Should tag weight be zero if does not exists", async function () {
+    const tagWeights = await DatasetDistributionManager_.connect(
+      users_.user
+    ).getTagWeights([encodeTag("unknown.tag")]);
+
+    expect(tagWeights[0]).to.be.equal(0n);
+  });
+
+  it("Should tag weight array be zero if nothing is passed as argument", async function () {
+    const tagWeights = await DatasetDistributionManager_.connect(
+      users_.user
+    ).getTagWeights([]);
+
+    expect(tagWeights.length).to.be.equal(0);
   });
 
   it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
