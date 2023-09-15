@@ -74,6 +74,17 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         require(weightSumm == 1e18, "Invalid weights summ");
     }
 
+    function getTagWeights(bytes32[] calldata tags) external view returns(uint256[] memory weights) {
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[versionedTagWeights.length - 1];
+        uint256 tagsLength = tags.length;
+        weights = new uint256[](tagsLength);
+        for(uint256 i; i < tagsLength; i++) {
+            bytes32 tag = tags[i];
+            (, uint256 weight) = tagWeights.tryGet(tag);
+            weights[i] = weight;
+        }
+    }
+
     /**
      * @notice Set percentage of each payment that should be sent to the Dataset Owner
      * @param percentage Percentage encoded in a way that 100% = 1e18
