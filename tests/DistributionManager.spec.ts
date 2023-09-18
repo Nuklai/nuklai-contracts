@@ -240,9 +240,9 @@ describe("DistributionManager", () => {
   });
 
   it("Should getTagWeights() revet if empty tags array is passed as input argument", async function () {
-    await expect(DatasetDistributionManager_.connect(
-      users_.user
-    ).getTagWeights([])).to.be.revertedWith("No tags provided");
+    await expect(
+      DatasetDistributionManager_.connect(users_.user).getTagWeights([])
+    ).to.be.revertedWith("No tags provided");
   });
 
   it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
@@ -314,12 +314,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -425,12 +421,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -575,12 +567,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -680,12 +668,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -722,19 +706,29 @@ describe("DistributionManager", () => {
   });
 
   it("Should datasetOwner claim revenue from both contributing & being the owner via the `claimDatasetOwnerAndFragmentPayouts()`", async () => {
-    const percentageForFeeModels = [parseUnits("0.1", 18), parseUnits("0.35", 18)];
+    const percentageForFeeModels = [
+      parseUnits("0.1", 18),
+      parseUnits("0.35", 18),
+    ];
 
     await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
-      [models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE, models.constants.DeployerFeeModel.DEPLOYER_STORAGE],
+      [
+        models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE,
+        models.constants.DeployerFeeModel.DEPLOYER_STORAGE,
+      ],
       percentageForFeeModels
     );
 
-    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModel(datasetId_, models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE);
+    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModel(
+      datasetId_,
+      models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE
+    );
 
-    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
+    await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(
+      users_.dtAdmin.address
+    );
 
     const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
-
 
     const nextPendingFragmentId =
       (await DatasetFragment_.lastFragmentPendingId()) + 1n;
@@ -760,7 +754,7 @@ describe("DistributionManager", () => {
     const AcceptManuallyVerifier =
       await ethers.getContract<AcceptManuallyVerifier>(
         "AcceptManuallyVerifier"
-    );
+      );
 
     await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
       datasetFragmentAddress,
@@ -793,12 +787,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -810,28 +800,28 @@ describe("DistributionManager", () => {
 
     const validTill = validSince + constants.ONE_DAY;
 
-    const fragmentOwner_Contributor_Signature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
-        network.config.chainId!,
-        await DatasetDistributionManager_.getAddress(),
-        users_.contributor.address,
-        BigInt(validSince),
-        BigInt(validTill)
-      )
-    );
+    const fragmentOwner_Contributor_Signature =
+      await users_.dtAdmin.signMessage(
+        signature.getFragmentOwnerClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.contributor.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
     /*
     let validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
       1 +
       constants.ONE_WEEK * 2;
     let validTill = validSince + constants.ONE_DAY; */
-    
-    let claimableAmountForOwningDt = await DatasetDistributionManager_.pendingOwnerFee(
-      tokenAddress
-    );
+
+    let claimableAmountForOwningDt =
+      await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
 
     expect(claimableAmountForOwningDt).to.equal(parseUnits("544.32", 18));
-    
+
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetOwnerClaimMessage(
         network.config.chainId!,
@@ -843,16 +833,17 @@ describe("DistributionManager", () => {
         BigInt(validTill)
       )
     );
-    
-    const fragmentOwner_DatasetOwner_Signature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
-        network.config.chainId!,
-        await DatasetDistributionManager_.getAddress(),
-        users_.datasetOwner.address,
-        BigInt(validSince),
-        BigInt(validTill)
-      )
-    );
+
+    const fragmentOwner_DatasetOwner_Signature =
+      await users_.dtAdmin.signMessage(
+        signature.getFragmentOwnerClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.datasetOwner.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
 
     await time.increase(constants.ONE_WEEK * 2);
 
@@ -866,29 +857,32 @@ describe("DistributionManager", () => {
     // dtOwner will get 4898.88/2 + 544.32 = 2449.44 + 544.32 = 2993.76
 
     // dtOwner should be able to claim the amount (2993.76) through `claimDatasetOwnerAndFragmentPayouts()`
-    await expect(DatasetDistributionManager_.connect(users_.datasetOwner).claimDatasetOwnerAndFragmentPayouts(
-      tokenAddress,
-      claimableAmountForOwningDt,
-      users_.datasetOwner.address,
-      validSince,
-      validTill,
-      claimDatasetOwnerSignature,
-      fragmentOwner_DatasetOwner_Signature
+    await expect(
+      DatasetDistributionManager_.connect(
+        users_.datasetOwner
+      ).claimDatasetOwnerAndFragmentPayouts(
+        tokenAddress,
+        claimableAmountForOwningDt,
+        users_.datasetOwner.address,
+        validSince,
+        validTill,
+        claimDatasetOwnerSignature,
+        fragmentOwner_DatasetOwner_Signature
+      )
     )
-  )
-    .to.emit(DatasetDistributionManager_, "PayoutSent")
-    .withArgs(
-      users_.datasetOwner.address,
-      tokenAddress,
-      parseUnits("544.32", 18)
-    )
-    .to.emit(DatasetDistributionManager_, "PayoutSent")
-    .withArgs(
-      users_.datasetOwner.address,
-      tokenAddress,
-      parseUnits("2449.44", 18)
-    );
-    
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.datasetOwner.address,
+        tokenAddress,
+        parseUnits("544.32", 18)
+      )
+      .to.emit(DatasetDistributionManager_, "PayoutSent")
+      .withArgs(
+        users_.datasetOwner.address,
+        tokenAddress,
+        parseUnits("2449.44", 18)
+      );
+
     // contributor should be able to claim his revenue
     await expect(
       DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
@@ -962,12 +956,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1073,7 +1063,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1128,7 +1117,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+    ).subscribe(datasetId_, constants.ONE_WEEK, 1);
 
     await time.increase(constants.ONE_WEEK * 2);
 
@@ -1215,7 +1204,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1270,7 +1258,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+    ).subscribe(datasetId_, constants.ONE_WEEK, 1);
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
@@ -1287,7 +1275,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.user).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1383,7 +1370,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1438,7 +1424,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, constants.ONE_WEEK * 4, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -1549,7 +1535,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1608,7 +1593,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, constants.ONE_WEEK * 4, 1);
 
     claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
       tokenAddress
@@ -1729,7 +1714,6 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -1826,7 +1810,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, constants.ONE_WEEK * 4, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -1968,12 +1952,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -2075,12 +2055,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -2178,12 +2154,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -2269,12 +2241,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -2407,12 +2375,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
@@ -2525,12 +2489,8 @@ describe("DistributionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
       constants.ONE_WEEK,
       1
     );
