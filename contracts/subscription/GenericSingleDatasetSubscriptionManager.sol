@@ -109,25 +109,23 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     /**
      * @notice Subscribe for a dataset and make payment
      * @param ds Id of the dataset
-     * @param start Subscription start timestamp
      * @param duration Duration of subscription (must be integral multiple of a day in seconds up to 365 days)
      * @param consumers Count of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid) {
-        return _subscribe(ds, start, duration, consumers);
+    function subscribe(uint256 ds, uint256 duration, uint256 consumers) external payable returns(uint256 sid) {
+        return _subscribe(ds, duration, consumers);
     }
 
     /**
      * @notice Subscribe for a dataset, make payment and add consumer addresses
      * @param ds Id of the dataset
-     * @param start Subscription start timestamp
      * @param duration Duration of subscription (must be integral multiple of a day in seconds up to 365 days)
      * @param consumers List of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribeAndAddConsumers(uint256 ds, uint256 start, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid) {
-        sid = _subscribe(ds, start, duration, consumers.length);
+    function subscribeAndAddConsumers(uint256 ds, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid) {
+        sid = _subscribe(ds, duration, consumers.length);
         _addConsumers(sid, consumers);
     }
 
@@ -167,10 +165,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
 
-    function _subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) internal returns(uint256 sid) {
+    function _subscribe(uint256 ds, uint256 duration, uint256 consumers) internal returns(uint256 sid) {
         _requireCorrectDataset(ds);
         require(balanceOf(_msgSender()) == 0, "User already subscribed");
-        require(start >= block.timestamp, "Start timestamp already passed");
         require(duration > 0, "Duration is too low");
         require(duration % 1 days == 0 && duration <= 365 * 1 days, "Invalid subscription duration");
         require(consumers > 0, "Should be at least 1 consumer");
@@ -180,8 +177,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
         sid = ++mintCounter;
         SubscriptionDetails storage sd = subscriptions[sid];
-        sd.validSince = start;
-        sd.validTill = start + duration;
+        sd.validSince = block.timestamp;
+        sd.validTill = sd.validSince + duration;
         sd.paidConsumers = consumers;
         _safeMint(_msgSender(), sid);
         emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);        
