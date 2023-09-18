@@ -33,13 +33,22 @@ export const getDatasetFragmentProposeBatchMessage = (
   chainId: number,
   datasetAddress: AddressLike,
   datasetId: bigint,
-  counter: bigint,
+  fromId: bigint,
+  toId: bigint,
   owners: AddressLike[],
   tags: string[]
 ): Uint8Array => {
   const proposeMessage = solidityPacked(
-    ["uint256", "address", "uint256", "uint256", "address[]", "bytes32[]"],
-    [chainId, datasetAddress, datasetId, counter, owners, tags]
+    [
+      "uint256",
+      "address",
+      "uint256",
+      "uint256",
+      "uint256",
+      "address[]",
+      "bytes32[]",
+    ],
+    [chainId, datasetAddress, datasetId, fromId, toId, owners, tags]
   );
 
   return getBytes(proposeMessage);

@@ -1073,6 +1073,8 @@ describe("DatasetNFT", () => {
       const tagRows = utils.encodeTag("dataset.rows");
       const tagData = utils.encodeTag("dataset.data");
 
+      const tags = [tagSchemas, tagRows, tagData];
+
       const lastFragmentPendingId =
         await DatasetFragment_.lastFragmentPendingId();
 
@@ -1082,12 +1084,13 @@ describe("DatasetNFT", () => {
           await DatasetNFT_.getAddress(),
           datasetId_,
           lastFragmentPendingId + 1n,
+          lastFragmentPendingId + BigInt(tags.length),
           [
             users_.contributor.address,
             users_.contributor.address,
             users_.contributor.address,
           ],
-          [tagSchemas, tagRows, tagData]
+          tags
         )
       );
 
@@ -1151,6 +1154,8 @@ describe("DatasetNFT", () => {
       const tagRows = utils.encodeTag("dataset.rows");
       const tagData = utils.encodeTag("dataset.data");
 
+      const tags = [tagSchemas, tagRows, tagData]
+
       const lastFragmentPendingId =
         await DatasetFragment_.lastFragmentPendingId();
 
@@ -1159,13 +1164,14 @@ describe("DatasetNFT", () => {
           network.config.chainId!,
           await DatasetNFT_.getAddress(),
           datasetId_,
-          lastFragmentPendingId,
+          lastFragmentPendingId + 1n,
+          lastFragmentPendingId + BigInt(tags.length),
           [
             users_.contributor.address,
             users_.contributor.address,
             users_.contributor.address,
           ],
-          [tagSchemas, tagRows, tagData]
+          tags
         )
       );
 
