@@ -238,12 +238,10 @@ describe("DistributionManager", () => {
     expect(tagWeights[0]).to.be.equal(0n);
   });
 
-  it("Should tag weight array be zero if nothing is passed as argument", async function () {
-    const tagWeights = await DatasetDistributionManager_.connect(
+  it("Should getTagWeights() revet if empty tags array is passed as input argument", async function () {
+    await expect(DatasetDistributionManager_.connect(
       users_.user
-    ).getTagWeights([]);
-
-    expect(tagWeights.length).to.be.equal(0);
+    ).getTagWeights([])).to.be.revertedWith("No tags provided");
   });
 
   it("Should revert set tag weights if weights sum is not equal to 100%", async function () {
