@@ -12,7 +12,7 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
     string internal constant TOKEN_SYMBOL = "DTSUB";
 
     IERC20 public token;
-    uint256 public feePerConsumerPerSecond;
+    uint256 public feePerConsumerPerDay;
 
     modifier onlyDatasetOwner() {
         require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
@@ -27,18 +27,26 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
         __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
     }
 
-    function setFee(IERC20 token_, uint256 feePerConsumerPerSecond_) external onlyDatasetOwner {
+    /**
+     * @notice Sets the daily subscription fee for a single consumer
+     * @dev Only callable by the dataset owner 
+     * @param token_ the ERC20 token used for subscription payments
+     * @param feePerConsumerPerDay_ the fee to set
+     */
+    function setFee(IERC20 token_, uint256 feePerConsumerPerDay_) external onlyDatasetOwner {
         token = token_;
-        feePerConsumerPerSecond = feePerConsumerPerSecond_;
+        feePerConsumerPerDay = feePerConsumerPerDay_;
     }
 
     /**
-     * @notice Calculates subscription fee
-     * @param duration of subscription
-     * @param consumers for the subscription (including owner)
+     * @notice Calculates subscription fee for a given duration (in days) and number of consumers
+     * @param durationInDays the duration of the subscription in days
+     * @param consumers number of consumers for the subscription (including owner)
+     * @return address the ERC20 token used as payment, zeroAddress for native coin
+     * @return uint256 the calculated fee 
      */
-    function calculateFee(uint256 duration, uint256 consumers) internal view override returns(address, uint256) {
-        return (address(token), feePerConsumerPerSecond * duration * consumers);
+    function calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns(address, uint256) {
+        return (address(token), feePerConsumerPerDay * durationInDays * consumers);
     }
 
     /**
