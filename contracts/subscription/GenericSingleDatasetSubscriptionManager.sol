@@ -38,13 +38,13 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
     /**
-     * @notice Calculates subscription fee
-     * @param duration of subscription
-     * @param consumers for the subscription (including owner)
+     * @notice Calculates subscription fee for a given duration (in days) and number of consumers
+     * @param durationInDays the duration of the subscription in days
+     * @param consumers number of consumers for the subscription (including owner)
      * @return Payment token, zero address for native coin
      * @return amount to pay
      */
-    function calculateFee(uint256 duration, uint256 consumers) internal view virtual returns(address, uint256);
+    function calculateFee(uint256 durationInDays, uint256 consumers) internal view virtual returns(address, uint256);
 
     /**
      * @notice Should charge the subscriber or revert
@@ -75,19 +75,18 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
 
     /**
-     * @notice Returns a fee for a dataset subscription
+     * @notice Returns a fee for a dataset subscription with a given duration (in days) and number of consumers
      * @param ds Id of the dataset to access
-     * @param duration of the subscription (must be integral multiple of a day in seconds up to 365 days)
-     * @param consumers count of consumers who have access to a data using this subscription
+     * @param durationInDays the duration of the subscription in days
+     * @param consumers count of consumers who have access to a data using this subscription (including owner)
      * @return token Token used to pay subscription or address(0) if native coin
      * @return amount Amount to pay
      */
-    function subscriptionFee(uint256 ds, uint256 duration, uint256 consumers) external view returns(address token, uint256 amount) {
+    function subscriptionFee(uint256 ds, uint256 durationInDays, uint256 consumers) external view returns(address token, uint256 amount) {
         _requireCorrectDataset(ds);
-        require(duration > 0, "Duration is too low");
-        require(duration % 1 days == 0 && duration <= 365 * 1 days, "Invalid subscription duration");
+        require(durationInDays > 0 && durationInDays <= 365, "Invalid subscription duration");
         require(consumers > 0, "Should be at least 1 consumer");
-        return calculateFee(duration, consumers);
+        return calculateFee(durationInDays, consumers);
     }
 
     /**
@@ -99,10 +98,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         require(extraConsumers > 0, "Should add at least 1 consumer");
         SubscriptionDetails storage sd = subscriptions[subscription];
         require(sd.validTill > block.timestamp, "Subcription not valid");
-        // duration was enforced during subscription to be integral multiple of days
-        uint256 duration = sd.validTill - sd.validSince;
-        (,uint256 currentFee) = calculateFee(duration, sd.paidConsumers);
-        (,uint256 newFee) = calculateFee(duration, sd.paidConsumers + extraConsumers);
+        // (sd.validTill - sd.validSince) was enforced during subscription to be integral multiple of a day in seconds
+        uint256 durationInDays_ = (sd.validTill - sd.validSince) / 1 days;
+        (,uint256 currentFee) = calculateFee(durationInDays_, sd.paidConsumers);
+        (,uint256 newFee) = calculateFee(durationInDays_, sd.paidConsumers + extraConsumers);
         return (newFee > currentFee) ? (newFee - currentFee) : 0;
     }
 
@@ -110,36 +109,36 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @notice Subscribe for a dataset and make payment
      * @param ds Id of the dataset
      * @param start Subscription start timestamp
-     * @param duration Duration of subscription (must be integral multiple of a day in seconds up to 365 days)
+     * @param durationInDays Duration of the subscription in days
      * @param consumers Count of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid) {
-        return _subscribe(ds, start, duration, consumers);
+    function subscribe(uint256 ds, uint256 start, uint256 durationInDays, uint256 consumers) external payable returns(uint256 sid) {
+        return _subscribe(ds, start, durationInDays, consumers);
     }
 
     /**
      * @notice Subscribe for a dataset, make payment and add consumer addresses
      * @param ds Id of the dataset
      * @param start Subscription start timestamp
-     * @param duration Duration of subscription (must be integral multiple of a day in seconds up to 365 days)
+     * @param durationInDays Duration of subscription in days
      * @param consumers List of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribeAndAddConsumers(uint256 ds, uint256 start, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid) {
-        sid = _subscribe(ds, start, duration, consumers.length);
+    function subscribeAndAddConsumers(uint256 ds, uint256 start, uint256 durationInDays, address[] calldata consumers) external payable returns(uint256 sid) {
+        sid = _subscribe(ds, start, durationInDays, consumers.length);
         _addConsumers(sid, consumers);
     }
 
     /**
-     * @notice Extend subscription with additional time or consumers
+     * @notice Extend subscription with additional duration (in days) or consumers
      * @dev Subscriptions can only be extended if remaining duration <= 30 days
      * @param subscription Id of subscription
-     * @param extraDuration Time to add (must be integral multiple of a day in seconds up to 365 days)
+     * @param extraDurationInDays Days to extend the subscription by
      * @param extraConsumers Consumer count to add
      */
-    function extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) external payable {
-        _extendSubscription(subscription, extraDuration, extraConsumers);
+    function extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) external payable {
+        _extendSubscription(subscription, extraDurationInDays, extraConsumers);
     }
 
     function addConsumers(uint256 subscription, address[] calldata consumers) external onlySubscriptionOwner(subscription) {
@@ -166,66 +165,76 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         _replaceConsumers(subscription, oldConsumers, newConsumers);
     }
 
-
-    function _subscribe(uint256 ds, uint256 start, uint256 duration, uint256 consumers) internal returns(uint256 sid) {
+    /**
+     * @notice Internal subscribe function
+     * @param ds Id of the dataset to subscribe to
+     * @param start Subscription start timestamp
+     * @param durationInDays Duration of subscription in days
+     * @param consumers Count of consumers who have access to the data with this subscription
+     * @return sid of subscription
+     */
+    function _subscribe(uint256 ds, uint256 start, uint256 durationInDays, uint256 consumers) internal returns(uint256 sid) {
         _requireCorrectDataset(ds);
         require(balanceOf(_msgSender()) == 0, "User already subscribed");
         require(start >= block.timestamp, "Start timestamp already passed");
-        require(duration > 0, "Duration is too low");
-        require(duration % 1 days == 0 && duration <= 365 * 1 days, "Invalid subscription duration");
+        require(durationInDays > 0 && durationInDays <= 365, "Invalid subscription duration");
+
         require(consumers > 0, "Should be at least 1 consumer");
 
-        (,uint256 fee) = calculateFee(duration, consumers);
+        (,uint256 fee) = calculateFee(durationInDays, consumers);
         charge(_msgSender(), fee);
 
         sid = ++mintCounter;
         SubscriptionDetails storage sd = subscriptions[sid];
         sd.validSince = start;
-        sd.validTill = start + duration;
+        sd.validTill = start + (durationInDays * 1 days);
         sd.paidConsumers = consumers;
         _safeMint(_msgSender(), sid);
         emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);        
     }
 
     /**
+     * @notice Internal extendSubscription function
      * @dev Subscription can only be extended if remaining duration <= 30 days
      * @param subscription Id for subscription
-     * @param extraDuration duration to extend the subscription by (must be integral multiple of a day in seconds up to 365 days)
+     * @param extraDurationInDays Days to extend the subscription by
      * @param extraConsumers number of extra consumers to add
      */
-    function _extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) internal {
+    function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
         _requireMinted(subscription);
 
-        if (extraDuration > 0) 
-            require(extraDuration % 1 days == 0 && extraDuration <= 365 * 1 days, "Invalid extra duration provided");
+        if (extraDurationInDays > 0) 
+            require(extraDurationInDays <= 365, "Invalid extra duration provided");
 
         SubscriptionDetails storage sd = subscriptions[subscription];
-        uint256 newDuration;
+        uint256 newDurationInDays;
         uint256 newValidSince;
         uint256 currentFee;
         
         if (sd.validTill > block.timestamp) {
             // Subscription is still valid but remaining duration must be <= 30 days to extend it
-            if (extraDuration > 0)
+            if (extraDurationInDays > 0)
                 require((sd.validTill - block.timestamp) <= 30 * 1 days, "Remaining duration > 30 days");
-            uint256 currentDuration = sd.validTill - sd.validSince;
-            (,currentFee) = calculateFee(currentDuration, sd.paidConsumers);
+
+            // (sd.validTill - sd.validSince) was enforced during subscription to be an integral multiple of a day in seconds
+            uint256 currentDurationInDays = (sd.validTill - sd.validSince) / 1 days;
+            (,currentFee) = calculateFee(currentDurationInDays, sd.paidConsumers);
             newValidSince = sd.validSince;
-            newDuration = currentDuration + extraDuration;
+            newDurationInDays = currentDurationInDays + extraDurationInDays;
         } else {
             // Subscription is already invalid
             // currentFee = 0;
             newValidSince = block.timestamp;
-            newDuration = extraDuration;
+            newDurationInDays = extraDurationInDays;
         }
         uint256 newConsumers = sd.paidConsumers + extraConsumers;
-        (,uint256 newFee) = calculateFee(newDuration, newConsumers);
+        (,uint256 newFee) = calculateFee(newDurationInDays, newConsumers);
         require(newFee > currentFee, "Nothing to pay");
 
         charge(_msgSender(), newFee - currentFee);
 
         sd.validSince = newValidSince;
-        sd.validTill = newValidSince + newDuration;
+        sd.validTill = newValidSince + (newDurationInDays * 1 days);
         sd.paidConsumers = newConsumers;        
         emit SubscriptionPaid(subscription, sd.validSince, sd.validTill, sd.paidConsumers);
     }
