@@ -74,7 +74,13 @@ contract DistributionManager is IDistributionManager, Initializable, Context {
         require(weightSumm == 1e18, "Invalid weights summ");
     }
 
+    /**
+     * @notice Retrieves the respective weights of the provided tags
+     * @param tags array with tags to retrieve their weights
+     * @return weights array with the respective weights 
+     */
     function getTagWeights(bytes32[] calldata tags) external view returns(uint256[] memory weights) {
+        require(tags.length != 0, "No tags provided");
         EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[versionedTagWeights.length - 1];
         uint256 tagsLength = tags.length;
         weights = new uint256[](tagsLength);
