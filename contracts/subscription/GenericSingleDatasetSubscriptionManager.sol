@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "../interfaces/ISubscriptionManager.sol";
@@ -279,5 +279,4 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     function _requireCorrectDataset(uint256 _datasetId) internal view {
         if(datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
     }
-
 }

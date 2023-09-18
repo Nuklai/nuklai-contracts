@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./GenericSingleDatasetSubscriptionManager.sol";
 
-
-contract ERC20LinearSingleDatasetSubscriptionManager is Initializable,  GenericSingleDatasetSubscriptionManager {
+contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
     using SafeERC20 for IERC20;
 
     string internal constant TOKEN_NAME = "DataTunnel Subscription";
