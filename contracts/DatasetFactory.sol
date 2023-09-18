@@ -34,7 +34,7 @@ contract DatasetFactory is Ownable {
     function mintAndConfigureDataset(
         address to, bytes calldata mintSignature,
         address defaultVerifier,
-        IERC20 feeToken, uint256 feePerConsumerPerSecond,
+        IERC20 feeToken, uint256 feePerConsumerPerDay,
         uint256 dsOwnerFeePercentage,
         bytes32[] calldata tags, uint256[] calldata weights
     ) external {
@@ -42,7 +42,7 @@ contract DatasetFactory is Ownable {
 
         _deployProxies(id);
         _configureVerifierManager(id, defaultVerifier);
-        _configureSubscriptionManager(id, feeToken, feePerConsumerPerSecond);
+        _configureSubscriptionManager(id, feeToken, feePerConsumerPerDay);
         _configureDistributionManager(id, dsOwnerFeePercentage, tags, weights);
 
         datasetNFT.safeTransferFrom(address(this), to, id);
@@ -62,9 +62,9 @@ contract DatasetFactory is Ownable {
         vm.setDefaultVerifier(defaultVerifier);
     }
 
-    function _configureSubscriptionManager(uint256 id, IERC20 feeToken, uint256 feePerConsumerPerSecond) internal {
+    function _configureSubscriptionManager(uint256 id, IERC20 feeToken, uint256 feePerConsumerPerDay) internal {
         ERC20LinearSingleDatasetSubscriptionManager sm = ERC20LinearSingleDatasetSubscriptionManager(datasetNFT.subscriptionManager(id));
-        sm.setFee(feeToken, feePerConsumerPerSecond);
+        sm.setFee(feeToken, feePerConsumerPerDay);
     }
 
     function _configureDistributionManager(uint256 id, uint256 dsOwnerFeePercentage, bytes32[] calldata tags, uint256[] calldata weights) internal {
