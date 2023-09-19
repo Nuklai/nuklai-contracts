@@ -94,7 +94,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
     /**
      * @notice Set percentage of each payment that should be sent to the Dataset Owner
-     * @param percentage Percentage encoded in a way that 100% = 1e18
+     * @dev Percentages are encoded such that 100% is represented as 1e18
+     * @param percentage The percentage to set (must be less than or equal to 50%)
      */
     function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
         require(percentage <= 5e17, "Can't be higher than 50%");
