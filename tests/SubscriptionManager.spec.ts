@@ -55,7 +55,7 @@ const setup = async () => {
   const defaultVerifierAddress = await (
     await ethers.getContract("AcceptManuallyVerifier")
   ).getAddress();
-  const feeAmount = parseUnits("0.1", 18);
+  const feeAmount = parseUnits("0.1", 18); // feePerDayPerConsumer
   const dsOwnerPercentage = parseUnits("0.001", 18);
 
   await contracts.DatasetFactory.connect(
@@ -118,20 +118,16 @@ const setupOnSubscribe = async () => {
     users.datasetOwner
   ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-  const feeAmount = parseUnits("0.0000001", 18); // totalSubscriptionFee for 1 day & 1 consumer :: 86400 * 1 * 0.0000001 * 1 = 0.00864
+  const feeAmount = parseUnits("0.00864", 18); // totalSubscriptionFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
 
   await DatasetSubscriptionManager.connect(users.datasetOwner).setFee(
     await users.datasetOwner.Token!.getAddress(),
     feeAmount
   );
 
-  const subscriptionStart =
-    Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
   await DatasetSubscriptionManager.connect(users.subscriber).subscribe(
     datasetId,
-    subscriptionStart,
-    constants.ONE_DAY,
+    BigInt(1), // 1 day
     1
   );
 
@@ -206,7 +202,7 @@ describe("SubscriptionManager", () => {
     expect(await DatasetSubscriptionManager_.token()).to.equal(
       DeployedToken.address
     );
-    expect(await DatasetSubscriptionManager_.feePerConsumerPerSecond()).to.equal(
+    expect(await DatasetSubscriptionManager_.feePerConsumerPerDay()).to.equal(
       feeAmount
     );
   });
@@ -217,7 +213,7 @@ describe("SubscriptionManager", () => {
       from: users_.subscriber.address,
     });
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.0000001", 18); //feePerDayPerConsumer
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       DeployedToken.address,
@@ -229,16 +225,16 @@ describe("SubscriptionManager", () => {
     const [subscriptionFeeToken, subscriptionFeeAmount] =
       await DatasetSubscriptionManager_.subscriptionFee(
         datasetId_,
-        constants.ONE_WEEK,
+        7,
         consumers
       );
 
-    const feePerConsumerPerSecond =
-      await DatasetSubscriptionManager_.feePerConsumerPerSecond();
+    const feePerConsumerPerDay =
+      await DatasetSubscriptionManager_.feePerConsumerPerDay();
 
     expect(subscriptionFeeToken).to.equal(DeployedToken.address);
     expect(subscriptionFeeAmount).to.equal(
-      feePerConsumerPerSecond * BigInt(constants.ONE_WEEK) * BigInt(consumers)
+      feePerConsumerPerDay * BigInt(7) * BigInt(consumers)
     );
   });
 
@@ -288,27 +284,23 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.00864", 18); // totalFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(
       DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
-        subscriptionStart,
-        constants.ONE_DAY,
+        BigInt(1), // 1 day
         1
       )
     ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
   });
 
-  it("Should revert if user tries to subscribe for duration % day != 0 OR duration > 1year", async () => {
+  it("Should revert if user tries to subscribe for duration == 0 days OR duration > 365 days", async () => {
     await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
       [ZeroHash],
       [parseUnits("1", 18)]
@@ -323,62 +315,24 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18); 
+    const feeAmount = parseUnits("0.00864", 18); 
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_DAY + 1,
-      1
-    )).to.be.revertedWith("Invalid subscription duration");
-
-    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
-      datasetId_,
-      subscriptionStart + constants.ONE_DAY,
-      constants.ONE_YEAR + 1,
-      1
-    )).to.be.revertedWith("Invalid subscription duration");
-  });
-
-  it("Should revert if user tries to subscribe for duration == 0", async () => {
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
-
-    await users_.subscriber.Token!.approve(
-      await DatasetSubscriptionManager_.getAddress(),
-      parseUnits("0.00864", 18)
-    );
-
-    await DatasetDistributionManager_.connect(
-      users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
-
-    const feeAmount = parseUnits("0.0000001", 18);
-
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
-      await users_.datasetOwner.Token!.getAddress(),
-      feeAmount
-    );
-
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
-    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
-      datasetId_,
-      subscriptionStart,
       0,
       1
-    )).to.be.revertedWith("Duration is too low");
+    )).to.be.revertedWith("Invalid subscription duration");
+
+    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      datasetId_,
+      BigInt(365) + BigInt(1),
+      1
+    )).to.be.revertedWith("Invalid subscription duration");
   });
 
   it("Should revert if user tries to subscribe for 0 consumers", async () => {
@@ -396,57 +350,18 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.00864", 18);
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_MONTH,
+      30,
       0
     )).to.be.revertedWith("Should be at least 1 consumer");
-  });
-
-  it("Should revert on subscribe when start timestamp has elapsed", async () => {
-    await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
-      [ZeroHash],
-      [parseUnits("1", 18)]
-    );
-
-    await users_.subscriber.Token!.approve(
-      await DatasetSubscriptionManager_.getAddress(),
-      parseUnits("0.00864", 18)
-    );
-
-    await DatasetDistributionManager_.connect(
-      users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
-
-    const feeAmount = parseUnits("0.0000001", 18);
-
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
-      await users_.datasetOwner.Token!.getAddress(),
-      feeAmount
-    );
-
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
-    await time.increase(constants.ONE_DAY);
-
-    await expect(DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
-      datasetId_,
-      subscriptionStart,
-      constants.ONE_MONTH,
-      1
-    )).to.be.revertedWith("Start timestamp already passed");
   });
 
   it("Should revert user pay data set subscription if wrong data set id is used", async function () {
@@ -473,14 +388,10 @@ describe("SubscriptionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(
       DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         wrongDatasetId,
-        subscriptionStart,
-        constants.ONE_DAY,
+        BigInt(1),
         1
       )
     )
@@ -506,21 +417,17 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.00864", 18);
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(
       DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
-        subscriptionStart,
-        constants.ONE_DAY,
+        BigInt(1), // 1 day
         1
       )
     ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
@@ -548,23 +455,19 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18); // totalSubscriptionFee for 1 day & 2 consumers ::  86400 * 1 * 0.0000001 * 2 = 0.01728
+    const feeAmount = parseUnits("0.00864", 18); // totalSubscriptionFee for 1 day & 2 consumers ::  0.00864 * 1 * 2 = 0.01728d
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(
       DatasetSubscriptionManager_.connect(
         users_.subscriber
       ).subscribeAndAddConsumers(
         datasetId_,
-        subscriptionStart,
-        constants.ONE_DAY,
+        1,
         [users_.subscriber.address, users_.datasetOwner.address]
       )
     ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
@@ -585,28 +488,23 @@ describe("SubscriptionManager", () => {
       users_.datasetOwner
     ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
 
-    const feeAmount = parseUnits("0.0000001", 18);
+    const feeAmount = parseUnits("0.00864", 18);
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await users_.datasetOwner.Token!.getAddress(),
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_DAY,
+      BigInt(1), // 1 day
       1
     );
 
     await expect(
       DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
-        subscriptionStart,
-        constants.ONE_DAY,
+        BigInt(1),
         1
       )
     ).to.be.revertedWith("User already subscribed");
@@ -628,14 +526,10 @@ describe("SubscriptionManager", () => {
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await expect(
       DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
-        subscriptionStart,
-        constants.ONE_DAY,
+        BigInt(1), // 1 day
         1
       )
     ).to.be.revertedWith("ERC20: insufficient allowance");
@@ -692,16 +586,16 @@ describe("SubscriptionManager", () => {
     it("Should subscription owner calculate extra fee for adding more consumers", async () => {
       const [, fee] = await DatasetSubscriptionManager_.subscriptionFee(
         datasetId_,
-        constants.ONE_DAY,
-        1
+        1, // 1 day
+        1 // 1 consumer
       );
 
       const extraFee = await DatasetSubscriptionManager_.extraConsumerFee(
         subscriptionId_,
-        1
+        2 // 2 extra consumers
       );
 
-      expect(fee).to.equal(extraFee);
+      expect(extraFee).to.equal(fee * BigInt(2));
     });
 
     it("Should revert add consumers to the subscription if not the subscription owner", async () => {
@@ -880,35 +774,28 @@ describe("SubscriptionManager", () => {
         .withArgs(wrongDatasetId);
     });
 
-    it("Should subscriber extends his subscription if expired", async () => {
+    it("Should subscriber extend his subscription if expired", async () => {
       await time.increase(constants.ONE_DAY * 3);
 
       await users_.subscriber.Token!.approve(
         await DatasetSubscriptionManager_.getAddress(),
-        parseUnits("0.06048", 18) // oneweek and 1 subscriber :: 86400 * 7 * 0.0000001 * 1 = 
+        parseUnits("0.7", 18) // oneweek and 1 subscriber :: 0.1 * 7 * 1 = 0.7
       );
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
-          constants.ONE_WEEK,
+          BigInt(7),
           0
         )
       ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
     });
 
-    it("Should revert if subscriber tries to extend non expired subscription with extraDuration % 1 day != 0", async () => {
-      await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
-        subscriptionId_,
-        constants.ONE_WEEK + 1,
-        0
-      )).to.be.revertedWith("Invalid extra duration provided");
-    });
-
     it("Should revert if subscriber tries to extend non expired subscription with extraDuration > 365 days", async () => {
+      const daysInYear = BigInt(365);
       await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
         subscriptionId_,
-        constants.ONE_YEAR + 1,
+        daysInYear + BigInt(1),
         0
       )).to.be.revertedWith("Invalid extra duration provided");
     });
@@ -916,39 +803,41 @@ describe("SubscriptionManager", () => {
     it("Should revert if subscriber tries to extend non expired subscription when remainig duration < 30 days", async () => {
       // Currently subscriber has subscription with remaining duration == 1 day
 
-      // For 4 months and 1 subscriber :: 86400 * * 30 * 4 * 0.0000001 * 1 = 1.0368
+      // For 4 months and 1 consumer :: 0.1 * 30 * 4 * 1 = 12
       await users_.subscriber.Token!.approve(
         await DatasetSubscriptionManager_.getAddress(),
-        parseUnits("1.0368")
+        parseUnits("12")
         );
 
       // Subscriber extends the subscription for 4 months (should pass since remaining <= 30 days)
       await DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
-          constants.FOUR_MONTHS,
+          BigInt(30) * BigInt(4),
           0
       );
+
+      const daysInYear = BigInt(365);
 
       //remaining duration :: 4months +1day > 30days (extension should revert)
       await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
         subscriptionId_,
-        constants.ONE_YEAR,
+        daysInYear,
         0
       )).to.be.revertedWith("Remaining duration > 30 days");
 
       // Current remaining duration == 4 months + 1 day, increase time so that remaining < 30 days
       await time.increase(constants.ONE_MONTH * 3 + (constants.ONE_DAY  + 400));
 
-      // For 1 Year and 1 subscriber :: 86400 * 365 * 0.0000001 * 1 = 3.1536
+      // For 1 Year and 1 subscriber :: 0.1 * 365 * 1 = 36.5
       await users_.subscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
-      parseUnits("3.1536")
+      parseUnits("36.5")
       );
       
       // Now extension should not revert since remaining duration < 30 days
       await expect(DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
         subscriptionId_,
-        constants.ONE_YEAR,
+        daysInYear,
         0
       )).to.not.be.reverted;
     });
@@ -962,18 +851,18 @@ describe("SubscriptionManager", () => {
     });
 
     it("Should subscriber extends his subscription if not expired", async () => {
-      // Has 1 dat left < 30 days thus he should be able to extend
+      // Has 1 day left < 30 days thus he should be able to extend
 
-      // subscriptionFee for oneWeek and 1 consumer :: 86400 * 7 * 0.0000001 * 1 = 0.06048
+      // subscriptionFee for oneWeek and 1 consumer :: 0.1 * 7 * 1 = 0.7
       await users_.subscriber.Token!.approve(
         await DatasetSubscriptionManager_.getAddress(),
-        parseUnits("0.06048")
+        parseUnits("0.7")
         );
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
-          constants.ONE_WEEK,
+          BigInt(7), // 7 days
           0
         )
       ).to.emit(DatasetSubscriptionManager_, "SubscriptionPaid");
@@ -985,7 +874,7 @@ describe("SubscriptionManager", () => {
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           wrongSubscriptionId,
-          constants.ONE_WEEK,
+          BigInt(7),
           0
         )
       ).to.be.revertedWith("ERC721: invalid token ID");

@@ -59,7 +59,7 @@ const setup = async () => {
   const defaultVerifierAddress = await (
     await ethers.getContract("AcceptManuallyVerifier")
   ).getAddress();
-  const feeAmount = parseUnits("0.1", 18);
+  const feeAmount = parseUnits("0.1", 18); // FeePerConsumerPerDay
   const dsOwnerPercentage = parseUnits("0.001", 18);
 
   await contracts.DatasetFactory.connect(
@@ -306,21 +306,18 @@ describe("DistributionManager", () => {
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
-
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer :: 86400 * 7 * 10^-8 * 1 = 0.006048
+    
+    // feePerDayPerConsumer
+    const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer :: 0.000864 * 7 * 1  = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7, // 7 days
       1
     );
 
@@ -418,20 +415,17 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 10^-8 * 1 = 0.006048
+    // feePerDayPerConsumer
+    const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7, // 7 days 
       1
     );
 
@@ -567,21 +561,18 @@ describe("DistributionManager", () => {
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
-
-    const feeAmount = parseUnits("0.1", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.1 * 1 = 60480
+    
+    // feePerDayPerConsumer
+    const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -672,21 +663,18 @@ describe("DistributionManager", () => {
     await DatasetDistributionManager_.connect(
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
-
-    const feeAmount = parseUnits("0.1", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.1 * 1 = 60480
+    
+    // feePerDayPerConsumer
+    const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -781,25 +769,18 @@ describe("DistributionManager", () => {
       await DatasetSubscriptionManager_.getAddress(),
       parseUnits("6048", 18)
     );
-
-    /*await DatasetDistributionManager_.connect(
-      users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);*/
-
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    
+    // feePerDayPerConsumer
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -819,12 +800,6 @@ describe("DistributionManager", () => {
         BigInt(validTill)
       )
     );
-    /*
-    let validSince =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) +
-      1 +
-      constants.ONE_WEEK * 2;
-    let validTill = validSince + constants.ONE_DAY; */
     
     let claimableAmountForOwningDt = await DatasetDistributionManager_.pendingOwnerFee(
       tokenAddress
@@ -955,20 +930,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1061,20 +1032,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    let subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1113,7 +1080,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await newFeeToken.getAddress(),
-      parseUnits("0.001", 18)
+      parseUnits("86.4", 18)
     );
 
     await newFeeToken
@@ -1123,12 +1090,9 @@ describe("DistributionManager", () => {
         parseUnits("604.8", 18)
       );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+    ).subscribe(datasetId_, 7, 1);
 
     await time.increase(constants.ONE_WEEK * 2);
 
@@ -1203,20 +1167,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    let subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1255,7 +1215,7 @@ describe("DistributionManager", () => {
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       await newFeeToken.getAddress(),
-      parseUnits("0.001", 18)
+      parseUnits("86.4", 18)
     );
 
     await newFeeToken
@@ -1265,16 +1225,13 @@ describe("DistributionManager", () => {
         parseUnits("604.8", 18)
       );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK, 1);
+    ).subscribe(datasetId_, 7, 1);
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
-      parseUnits("0.0001", 18)
+      parseUnits("8.64", 18)
     );
 
     await users_.user.Token!.approve(
@@ -1282,13 +1239,9 @@ describe("DistributionManager", () => {
       parseUnits("60.48", 18)
     );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.user).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1371,20 +1324,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    let subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1427,18 +1376,15 @@ describe("DistributionManager", () => {
       )
     ).to.not.emit(DatasetDistributionManager_, "PayoutSent");
 
-    // For 4 weeks & 1 consumer totalSubscriptionFee :: 86400 * 7 * 4 * 0.01 * 1 = 24192
+    // For 4 weeks (28 days) & 1 consumer totalSubscriptionFee :: 864 * 28 * 1 = 24192
     await users_.secondSubscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
       parseUnits("24192", 18)
     );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, 28, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -1537,20 +1483,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.01 * 1 = 6048
+    const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    let subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1597,18 +1539,15 @@ describe("DistributionManager", () => {
         parseUnits("6.048", 18) // 0.1% as ownerPercentageFee :: 6048 * 0.001 = 6.048
       );
 
-    // For 4 weeks & 1 consumer totalSubscriptionFee :: 86400 * 7 * 4 * 0.01 * 1 = 24192
+    // For 4 weeks (28 days) & 1 consumer totalSubscriptionFee :: 864 * 28 * 1 = 24192
     await users_.secondSubscriber.Token!.approve(
       await DatasetSubscriptionManager_.getAddress(),
       parseUnits("24192", 18)
     );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, 28, 1);
 
     claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
       tokenAddress
@@ -1717,20 +1656,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.001 * 1 = 604.8
+    const feeAmount = parseUnits("86.4", 18); // totalFee for one week & 1 consumer:: 86.4 * 7 * 1 = 604.8
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    let subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -1821,12 +1756,9 @@ describe("DistributionManager", () => {
       parseUnits("2419.2")
     );
 
-    subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(
       users_.secondSubscriber
-    ).subscribe(datasetId_, subscriptionStart, constants.ONE_WEEK * 4, 1);
+    ).subscribe(datasetId_, 28, 1);
 
     validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
@@ -1961,20 +1893,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.001", 18);
+    const feeAmount = parseUnits("86.4", 18); 
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -2068,20 +1996,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048
+    const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -2171,20 +2095,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.1", 18); // totalSubscriptionFee for 1 week with 1 consumer :: 86400 * 7 * 0.1 * 1 = 60480
+    const feeAmount = parseUnits("8640", 18); // totalSubscriptionFee for 1 week with 1 consumer :: 8640 * 7 * 1 = 60480
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -2262,20 +2182,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.00000001", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.00000001 * 1 = 0.006048
+    const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -2400,20 +2316,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.1", 18); // totalFee for one week & 1 consumer:: 86400 * 7 * 0.1 * 1 = 60480
+    const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
@@ -2518,20 +2430,16 @@ describe("DistributionManager", () => {
       users_.datasetOwner
     ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
 
-    const feeAmount = parseUnits("0.01", 18); // totalSubscriptionFee for 1 week & 1 consumer :: 86400 * 7 * 0.01 = 6048
+    const feeAmount = parseUnits("864", 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
 
     await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
       tokenAddress,
       feeAmount
     );
 
-    const subscriptionStart =
-      Number((await ethers.provider.getBlock("latest"))?.timestamp) + 1;
-
     await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
       datasetId_,
-      subscriptionStart,
-      constants.ONE_WEEK,
+      7,
       1
     );
 
