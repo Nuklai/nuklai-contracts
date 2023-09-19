@@ -108,25 +108,23 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     /**
      * @notice Subscribe for a dataset and make payment
      * @param ds Id of the dataset
-     * @param start Subscription start timestamp
      * @param durationInDays Duration of the subscription in days
      * @param consumers Count of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribe(uint256 ds, uint256 start, uint256 durationInDays, uint256 consumers) external payable returns(uint256 sid) {
-        return _subscribe(ds, start, durationInDays, consumers);
+    function subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) external payable returns(uint256 sid) {
+        return _subscribe(ds, durationInDays, consumers);
     }
 
     /**
      * @notice Subscribe for a dataset, make payment and add consumer addresses
      * @param ds Id of the dataset
-     * @param start Subscription start timestamp
      * @param durationInDays Duration of subscription in days
      * @param consumers List of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribeAndAddConsumers(uint256 ds, uint256 start, uint256 durationInDays, address[] calldata consumers) external payable returns(uint256 sid) {
-        sid = _subscribe(ds, start, durationInDays, consumers.length);
+    function subscribeAndAddConsumers(uint256 ds, uint256 durationInDays, address[] calldata consumers) external payable returns(uint256 sid) {
+        sid = _subscribe(ds, durationInDays, consumers.length);
         _addConsumers(sid, consumers);
     }
 
@@ -168,15 +166,13 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     /**
      * @notice Internal subscribe function
      * @param ds Id of the dataset to subscribe to
-     * @param start Subscription start timestamp
      * @param durationInDays Duration of subscription in days
      * @param consumers Count of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function _subscribe(uint256 ds, uint256 start, uint256 durationInDays, uint256 consumers) internal returns(uint256 sid) {
+    function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns(uint256 sid) {
         _requireCorrectDataset(ds);
         require(balanceOf(_msgSender()) == 0, "User already subscribed");
-        require(start >= block.timestamp, "Start timestamp already passed");
         require(durationInDays > 0 && durationInDays <= 365, "Invalid subscription duration");
 
         require(consumers > 0, "Should be at least 1 consumer");
@@ -186,8 +182,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
         sid = ++mintCounter;
         SubscriptionDetails storage sd = subscriptions[sid];
-        sd.validSince = start;
-        sd.validTill = start + (durationInDays * 1 days);
+        sd.validSince = block.timestamp;
+        sd.validTill = block.timestamp + (durationInDays * 1 days);
         sd.paidConsumers = consumers;
         _safeMint(_msgSender(), sid);
         emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);        

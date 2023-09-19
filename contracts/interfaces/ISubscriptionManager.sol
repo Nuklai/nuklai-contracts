@@ -31,22 +31,20 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
     /**
      * @notice Subscribe for a dataset and make payment
      * @param dataset Id of the dataset
-     * @param start Subscription start timestamp
      * @param duration Duration of subscription
      * @param consumers Count of consumers subscriber can add
      * @return sid of subscription
      */
-    function subscribe(uint256 dataset, uint256 start, uint256 duration, uint256 consumers) external payable returns(uint256 sid);
+    function subscribe(uint256 dataset, uint256 duration, uint256 consumers) external payable returns(uint256 sid);
 
     /**
      * @notice Subscribe for a dataset, make payment and add consumer addresses
      * @param dataset Id of the dataset
-     * @param start Subscription start timestamp
      * @param duration Duration of subscription
      * @param consumers List of consumers who have access to the data with this subscription
      * @return sid of subscription
      */
-    function subscribeAndAddConsumers(uint256 dataset, uint256 start, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid);
+    function subscribeAndAddConsumers(uint256 dataset, uint256 duration, address[] calldata consumers) external payable returns(uint256 sid);
     /**
      * @notice Extend subscription with additional time or consumers
      * @param subscription Id of subscription
