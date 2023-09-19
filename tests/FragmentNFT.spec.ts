@@ -452,23 +452,25 @@ describe("FragmentNFT", () => {
     const tag2 = encodeTag("dataset.rows");
     const tag3 = encodeTag("dataset.columns");
     const tag4 = encodeTag("dataset.metadata");
+    const tags = [tag1, tag2, tag3, tag4];
 
     const datasetAddress = await DatasetNFT_.getAddress();
     const fragmentAddress = await DatasetFragment_.getAddress();
-    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId());
+    const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
 
-    expect(fragmentCnt).to.equal(3); // Already 3 proposals have been made (during setup, but not resolved yet)
+    expect(lastFragmentPendingId).to.equal(3); // Already 3 proposals have been made (during setup, but not resolved yet)
 
     const fragmentOwner = users_.contributor.address;
 
-    const expectedFragmentIds = [fragmentCnt +1n, fragmentCnt + 2n, fragmentCnt + 3n, fragmentCnt + 4n];
+    const expectedFragmentIds = [lastFragmentPendingId +1n, lastFragmentPendingId + 2n, lastFragmentPendingId + 3n, lastFragmentPendingId + 4n];
     
     const proposeFragmentsSig = await users_.dtAdmin.signMessage(
       signature.getDatasetFragmentProposeBatchMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId_,
-        fragmentCnt + 1n,
+        lastFragmentPendingId + 1n,
+        lastFragmentPendingId + BigInt(tags.length),
         [fragmentOwner, fragmentOwner, fragmentOwner, fragmentOwner],
         [tag1, tag2, tag3, tag4]
       )
@@ -546,17 +548,21 @@ describe("FragmentNFT", () => {
   it("Should proposeMany() revert if msgSender is not the DatasetNFT", async () => {
     const mockTag1 = encodeTag("mock1");
     const mockTag2 = encodeTag("mock2");
+    const tags = [mockTag1, mockTag2]
+
     const datasetAddress = await DatasetNFT_.getAddress();
-    const fragmentCnt = (await DatasetFragment_.lastFragmentPendingId());
+    const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
 
     const mockSignature = await users_.dtAdmin.signMessage(
       signature.getDatasetFragmentProposeBatchMessage(
         network.config.chainId!,
         datasetAddress,
         datasetId_,
-        fragmentCnt,
+        lastFragmentPendingId + 1n,
+        lastFragmentPendingId + BigInt(tags.length),
         [users_.contributor.address, users_.contributor.address],
-        [mockTag1, mockTag2]
+        tags
       )
     );
 

@@ -167,7 +167,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         bytes calldata signature
     ) external onlyDatasetNFT {
         require(tags_.length == owners.length, "invalid length of fragments items");
-        bytes32 msgHash = _proposeManyMessageHash(mintCounter + 1, owners, tags_);
+        bytes32 msgHash = _proposeManyMessageHash(mintCounter + 1, mintCounter + tags_.length, owners, tags_);
         address signer = ECDSA.recover(msgHash, signature);
         if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
@@ -322,7 +322,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     function _proposeManyMessageHash(
-        uint256 id,
+        uint256 fromId,
+        uint256 toId,
         address[] memory owners,
         bytes32[] memory tags_
     ) private view returns (bytes32) {
@@ -332,7 +333,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
                     block.chainid,
                     address(dataset),
                     datasetId,
-                    id,
+                    fromId,
+                    toId,
                     owners,
                     tags_
                 )
