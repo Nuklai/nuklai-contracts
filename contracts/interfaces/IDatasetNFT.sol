@@ -12,22 +12,35 @@ import "./IVerifierManager.sol";
  */
 interface IDatasetNFT is IERC721 {
 
+    // Defines the model for the deployer (ALlianceblock/Nexera) fee
+    enum DeployerFeeModel {
+        NO_FEE,                     // No Fee wii
+        DATASET_OWNER_STORAGE,      // Using Owner's Storage, 10% fee
+        DEPLOYER_STORAGE            // Deployer's Storage 35% fee
+    }
+
+
     struct ManagersConfig {
         address subscriptionManager;
         address distributionManager;
         address verifierManager;
     }
 
-    function mint(uint256 id, address to, bytes calldata signature) external;
+    function mint(address to, bytes calldata signature) external returns(uint256);
+    function setUuidForDatasetId(string memory uuid) external returns(uint256);
     function setManagers(uint256 id, ManagersConfig calldata config) external;
     function deployFragmentInstance(uint256 id) external returns(address);
 
-    function proposeFragment(uint256 datasetId, uint256 fragmentId, address to, bytes32 tag, bytes calldata signature) external;
+    function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external;
+    function proposeManyFragments(uint256 datasetId, address[] memory owners, bytes32[] memory tags, bytes calldata signature) external;
 
     function subscriptionManager(uint256 id) external view returns(address);
     function verifierManager(uint256 id) external view returns(address);
     function distributionManager(uint256 id) external view returns(address);
     function fragmentNFT(uint256 id) external view returns(address);
+    function deployerFeePercentage(uint256 id) external view returns(uint256);
+    function deployerFeeBeneficiary() external view returns(address);
 
     function isSigner(address account) external view returns(bool);
+
 }

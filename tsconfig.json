@@ -6,6 +6,11 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
-  }
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@typechained": ["typechain-types/index"]
+    }
+  },
+  "include": ["./hardhat.config.ts", "./deploy", "./tests", "/utils"]
 }
