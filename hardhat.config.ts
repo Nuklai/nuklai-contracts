@@ -7,6 +7,7 @@ import "@typechain/hardhat";
 import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-deploy-ethers";
+import "hardhat-contract-sizer";
 import { network } from "./utils";
 import "./tasks";
 
