@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "./GenericSingleDatasetSubscriptionManager.sol";
 
 contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
@@ -10,6 +11,8 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
 
     string internal constant TOKEN_NAME = "DataTunnel Subscription";
     string internal constant TOKEN_SYMBOL = "DTSUB";
+
+    error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
 
     IERC20 public token;
     uint256 public feePerConsumerPerDay;
@@ -33,8 +36,25 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
      * @param token_ the ERC20 token used for subscription payments
      * @param feePerConsumerPerDay_ the fee to set
      */
-    function setFee(IERC20 token_, uint256 feePerConsumerPerDay_) external onlyDatasetOwner {
-        token = token_;
+    function setFee(address token_, uint256 feePerConsumerPerDay_) external override onlyDatasetOwner {
+        token = IERC20(token_);
+        feePerConsumerPerDay = feePerConsumerPerDay_;
+    }
+
+    /**
+     * @notice Sets the daily subscription fee for a single consumer
+     * @dev Signed version of `setFee()`
+     * @param token_ the ERC20 token used for subscription payments
+     * @param feePerConsumerPerDay_ the fee to set
+     * @param signature the required signature from dataset owner
+     */
+    function setFee_Signed(address token_, uint256 feePerConsumerPerDay_, bytes calldata signature) external override {
+        bytes32 msgHash = _setFeeMessageHash(token_, feePerConsumerPerDay_);
+        address signer = ECDSA.recover(msgHash, signature);
+
+        if (signer != dataset.ownerOf(datasetId)) revert BAD_SIGNATURE(msgHash, signer);
+
+        token = IERC20(token_);
         feePerConsumerPerDay = feePerConsumerPerDay_;
     }
 
@@ -60,5 +80,15 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
         address distributionManager = dataset.distributionManager(datasetId);
         token.approve(distributionManager, amount);
         IDistributionManager(distributionManager).receivePayment(address(token), amount);
+    }
+
+    function _setFeeMessageHash(address token_, uint256 fee_) private view returns (bytes32) {
+        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
+            block.chainid,
+            address(dataset),
+            address(this),
+            address(token_),
+            fee_
+        ));
     }
 }
