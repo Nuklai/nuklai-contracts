@@ -19,4 +19,6 @@ interface IDistributionManager is IDatasetLinkInitializable {
     function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external;
 
     function getTagWeights(bytes32[] calldata tags) external view returns(uint256[] memory weights);
+
+    function setTagWeights_Signed(bytes32[] calldata tags, uint256[] calldata weights, bytes calldata signature) external;
 }
