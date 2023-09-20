@@ -107,3 +107,46 @@ export const getFragmentOwnerClaimMessage = (
 
   return getBytes(datasetOwnerClaimMessage);
 };
+
+
+export const getSetTagWeightsMessage = (
+  chainId: number,
+  datasetAddress: AddressLike,
+  distributionAddress: AddressLike,
+  tags: string[],
+  weights: bigint[]
+): Uint8Array => {
+  const datasetOwnerSetTagWeightsMessage = solidityPacked(
+    ["uint256", "address", "address", "bytes32[]", "uint256[]"],
+    [
+      chainId,
+      datasetAddress,
+      distributionAddress,
+      tags,
+      weights
+    ]
+  );
+
+  return getBytes(datasetOwnerSetTagWeightsMessage);
+}
+
+export const getSetFeeMessage = (
+  chainId: number,
+  datasetAddress: AddressLike,
+  subscriptionAddress: AddressLike,
+  token: AddressLike,
+  fee: bigint
+): Uint8Array => {
+  const datasetOwnerSetFeeMessage = solidityPacked(
+    ["uint256", "address", "address", "address", "uint256"],
+    [
+      chainId,
+      datasetAddress,
+      subscriptionAddress,
+      token,
+      fee
+    ]
+  );
+
+  return getBytes(datasetOwnerSetFeeMessage);
+}
