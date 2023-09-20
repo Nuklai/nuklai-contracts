@@ -15,8 +15,8 @@ import "./interfaces/IDatasetNFT.sol";
 import "./interfaces/IFragmentNFT.sol";
 
 contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
-    string private constant NAME = "AllianceBlock DataTunnel Dataset";
-    string private constant SYMBOL = "ABDTDS";
+    string private constant NAME = "Data Tunnel Dataset";
+    string private constant SYMBOL = "DTDS";
 
     bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
@@ -90,6 +90,23 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
             configurations[id] = config;
             emit ManagersConfigChange(id);
         }
+    }
+
+    function setFeeAndTagWeights(
+        uint256 id,
+        address token,
+        uint256 feePerConsumerPerDay,
+        bytes32[] calldata tags,
+        uint256[] calldata weights,
+        bytes calldata setFeeSignature,
+        bytes calldata setTagWeightsSignature
+        ) external onlyTokenOwner(id)
+     {
+        ISubscriptionManager sm = ISubscriptionManager(proxies[id].subscriptionManager);
+        sm.setFee_Signed(token, feePerConsumerPerDay, setFeeSignature);
+
+        IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
+        dm.setTagWeights_Signed(tags, weights, setTagWeightsSignature);
     }
 
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -185,5 +202,4 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
             id
         ));
     }
-
 }
