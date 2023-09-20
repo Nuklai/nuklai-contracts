@@ -36,10 +36,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     mapping(address token => uint256 amount) public pendingOwnerFee; // Amount available for claim by the owner
     Payment[] public payments;
     EnumerableMap.Bytes32ToUintMap[] internal versionedTagWeights;
-    mapping(address => uint256) internal firstUnclaimed;
+    mapping(address => uint256) internal firstUnclaimedContribution; // from fragments revenue
+    uint256 internal firstUnclaimed; // from owner's revenue
 
     modifier onlyDatasetOwner() {
         require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
+        _;
+    }
+
+    modifier onlyDatasetNFT() {
+        require(address(dataset) == _msgSender(), "Only DatasetNFT");
         _;
     }
 
@@ -62,32 +68,11 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     /**
      * @notice Defines how to distribute payment to different tags
      * The summ of weights should be 100%, and 100% is encoded as 1e18
+     * @dev Only callable by DatasetNFT
      * @param tags tags participating in the payment distributions
      * @param weights weights of the tags
      */
-    function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
-        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
-        uint256 weightSumm;
-        for(uint256 i; i < weights.length; i++) {
-            weightSumm += weights[i];
-            tagWeights.set(tags[i], weights[i]);
-        }
-        require(weightSumm == 1e18, "Invalid weights summ");
-    }
-
-    /**
-     * @notice Defines how to distribute payment to different tags
-     * The summ of weights should be 100%, and 100% is encoded as 1e18
-     * @dev Signed version of `setTagWeights()`
-     * @param tags tags participating in the payment distributions
-     * @param weights weights of the tags
-     */
-    function setTagWeights_Signed(bytes32[] calldata tags, uint256[] calldata weights, bytes calldata signature) external {
-        bytes32 msgHash = _setTagWeightsMessageHash(tags, weights);
-        address signer = ECDSA.recover(msgHash, signature);
-
-        if (signer != dataset.ownerOf(datasetId)) revert BAD_SIGNATURE(msgHash, signer);
-
+    function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetNFT {
         EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
         uint256 weightSumm;
         for(uint256 i; i < weights.length; i++) {
@@ -170,49 +155,38 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     }
 
     function claimDatasetOwnerPayouts(
-        address token, 
-        uint256 amount, 
-        address beneficiary, 
         uint256 sigValidSince, 
         uint256 sigValidTill,
         bytes calldata signature
     ) external onlyDatasetOwner nonReentrant {
-        // Validate signature
+        // Validate state & signature
         require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
-        require(pendingOwnerFee[token] >= amount, "not enough amount");
-        bytes32 msgHash = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
+        require(firstUnclaimed < payments.length, "No unclaimed payments available");
+        bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
-        pendingOwnerFee[token] -= amount;
-         _sendPayout(token, amount, beneficiary);
+      
+         _claimOwnerPayouts(_msgSender());
+        
     }
 
-    function claimDatasetOwnerAndFragmentPayouts(
-        address token, 
-        uint256 amount, 
-        address beneficiary, 
+    function claimDatasetOwnerAndFragmentPayouts( 
         uint256 sigValidSince, 
         uint256 sigValidTill,
-        bytes calldata ownerPayoutSignature,
-        bytes calldata fragmentPayoutSignature
+        bytes calldata payoutSignature
     ) external onlyDatasetOwner nonReentrant {
-        // Validate Dataset Owner Payout signature
+        // Validate signature
         require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
-        require(pendingOwnerFee[token] >= amount, "not enough amount");
+        require(firstUnclaimed < payments.length, "No unclaimed payments available");
 
-        bytes32 msgHash1 = _ownerClaimMessageHash(token, amount, beneficiary, sigValidSince, sigValidTill);
-        address signer1 = ECDSA.recover(msgHash1, ownerPayoutSignature);
-        if(!dataset.isSigner(signer1)) revert BAD_SIGNATURE(msgHash1, signer1);
+        bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
+        address signer = ECDSA.recover(msgHash, payoutSignature);
+        if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-        bytes32 msgHash2 = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
-        address signer2 = ECDSA.recover(msgHash2, fragmentPayoutSignature);
-        if(signer1 != signer2 || !dataset.isSigner(signer2)) revert BAD_SIGNATURE(msgHash2, signer2);
+        // Claim Pending Owner Fees
+        _claimOwnerPayouts(_msgSender());
 
-        // Send Dataset Owner Fee
-        pendingOwnerFee[token] -= amount;
-         _sendPayout(token, amount, beneficiary);
-
-        // Claim Fragment Fee
+        // Claim Fragment Fees
         _claimPayouts(_msgSender());
     }
 
@@ -222,13 +196,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external nonReentrant {
         // Validate signature
         require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
-        bytes32 msgHash = _fragmentClaimMessageHash(_msgSender(), sigValidSince, sigValidTill);
+        bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
         address signer = ECDSA.recover(msgHash, signature);
         if(!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
         // Claim payouts
-        uint256 firstUnclaimedPayout = firstUnclaimed[_msgSender()];
+        uint256 firstUnclaimedPayout = firstUnclaimedContribution[_msgSender()];
         if(firstUnclaimedPayout >= payments.length) return; // Nothing to claim
+
+        firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern
+
         address collectToken = payments[firstUnclaimedPayout].token;
         uint256 collectAmount;
         for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
@@ -242,15 +219,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
             collectAmount += _calculatePayout(p, _msgSender());
         }
 
-        firstUnclaimed[_msgSender()] = payments.length;
-
         // send collected and not sent yet
         _sendPayout(collectToken, collectAmount, _msgSender());
     }
 
     
     function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
-        uint256 firstUnclaimedPayout = firstUnclaimed[account]; 
+        uint256 firstUnclaimedPayout = firstUnclaimedContribution[account]; 
         
         if(firstUnclaimedPayout >= payments.length) return 0;
 
@@ -262,11 +237,36 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
         }
     }
 
+    /**
+     * @notice Internal _claimOwnerPayouts for claiming all pendingOwnerFees
+     * @param owner the adress of the owner
+     */
+    function _claimOwnerPayouts(address owner) internal {
+        if(firstUnclaimed >= payments.length) return; // Nothing to claim
+        uint256 firstUnclaimedPayout = firstUnclaimed;
+        firstUnclaimed = payments.length; // Updating firstUnclaimed before sending any tokens to prevent reentrancy
+
+        address collectToken;
+        for(uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+            collectToken = payments[i].token;
+
+            if (pendingOwnerFee[collectToken] == 0)
+                continue;
+
+            _sendPayout(collectToken, pendingOwnerFee[collectToken], owner);
+            delete pendingOwnerFee[collectToken];
+        }
+    }
+
+    /**
+     * @notice Internal _claimPayouts for claiming all pending revenue from fragments
+     * @param beneficiary the address to receive the payout
+     */
     function _claimPayouts(address beneficiary) internal {
         // Claim payouts
-        uint256 firstUnclaimedPayout = firstUnclaimed[beneficiary];
+        uint256 firstUnclaimedPayout = firstUnclaimedContribution[beneficiary];
         if(firstUnclaimedPayout >= payments.length) return;  // Nothing to claim
-        firstUnclaimed[beneficiary] = payments.length;       // Updating firstUnclaimed before sending any tokens to prevent reentrancy
+        firstUnclaimedContribution[beneficiary] = payments.length;   // CEI pattern
 
         address collectToken = payments[firstUnclaimedPayout].token;
         uint256 collectAmount;
@@ -313,26 +313,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
         }
     }
 
-
-    function _ownerClaimMessageHash(
-        address token, 
-        uint256 amount,
-        address beneficiary, 
-        uint256 sigValidSince, 
-        uint256 sigValidTill
-    ) private view returns (bytes32) {
-        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
-            block.chainid,
-            address(this),
-            token,
-            amount,
-            beneficiary,
-            sigValidSince,
-            sigValidTill
-        ));
-    }
-
-    function _fragmentClaimMessageHash(address beneficiary, uint256 sigValidSince, uint256 sigValidTill) private view returns (bytes32) {
+    function _claimRevenueMessageHash(address beneficiary, uint256 sigValidSince, uint256 sigValidTill) private view returns (bytes32) {
         return ECDSA.toEthSignedMessageHash(abi.encodePacked(
             block.chainid,
             address(this),
@@ -342,13 +323,4 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
         ));
     }
 
-    function _setTagWeightsMessageHash(bytes32[] calldata tags, uint256[] calldata weights) private view returns (bytes32) {
-        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
-            block.chainid,
-            address(dataset),
-            address(this),
-            tags,
-            weights
-        ));
-    }
 }
