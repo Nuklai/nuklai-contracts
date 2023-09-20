@@ -92,21 +92,29 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         }
     }
 
+    function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external onlyTokenOwner(id) {
+        ISubscriptionManager sm = ISubscriptionManager(proxies[id].subscriptionManager);
+        sm.setFee(token, feePerConsumerPerDay);
+    }
+
+    function setTagWeights(uint256 id, bytes32[] calldata tags, uint256[] calldata weights) external onlyTokenOwner(id) {
+        IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
+        dm.setTagWeights(tags, weights);
+    }
+
     function setFeeAndTagWeights(
         uint256 id,
         address token,
         uint256 feePerConsumerPerDay,
         bytes32[] calldata tags,
-        uint256[] calldata weights,
-        bytes calldata setFeeSignature,
-        bytes calldata setTagWeightsSignature
+        uint256[] calldata weights
         ) external onlyTokenOwner(id)
      {
         ISubscriptionManager sm = ISubscriptionManager(proxies[id].subscriptionManager);
-        sm.setFee_Signed(token, feePerConsumerPerDay, setFeeSignature);
+        sm.setFee(token, feePerConsumerPerDay);
 
         IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
-        dm.setTagWeights_Signed(tags, weights, setTagWeightsSignature);
+        dm.setTagWeights(tags, weights);
     }
 
     function setDeployerFeeModelPercentages(DeployerFeeModel[] calldata models, uint256[] calldata percentages) external onlyRole(DEFAULT_ADMIN_ROLE) {
