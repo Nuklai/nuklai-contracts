@@ -17,8 +17,8 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
     IERC20 public token;
     uint256 public feePerConsumerPerDay;
 
-    modifier onlyDatasetOwner() {
-        require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
+    modifier onlyDatasetNFT() {
+        require(address(dataset) == _msgSender(), "Only DatasetNFT");
         _;
     }
 
@@ -32,28 +32,11 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
 
     /**
      * @notice Sets the daily subscription fee for a single consumer
-     * @dev Only callable by the dataset owner 
+     * @dev Only callable by the DatasetNFT 
      * @param token_ the ERC20 token used for subscription payments
      * @param feePerConsumerPerDay_ the fee to set
      */
-    function setFee(address token_, uint256 feePerConsumerPerDay_) external override onlyDatasetOwner {
-        token = IERC20(token_);
-        feePerConsumerPerDay = feePerConsumerPerDay_;
-    }
-
-    /**
-     * @notice Sets the daily subscription fee for a single consumer
-     * @dev Signed version of `setFee()`
-     * @param token_ the ERC20 token used for subscription payments
-     * @param feePerConsumerPerDay_ the fee to set
-     * @param signature the required signature from dataset owner
-     */
-    function setFee_Signed(address token_, uint256 feePerConsumerPerDay_, bytes calldata signature) external override {
-        bytes32 msgHash = _setFeeMessageHash(token_, feePerConsumerPerDay_);
-        address signer = ECDSA.recover(msgHash, signature);
-
-        if (signer != dataset.ownerOf(datasetId)) revert BAD_SIGNATURE(msgHash, signer);
-
+    function setFee(address token_, uint256 feePerConsumerPerDay_) external onlyDatasetNFT {
         token = IERC20(token_);
         feePerConsumerPerDay = feePerConsumerPerDay_;
     }
@@ -80,15 +63,5 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
         address distributionManager = dataset.distributionManager(datasetId);
         token.approve(distributionManager, amount);
         IDistributionManager(distributionManager).receivePayment(address(token), amount);
-    }
-
-    function _setFeeMessageHash(address token_, uint256 fee_) private view returns (bytes32) {
-        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
-            block.chainid,
-            address(dataset),
-            address(this),
-            address(token_),
-            fee_
-        ));
     }
 }
