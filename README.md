@@ -82,6 +82,14 @@ To generate a coverage report, execute the following command:
 yarn coverage
 ```
 
+### 5. Contracts Size
+
+To generate a contracts size report, execute the following command:
+
+```bash
+yarn contract-size
+```
+
 
 ## Contributing
 
