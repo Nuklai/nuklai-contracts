@@ -7,6 +7,7 @@
     "build": "hardhat compile",
     "deploy": "hardhat deploy",
     "typechain": "yarn hardhat typechain",
+    "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
     "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
     "clean": "npx hardhat clean"
@@ -29,6 +30,7 @@
     "ethers": "^6.6.4",
     "hardhat": "^2.17.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-contract-sizer": "^2.10.0",
     "mocha": "^10.2.0",
     "solidity-coverage": "^0.8.1",
     "cross-env": "^7.0.2",
