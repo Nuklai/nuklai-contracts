@@ -54,21 +54,17 @@ export const getDatasetFragmentProposeBatchMessage = (
   return getBytes(proposeMessage);
 };
 
-export const getDatasetOwnerClaimMessage = (
+export const getRevenueClaimMessage = (
   chainId: number,
   distributionAddress: AddressLike,
-  token: AddressLike,
-  amount: bigint,
   beneficiary: AddressLike,
   signatureValidSince: bigint,
   signatureValidTill: bigint
 ): Uint8Array => {
-  const datasetOwnerClaimMessage = solidityPacked(
+  const revenueClaimMessage = solidityPacked(
     [
       "uint256",
       "address",
-      "address",
-      "uint256",
       "address",
       "uint256",
       "uint256",
@@ -76,77 +72,11 @@ export const getDatasetOwnerClaimMessage = (
     [
       chainId,
       distributionAddress,
-      token,
-      amount,
       beneficiary,
       signatureValidSince,
       signatureValidTill,
     ]
   );
 
-  return getBytes(datasetOwnerClaimMessage);
+  return getBytes(revenueClaimMessage);
 };
-
-export const getFragmentOwnerClaimMessage = (
-  chainId: number,
-  distributionAddress: AddressLike,
-  beneficiary: AddressLike,
-  signatureValidSince: bigint,
-  signatureValidTill: bigint
-): Uint8Array => {
-  const datasetOwnerClaimMessage = solidityPacked(
-    ["uint256", "address", "address", "uint256", "uint256"],
-    [
-      chainId,
-      distributionAddress,
-      beneficiary,
-      signatureValidSince,
-      signatureValidTill,
-    ]
-  );
-
-  return getBytes(datasetOwnerClaimMessage);
-};
-
-
-export const getSetTagWeightsMessage = (
-  chainId: number,
-  datasetAddress: AddressLike,
-  distributionAddress: AddressLike,
-  tags: string[],
-  weights: bigint[]
-): Uint8Array => {
-  const datasetOwnerSetTagWeightsMessage = solidityPacked(
-    ["uint256", "address", "address", "bytes32[]", "uint256[]"],
-    [
-      chainId,
-      datasetAddress,
-      distributionAddress,
-      tags,
-      weights
-    ]
-  );
-
-  return getBytes(datasetOwnerSetTagWeightsMessage);
-}
-
-export const getSetFeeMessage = (
-  chainId: number,
-  datasetAddress: AddressLike,
-  subscriptionAddress: AddressLike,
-  token: AddressLike,
-  fee: bigint
-): Uint8Array => {
-  const datasetOwnerSetFeeMessage = solidityPacked(
-    ["uint256", "address", "address", "address", "uint256"],
-    [
-      chainId,
-      datasetAddress,
-      subscriptionAddress,
-      token,
-      fee
-    ]
-  );
-
-  return getBytes(datasetOwnerSetFeeMessage);
-}
