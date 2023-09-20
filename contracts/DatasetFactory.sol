@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IDatasetNFT.sol";
 import "./verifier/VerifierManager.sol";
 import "./distribution/DistributionManager.sol";
-import "./subscription/ERC20LinearSingleDatasetSubscriptionManager.sol";
 
 contract DatasetFactory is Ownable {
     IDatasetNFT public datasetNFT;              // address of DatasetNFT
@@ -62,13 +61,12 @@ contract DatasetFactory is Ownable {
     }
 
     function _configureSubscriptionManager(uint256 id, address feeToken, uint256 feePerConsumerPerDay) internal {
-        ERC20LinearSingleDatasetSubscriptionManager sm = ERC20LinearSingleDatasetSubscriptionManager(datasetNFT.subscriptionManager(id));
-        sm.setFee(feeToken, feePerConsumerPerDay);
+        datasetNFT.setFee(id, feeToken, feePerConsumerPerDay);
     }
 
     function _configureDistributionManager(uint256 id, uint256 dsOwnerFeePercentage, bytes32[] calldata tags, uint256[] calldata weights) internal {
         DistributionManager dm = DistributionManager(datasetNFT.distributionManager(id));
         dm.setDatasetOwnerPercentage(dsOwnerFeePercentage);
-        dm.setTagWeights(tags, weights);
+        datasetNFT.setTagWeights(id, tags, weights);
     }
 }
