@@ -14,8 +14,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using Arrays for uint256[];
 
-    string private constant NAME = "AllianceBlock DataTunnel Fragment";
-    string private constant SYMBOL = "ABDTF";
+    string private constant NAME = "Data Tunnel Fragment";
+    string private constant SYMBOL = "DTF";
 
     event FragmentPending(uint256 id, bytes32 tag);
     event FragmentAccepted(uint256 id);
