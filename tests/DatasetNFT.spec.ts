@@ -1,9 +1,10 @@
 import { expect } from "chai";
 import { deployments, ethers, network } from "hardhat";
-import { DatasetFactory, DatasetNFT, FragmentNFT } from "@typechained";
+import { DatasetFactory, DatasetNFT, DistributionManager, ERC20LinearSingleDatasetSubscriptionManager, FragmentNFT } from "@typechained";
 import { Contract, ContractFactory, getBytes, parseUnits, uuidV4, ZeroAddress, ZeroHash, EventLog } from "ethers";
 import { v4 as uuidv4 } from "uuid";
 import { signature, utils } from "./utils";
+import { encodeTag } from "./utils/utils";
 import { constants } from "../utils";
 import { getEvent } from "./utils/events";
 import { setupUsers } from "./utils/users";
@@ -146,12 +147,12 @@ describe("DatasetNFT", () => {
 
   it("Should dataset name be set on deploy", async function () {
     expect(await DatasetNFT_.name()).to.equal(
-      "AllianceBlock DataTunnel Dataset"
+      "Data Tunnel Dataset"
     );
   });
 
   it("Should dataset symbol be set on deploy", async function () {
-    expect(await DatasetNFT_.symbol()).to.equal("ABDTDS");
+    expect(await DatasetNFT_.symbol()).to.equal("DTDS");
   });
 
   it("Should dataset fragment implementation be set on deploy", async function () {
@@ -1159,15 +1160,7 @@ describe("DatasetNFT", () => {
           tag
         )
       );
-        
-      /*
-      await DatasetNFT_.connect(users_.contributor).proposeFragment(
-        datasetId_,
-        users_.contributor.address,
-        tag,
-        proposeSignature
-      );*/
-       
+          
       await expect(
         DatasetNFT_.connect(users_.contributor).proposeFragment(
           datasetId_,
@@ -1229,6 +1222,98 @@ describe("DatasetNFT", () => {
           proposeSignature
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, "BAD_SIGNATURE");
+    });
+
+    it("Should setFeeAndTagWeights() set the fee and tag weights", async () => {
+      const datasetAddress = await DatasetNFT_.getAddress();
+      const subscriptionAddress = await DatasetNFT_.subscriptionManager(datasetId_);
+      const distributionAddress = await DatasetNFT_.distributionManager(datasetId_);
+      const tokenAddress = await users_.datasetOwner.Token!.getAddress();
+
+      const tags = [
+        ZeroHash,
+        encodeTag("shcema.metadata"),
+        encodeTag("schema.rows"),
+        encodeTag("schema.columns")
+      ];
+
+      const weights = [
+        parseUnits("0.1", 18),
+        parseUnits("0.2", 18),
+        parseUnits("0.3", 18),
+        parseUnits("0.4", 18)
+      ];
+
+      const fee = parseUnits("0.5", 18);
+
+      const signedMessageForSettingFee = await users_.datasetOwner.signMessage(
+        signature.getSetFeeMessage(
+          network.config.chainId!,
+          datasetAddress,
+          subscriptionAddress,
+          tokenAddress,
+          fee
+        )
+      );
+
+      const signedMessageForSettingTagWeights = await users_.datasetOwner.signMessage(
+        signature.getSetTagWeightsMessage(
+          network.config.chainId!,
+          datasetAddress,
+          distributionAddress,
+          tags,
+          weights
+        )
+      );
+
+      // Currently (see `setup()`) fee is 0.1 & tags = [ZeroHash] with weight 100%
+      const subscriptionManager = ERC20SubscriptionManagerFactory_.attach(subscriptionAddress) as unknown as ERC20LinearSingleDatasetSubscriptionManager;
+      const distributionManager = DistributionManagerFactory_.attach(distributionAddress) as unknown as DistributionManager;
+
+      // For 0.1 fee, 7 days and 3 consumers, subscription fee is :: 0.1 * 7 * 3 == 2.1
+      let expectedFee = parseUnits("2.1", 18);
+
+      let subscriptionFeeResult = await subscriptionManager.subscriptionFee(datasetId_, 7, 3);
+
+      expect(subscriptionFeeResult[0]).to.equal(tokenAddress);
+      expect(subscriptionFeeResult[1]).to.equal(expectedFee);
+
+      const tagWeightsResultPre = await distributionManager.getTagWeights(tags);
+
+      expect(tagWeightsResultPre.length).to.equal(4);
+      expect(tagWeightsResultPre[0]).to.equal(parseUnits("1", 18)); // Since only tag ZeroHash is set (see `setup()`)
+      expect(tagWeightsResultPre[1]).to.equal(0);
+      expect(tagWeightsResultPre[2]).to.equal(0);
+      expect(tagWeightsResultPre[3]).to.equal(0);
+      
+
+      // ------ Post setFeeAndTagWeights
+
+      await DatasetNFT_.connect(users_.datasetOwner).setFeeAndTagWeights(
+        datasetId_,
+        tokenAddress,
+        fee,
+        tags,
+        weights,
+        signedMessageForSettingFee,
+        signedMessageForSettingTagWeights
+      );
+      
+      // For 0.5 fee, 7 days and 3 consumers , subscription fee is:: 0.5 * 7 * 3 == 10.5
+      expectedFee = parseUnits("10.5", 18);
+
+      subscriptionFeeResult = await subscriptionManager.subscriptionFee(datasetId_, 7, 3);
+
+      expect(subscriptionFeeResult[0]).to.equal(tokenAddress);
+      expect(subscriptionFeeResult[1]).to.equal(expectedFee);
+
+      const tagWeightsResultPost = await distributionManager.getTagWeights(tags);
+      
+      expect(tagWeightsResultPost.length).to.equal(4);
+      expect(tagWeightsResultPost[0]).to.equal(weights[0]);
+      expect(tagWeightsResultPost[1]).to.equal(weights[1]);
+      expect(tagWeightsResultPost[2]).to.equal(weights[2]);
+      expect(tagWeightsResultPost[3]).to.equal(weights[3]);
     });
   });
 });
