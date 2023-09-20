@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "./interfaces/IDatasetNFT.sol";
 import "./verifier/VerifierManager.sol";
 import "./distribution/DistributionManager.sol";
@@ -34,7 +33,7 @@ contract DatasetFactory is Ownable {
     function mintAndConfigureDataset(
         address to, bytes calldata mintSignature,
         address defaultVerifier,
-        IERC20 feeToken, uint256 feePerConsumerPerDay,
+        address feeToken, uint256 feePerConsumerPerDay,
         uint256 dsOwnerFeePercentage,
         bytes32[] calldata tags, uint256[] calldata weights
     ) external {
@@ -62,7 +61,7 @@ contract DatasetFactory is Ownable {
         vm.setDefaultVerifier(defaultVerifier);
     }
 
-    function _configureSubscriptionManager(uint256 id, IERC20 feeToken, uint256 feePerConsumerPerDay) internal {
+    function _configureSubscriptionManager(uint256 id, address feeToken, uint256 feePerConsumerPerDay) internal {
         ERC20LinearSingleDatasetSubscriptionManager sm = ERC20LinearSingleDatasetSubscriptionManager(datasetNFT.subscriptionManager(id));
         sm.setFee(feeToken, feePerConsumerPerDay);
     }
