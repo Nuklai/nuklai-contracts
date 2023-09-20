@@ -60,12 +60,34 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     }
 
     /**
-     * @notice Define how to distribute payment to different tags
+     * @notice Defines how to distribute payment to different tags
      * The summ of weights should be 100%, and 100% is encoded as 1e18
      * @param tags tags participating in the payment distributions
      * @param weights weights of the tags
      */
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
+        EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
+        uint256 weightSumm;
+        for(uint256 i; i < weights.length; i++) {
+            weightSumm += weights[i];
+            tagWeights.set(tags[i], weights[i]);
+        }
+        require(weightSumm == 1e18, "Invalid weights summ");
+    }
+
+    /**
+     * @notice Defines how to distribute payment to different tags
+     * The summ of weights should be 100%, and 100% is encoded as 1e18
+     * @dev Signed version of `setTagWeights()`
+     * @param tags tags participating in the payment distributions
+     * @param weights weights of the tags
+     */
+    function setTagWeights_Signed(bytes32[] calldata tags, uint256[] calldata weights, bytes calldata signature) external {
+        bytes32 msgHash = _setTagWeightsMessageHash(tags, weights);
+        address signer = ECDSA.recover(msgHash, signature);
+
+        if (signer != dataset.ownerOf(datasetId)) revert BAD_SIGNATURE(msgHash, signer);
+
         EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
         uint256 weightSumm;
         for(uint256 i; i < weights.length; i++) {
@@ -317,6 +339,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
             beneficiary,
             sigValidSince,
             sigValidTill
+        ));
+    }
+
+    function _setTagWeightsMessageHash(bytes32[] calldata tags, uint256[] calldata weights) private view returns (bytes32) {
+        return ECDSA.toEthSignedMessageHash(abi.encodePacked(
+            block.chainid,
+            address(dataset),
+            address(this),
+            tags,
+            weights
         ));
     }
 }
