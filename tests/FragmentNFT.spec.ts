@@ -81,8 +81,6 @@ const setup = async () => {
     [parseUnits("1", 18)]
   );
 
-  //const tag = utils.encodeTag("dataset.schemas");
-
   const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
   const DatasetFragment = (await ethers.getContractAt(
     "FragmentNFT",

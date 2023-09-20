@@ -1246,6 +1246,7 @@ describe("DatasetNFT", () => {
 
       const fee = parseUnits("0.5", 18);
 
+      /*
       const signedMessageForSettingFee = await users_.datasetOwner.signMessage(
         signature.getSetFeeMessage(
           network.config.chainId!,
@@ -1254,8 +1255,9 @@ describe("DatasetNFT", () => {
           tokenAddress,
           fee
         )
-      );
-
+      ); */
+        
+      /*
       const signedMessageForSettingTagWeights = await users_.datasetOwner.signMessage(
         signature.getSetTagWeightsMessage(
           network.config.chainId!,
@@ -1264,7 +1266,7 @@ describe("DatasetNFT", () => {
           tags,
           weights
         )
-      );
+      );*/
 
       // Currently (see `setup()`) fee is 0.1 & tags = [ZeroHash] with weight 100%
       const subscriptionManager = ERC20SubscriptionManagerFactory_.attach(subscriptionAddress) as unknown as ERC20LinearSingleDatasetSubscriptionManager;
@@ -1294,9 +1296,7 @@ describe("DatasetNFT", () => {
         tokenAddress,
         fee,
         tags,
-        weights,
-        signedMessageForSettingFee,
-        signedMessageForSettingTagWeights
+        weights
       );
       
       // For 0.5 fee, 7 days and 3 consumers , subscription fee is:: 0.5 * 7 * 3 == 10.5

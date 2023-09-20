@@ -210,17 +210,17 @@ describe("DistributionManager", () => {
   });
 
   it("Should data set owner set data set tag weights", async function () {
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
   });
 
   it("Should user be able to get tag weights", async function () {
     const tags = [ZeroHash, encodeTag("metadata")];
     const weights = [parseUnits("0.3", 18), parseUnits("0.7", 18)];
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights(tags, weights);
+    ).setTagWeights(datasetId_, tags, weights);
 
     const tagWeights = await DatasetDistributionManager_.connect(
       users_.user
@@ -250,7 +250,8 @@ describe("DistributionManager", () => {
     const datasetRowsTag = utils.encodeTag("dataset.rows");
 
     await expect(
-      DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+      DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
+        datasetId_,
         [datasetSchemasTag, datasetRowsTag],
         [parseUnits("0.4", 18), parseUnits("0.8", 18)]
       )
@@ -303,14 +304,15 @@ describe("DistributionManager", () => {
       parseUnits("0.006048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
     
     // feePerDayPerConsumer
     const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer :: 0.000864 * 7 * 1  = 0.006048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -325,6 +327,8 @@ describe("DistributionManager", () => {
       tokenAddress
     );
 
+    expect(claimableAmount).to.equal(parseUnits("0.000006048", 18)) // dtOwner percentage is 0.1%, thus :: 0.006048 * 0.001 = 0.000006048
+
     const validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
       1 +
@@ -332,11 +336,9 @@ describe("DistributionManager", () => {
     const validTill = validSince + constants.ONE_DAY;
 
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -349,9 +351,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -411,14 +410,15 @@ describe("DistributionManager", () => {
       parseUnits("0.006048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     // feePerDayPerConsumer
     const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -440,11 +440,9 @@ describe("DistributionManager", () => {
     let validTill = validSince + constants.ONE_DAY;
 
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -457,9 +455,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -485,11 +480,9 @@ describe("DistributionManager", () => {
     validTill = validSince + constants.ONE_DAY;
 
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -502,14 +495,11 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount + 1n,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
       )
-    ).to.be.revertedWith("not enough amount");
+    ).to.be.revertedWith("No unclaimed payments available");
   });
 
   it("Should revert claim revenue if it's not the data set owner", async function () {
@@ -558,14 +548,15 @@ describe("DistributionManager", () => {
       parseUnits("60480", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
     
     // feePerDayPerConsumer
     const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -576,10 +567,6 @@ describe("DistributionManager", () => {
       1
     );
 
-    const claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
-      tokenAddress
-    );
-
     const validSince =
       Number((await ethers.provider.getBlock("latest"))?.timestamp) +
       1 +
@@ -587,11 +574,9 @@ describe("DistributionManager", () => {
     const validTill = validSince + constants.ONE_DAY;
 
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.contributor.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -604,9 +589,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.contributor
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.contributor.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -660,14 +642,15 @@ describe("DistributionManager", () => {
       parseUnits("60480", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
     
     // feePerDayPerConsumer
     const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -676,10 +659,6 @@ describe("DistributionManager", () => {
       datasetId_,
       7,
       1
-    );
-
-    const claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
-      tokenAddress
     );
 
     const validSince =
@@ -696,9 +675,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.dtAdmin.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -773,7 +749,8 @@ describe("DistributionManager", () => {
     // feePerDayPerConsumer
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -792,7 +769,7 @@ describe("DistributionManager", () => {
     const validTill = validSince + constants.ONE_DAY;
 
     const fragmentOwner_Contributor_Signature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -807,20 +784,9 @@ describe("DistributionManager", () => {
 
     expect(claimableAmountForOwningDt).to.equal(parseUnits("544.32", 18));
     
-    let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
-        network.config.chainId!,
-        await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmountForOwningDt,
-        users_.datasetOwner.address,
-        BigInt(validSince),
-        BigInt(validTill)
-      )
-    );
     
-    const fragmentOwner_DatasetOwner_Signature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+    const DatasetOwnerRevenue_Signature = await users_.dtAdmin.signMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.datasetOwner.address,
@@ -842,13 +808,9 @@ describe("DistributionManager", () => {
 
     // dtOwner should be able to claim the amount (2993.76) through `claimDatasetOwnerAndFragmentPayouts()`
     await expect(DatasetDistributionManager_.connect(users_.datasetOwner).claimDatasetOwnerAndFragmentPayouts(
-      tokenAddress,
-      claimableAmountForOwningDt,
-      users_.datasetOwner.address,
       validSince,
       validTill,
-      claimDatasetOwnerSignature,
-      fragmentOwner_DatasetOwner_Signature
+      DatasetOwnerRevenue_Signature
     )
   )
     .to.emit(DatasetDistributionManager_, "PayoutSent")
@@ -926,13 +888,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -949,7 +912,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1028,13 +991,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1051,7 +1015,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1078,7 +1042,8 @@ describe("DistributionManager", () => {
         ethers.parseUnits("100000000", 18)
       );
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       await newFeeToken.getAddress(),
       parseUnits("86.4", 18)
     );
@@ -1163,13 +1128,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1186,7 +1152,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1213,7 +1179,8 @@ describe("DistributionManager", () => {
         ethers.parseUnits("100000000", 18)
       );
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       await newFeeToken.getAddress(),
       parseUnits("86.4", 18)
     );
@@ -1229,7 +1196,8 @@ describe("DistributionManager", () => {
       users_.secondSubscriber
     ).subscribe(datasetId_, 7, 1);
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       parseUnits("8.64", 18)
     );
@@ -1320,13 +1288,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1343,7 +1312,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     let validTill = validSince + constants.ONE_DAY;
     let fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1392,7 +1361,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     validTill = validSince + constants.ONE_DAY;
     fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1479,13 +1448,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1507,11 +1477,9 @@ describe("DistributionManager", () => {
     let validTill = validSince + constants.ONE_DAY;
 
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -1524,9 +1492,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -1560,11 +1525,9 @@ describe("DistributionManager", () => {
     validTill = validSince + constants.ONE_DAY;
 
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -1577,9 +1540,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -1596,14 +1556,11 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
       )
-    ).to.be.revertedWith("not enough amount");
+    ).to.be.revertedWith("No unclaimed payments available");
   });
 
   it("Should data set owner and contributor claim revenue, then new user subscribes (4 weeks) and data set owner and contributor claim revenue again", async function () {
@@ -1652,13 +1609,14 @@ describe("DistributionManager", () => {
       parseUnits("604.8", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("86.4", 18); // totalFee for one week & 1 consumer:: 86.4 * 7 * 1 = 604.8
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1675,7 +1633,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     let validTill = validSince + constants.ONE_DAY;
     let fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1719,11 +1677,9 @@ describe("DistributionManager", () => {
     validTill = validSince + constants.ONE_DAY;
 
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -1736,9 +1692,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -1766,7 +1719,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     validTill = validSince + constants.ONE_DAY;
     fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1810,11 +1763,9 @@ describe("DistributionManager", () => {
     validTill = validSince + constants.ONE_DAY;
 
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -1827,9 +1778,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -1889,13 +1837,14 @@ describe("DistributionManager", () => {
       parseUnits("604.8")
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("86.4", 18); 
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -1912,7 +1861,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -1992,13 +1941,14 @@ describe("DistributionManager", () => {
       parseUnits("0.006048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -2020,11 +1970,9 @@ describe("DistributionManager", () => {
     const validTill = validSince + constants.ONE_DAY;
 
     const claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -2035,9 +1983,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -2091,13 +2036,14 @@ describe("DistributionManager", () => {
       parseUnits("60480", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("8640", 18); // totalSubscriptionFee for 1 week with 1 consumer :: 8640 * 7 * 1 = 60480
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -2114,7 +2060,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     const validTill = validSince + constants.ONE_DAY;
     const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -2178,13 +2124,14 @@ describe("DistributionManager", () => {
       parseUnits("0.006048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("0.000864", 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -2206,11 +2153,9 @@ describe("DistributionManager", () => {
     let validTill = validSince + constants.ONE_DAY;
 
     let claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -2223,9 +2168,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -2239,11 +2181,9 @@ describe("DistributionManager", () => {
     validTill = validSince + constants.ONE_DAY;
 
     claimDatasetOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getDatasetOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
-        tokenAddress,
-        claimableAmount,
         users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill)
@@ -2256,9 +2196,6 @@ describe("DistributionManager", () => {
       DatasetDistributionManager_.connect(
         users_.datasetOwner
       ).claimDatasetOwnerPayouts(
-        tokenAddress,
-        claimableAmount,
-        users_.datasetOwner.address,
         BigInt(validSince),
         BigInt(validTill),
         claimDatasetOwnerSignature
@@ -2312,13 +2249,14 @@ describe("DistributionManager", () => {
       parseUnits("60480", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("8640", 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
@@ -2335,7 +2273,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK * 2;
     let validTill = validSince + constants.ONE_DAY;
     let fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -2360,7 +2298,7 @@ describe("DistributionManager", () => {
       constants.ONE_WEEK;
     validTill = validSince + constants.ONE_DAY;
     fragmentOwnerSignature = await users_.dtAdmin.signMessage(
-      signature.getFragmentOwnerClaimMessage(
+      signature.getRevenueClaimMessage(
         network.config.chainId!,
         await DatasetDistributionManager_.getAddress(),
         users_.contributor.address,
@@ -2426,13 +2364,14 @@ describe("DistributionManager", () => {
       parseUnits("6048", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setTagWeights([ZeroHash], [parseUnits("1", 18)]);
+    ).setTagWeights(datasetId_, [ZeroHash], [parseUnits("1", 18)]);
 
     const feeAmount = parseUnits("864", 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
 
-    await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+    await DatasetNFT_.connect(users_.datasetOwner).setFee(
+      datasetId_,
       tokenAddress,
       feeAmount
     );
