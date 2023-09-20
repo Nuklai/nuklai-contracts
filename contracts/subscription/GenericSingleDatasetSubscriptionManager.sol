@@ -37,6 +37,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
         _;
     }
 
+    function __GenericSubscriptionManager_init_unchained(address dataset_, uint256 datasetId_) internal onlyInitializing() {
+        dataset = IDatasetNFT(dataset_);
+        datasetId = datasetId_;
+    }
+
     /**
      * @notice Calculates subscription fee for a given duration (in days) and number of consumers
      * @param durationInDays the duration of the subscription in days
@@ -46,10 +51,6 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      */
     function calculateFee(uint256 durationInDays, uint256 consumers) internal view virtual returns(address, uint256);
 
-    function setFee(address token, uint256 fee) external virtual;
-
-    function setFee_Signed(address token, uint256 fee, bytes calldata signature) external virtual;
-
     /**
      * @notice Should charge the subscriber or revert
      * @dev Should call IDistributionManager.receivePayment() to distribute the payment
@@ -57,11 +58,6 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
      * @param amount Amount to charge
      */
     function charge(address subscriber, uint256 amount) internal virtual;
-
-    function __GenericSubscriptionManager_init_unchained(address dataset_, uint256 datasetId_) internal onlyInitializing() {
-        dataset = IDatasetNFT(dataset_);
-        datasetId = datasetId_;
-    }
 
     /**
      * @notice Verivies if subscription is paid for a consumer
