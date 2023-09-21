@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IDatasetNFT.sol";
 import "./verifier/VerifierManager.sol";
-import "./distribution/DistributionManager.sol";
 
 contract DatasetFactory is Ownable {
     IDatasetNFT public datasetNFT;              // address of DatasetNFT
@@ -65,8 +64,7 @@ contract DatasetFactory is Ownable {
     }
 
     function _configureDistributionManager(uint256 id, uint256 dsOwnerFeePercentage, bytes32[] calldata tags, uint256[] calldata weights) internal {
-        DistributionManager dm = DistributionManager(datasetNFT.distributionManager(id));
-        dm.setDatasetOwnerPercentage(dsOwnerFeePercentage);
+        datasetNFT.setDatasetOwnerPercentage(id, dsOwnerFeePercentage);
         datasetNFT.setTagWeights(id, tags, weights);
     }
 }
