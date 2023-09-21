@@ -97,6 +97,11 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
         sm.setFee(token, feePerConsumerPerDay);
     }
 
+    function setDatasetOwnerPercentage(uint256 id, uint256 percentage) external onlyTokenOwner(id) {
+        IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
+        dm.setDatasetOwnerPercentage(percentage);
+    }
+
     function setTagWeights(uint256 id, bytes32[] calldata tags, uint256[] calldata weights) external onlyTokenOwner(id) {
         IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
         dm.setTagWeights(tags, weights);
