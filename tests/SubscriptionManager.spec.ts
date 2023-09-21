@@ -112,9 +112,9 @@ const setupOnSubscribe = async () => {
     parseUnits("0.00864", 18)
   );
 
-  await DatasetDistributionManager.connect(
+  await DatasetNFT.connect(
     users.datasetOwner
-  ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+  ).setDatasetOwnerPercentage(datasetId, ethers.parseUnits("0.01", 18));
 
   const feeAmount = parseUnits("0.00864", 18); // totalSubscriptionFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
 
@@ -283,9 +283,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18); // totalFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
 
@@ -316,9 +316,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18); 
 
@@ -353,9 +353,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18);
 
@@ -386,9 +386,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.0000001", 18);
 
@@ -424,9 +424,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18);
 
@@ -464,9 +464,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.01728", 18)
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18); // totalSubscriptionFee for 1 day & 2 consumers ::  0.00864 * 1 * 2 = 0.01728d
 
@@ -499,9 +499,9 @@ describe("SubscriptionManager", () => {
       parseUnits("0.00864")
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.00864", 18);
 
@@ -531,9 +531,9 @@ describe("SubscriptionManager", () => {
       from: users_.subscriber.address,
     });
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.01", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.01", 18));
 
     const feeAmount = parseUnits("0.0000001", 18);
 

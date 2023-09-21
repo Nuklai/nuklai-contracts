@@ -180,9 +180,9 @@ describe("DistributionManager", () => {
   it("Should data set owner set its percentage to be sent on each payment", async function () {
     const percentage = parseUnits("0.01", 18);
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(percentage);
+    ).setDatasetOwnerPercentage(datasetId_, percentage);
 
     expect(await DatasetDistributionManager_.datasetOwnerPercentage()).to.equal(
       percentage
@@ -193,9 +193,9 @@ describe("DistributionManager", () => {
     const percentage = parseUnits("0.50001", 18);
 
     await expect(
-      DatasetDistributionManager_.connect(
+      DatasetNFT_.connect(
         users_.datasetOwner
-      ).setDatasetOwnerPercentage(percentage)
+      ).setDatasetOwnerPercentage(datasetId_, percentage)
     ).to.be.revertedWith("Can't be higher than 50%");
   });
 
@@ -203,10 +203,10 @@ describe("DistributionManager", () => {
     const percentage = parseUnits("0.4", 18);
 
     await expect(
-      DatasetDistributionManager_.connect(
+      DatasetNFT_.connect(
         users_.user
-      ).setDatasetOwnerPercentage(percentage)
-    ).to.be.revertedWith("Not a Dataset owner");
+      ).setDatasetOwnerPercentage(datasetId_, percentage)
+    ).to.be.revertedWithCustomError(DatasetNFT_, "NOT_OWNER").withArgs(datasetId_, users_.user.address);
   });
 
   it("Should data set owner set data set tag weights", async function () {
@@ -293,9 +293,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -399,9 +399,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -537,9 +537,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -631,9 +631,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -735,9 +735,9 @@ describe("DistributionManager", () => {
     // Currently 2 contributions are made of the same tag (one from dtOwner & one from contributor)
     // tag weight is 100% (see `setup()`)
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.1", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.1", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -877,9 +877,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -980,9 +980,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1117,9 +1117,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1277,9 +1277,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1437,9 +1437,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1598,9 +1598,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1826,9 +1826,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1930,9 +1930,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -1957,10 +1957,6 @@ describe("DistributionManager", () => {
       datasetId_,
       7,
       1
-    );
-
-    const claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
-      tokenAddress
     );
 
     const validSince =
@@ -2025,9 +2021,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -2113,9 +2109,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -2140,10 +2136,6 @@ describe("DistributionManager", () => {
       datasetId_,
       7,
       1
-    );
-
-    const claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(
-      tokenAddress
     );
 
     let validSince =
@@ -2238,9 +2230,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
@@ -2353,9 +2345,9 @@ describe("DistributionManager", () => {
       true
     );
 
-    await DatasetDistributionManager_.connect(
+    await DatasetNFT_.connect(
       users_.datasetOwner
-    ).setDatasetOwnerPercentage(ethers.parseUnits("0.001", 18));
+    ).setDatasetOwnerPercentage(datasetId_, ethers.parseUnits("0.001", 18));
 
     const tokenAddress = await users_.subscriber.Token!.getAddress();
 
