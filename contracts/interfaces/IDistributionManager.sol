@@ -21,4 +21,6 @@ interface IDistributionManager is IDatasetLinkInitializable {
     function getTagWeights(bytes32[] calldata tags) external view returns(uint256[] memory weights);
 
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external;
+
+    function setDatasetOwnerPercentage(uint256 percentage) external;
 }
