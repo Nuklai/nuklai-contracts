@@ -32,7 +32,9 @@ interface IDatasetNFT is IERC721 {
     function deployFragmentInstance(uint256 id) external returns(address);
 
     function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external;
+    function setDatasetOwnerPercentage(uint256 id, uint256 percentage) external;
     function setTagWeights(uint256 id, bytes32[] calldata tags, uint256[] calldata weights) external;
+    function setFeeAndTagWeights(uint256 id, address token, uint256 feePerConsumerPerDay, bytes32[] calldata tags, uint256[] calldata weights) external;
 
     function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external;
     function proposeManyFragments(uint256 datasetId, address[] memory owners, bytes32[] memory tags, bytes calldata signature) external;
