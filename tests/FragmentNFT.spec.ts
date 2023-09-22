@@ -442,7 +442,7 @@ describe("FragmentNFT", () => {
 
     await expect(
       DatasetFragment_.connect(users_.user).remove(fragmentIds_[0])
-    ).to.be.revertedWithCustomError(DatasetFragment_, "NOT_ADMIN");
+    ).to.be.revertedWithCustomError(DatasetFragment_, "NOT_DATASET_OWNER").withArgs(users_.user.address);
   });
 
   it("Should tagCountAt() return the correct tags and their number of times approved for the snapshotId provided", async () => {
