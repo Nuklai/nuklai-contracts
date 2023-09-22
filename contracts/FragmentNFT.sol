@@ -34,7 +34,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     event FragmentRemoved(uint256 id);
 
     error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
-    error NOT_ADMIN(address account);
+    error NOT_DATASET_OWNER(address account);
     error NOT_VERIFIER_MANAGER(address account);
     error NOT_DISTRIBUTION_MANAGER(address account);
     error NOT_DATASET_NFT(address account);
@@ -57,9 +57,9 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     Snapshot[] internal snapshots;
     mapping(address account => uint256[]) internal accountSnapshotIds; // ids of snapshots which contains account data
 
-    modifier onlyAdmin() {
+    modifier onlyDatasetOwner() {
         if (dataset.ownerOf(datasetId) != _msgSender())
-            revert NOT_ADMIN(_msgSender());
+            revert NOT_DATASET_OWNER(_msgSender());
         _;
     }
 
@@ -288,10 +288,10 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
      *  - or pending to be accepted - rejected
      * @dev Either removes an already accepted contribution by burning the associated Fragment NFT,
      * or rejects a specific proposed contribution by removing the associated pending Fragment NFT. 
-     * Only callable by `Admin` which is the Dataset owner
+     * Only callable by the Dataset owner
      * @param id The ID of the Fragment NFT (pending or already minted) associated with the contribution to be removed
      */
-    function remove(uint256 id) external onlyAdmin {
+    function remove(uint256 id) external onlyDatasetOwner {
         delete pendingFragmentOwners[id]; // in case we are deleting pending one
         if (_exists(id)) 
             _burn(id);
