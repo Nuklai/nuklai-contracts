@@ -67,19 +67,19 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
     /**
      * @notice Defines how to distribute payment to different tags
-     * The summ of weights should be 100%, and 100% is encoded as 1e18
+     * The sum of weights should be 100%, and 100% is encoded as 1e18
      * @dev Only callable by DatasetNFT
      * @param tags tags participating in the payment distributions
      * @param weights weights of the tags
      */
     function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetNFT {
         EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
-        uint256 weightSumm;
+        uint256 weightSum;
         for(uint256 i; i < weights.length; i++) {
-            weightSumm += weights[i];
+            weightSum += weights[i];
             tagWeights.set(tags[i], weights[i]);
         }
-        require(weightSumm == 1e18, "Invalid weights summ");
+        require(weightSum == 1e18, "Invalid weights sum");
     }
 
     /**

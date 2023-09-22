@@ -255,7 +255,7 @@ describe("DistributionManager", () => {
         [datasetSchemasTag, datasetRowsTag],
         [parseUnits("0.4", 18), parseUnits("0.8", 18)]
       )
-    ).to.be.revertedWith("Invalid weights summ");
+    ).to.be.revertedWith("Invalid weights sum");
   });
 
   it("Should data set owner claim revenue after locking period (two weeks)", async function () {
