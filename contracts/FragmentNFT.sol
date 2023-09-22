@@ -10,6 +10,17 @@ import "@openzeppelin/contracts/utils/Arrays.sol";
 import "./interfaces/IFragmentNFT.sol";
 import "./interfaces/IVerifierManager.sol";
 
+/**
+ * @title FragmentNFT contract
+ * @author Data Tunnel
+ * @notice This contract mints ERC721 tokens, called Fragments, to contributors,
+ * and maintains a record of its state at each subscription payment event.
+ * Each Fragment NFT represents an incorporated contribution to the linked Dataset and
+ * is associated with a specific tag, indicating the contribution type it represents.
+ * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
+ * with a specific instance of this implementation.
+ * @dev Extends IFragmentNFT, ERC721 & Initializable
+ */
 contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
     using Arrays for uint256[];
@@ -28,6 +39,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     error NOT_DISTRIBUTION_MANAGER(address account);
     error NOT_DATASET_NFT(address account);
 
+    /**
+     * @dev A Snapshot contains:
+     *  - count of existing ids for each tag
+     *  - count of existing ids per tag per address
+     */
     struct Snapshot {
         EnumerableMap.Bytes32ToUintMap totalTagCount;
         mapping(address account => EnumerableMap.Bytes32ToUintMap) accountTagCount;
@@ -69,6 +85,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         _disableInitializers();
     }
 
+    /**
+     * @notice Initializes the FragmentNFT contract
+     * @param dataset_ The address of the DatasetNFT contract
+     * @param datasetId_ The ID of the target Dataset NFT token
+     */
     function initialize(
         address dataset_,
         uint256 datasetId_
@@ -78,17 +99,36 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         snapshots.push();
     }
 
-    //TODO handle metadata URI stuff
-
+    ///@dev TODO:s handle metadata URI stuff
+    
+    /**
+     * @notice Creates a new snapshot and returns its index
+     * @dev Snapshots are created each time a subscription payment event occurs
+     * (see `SubscriptionManager` & `DistributionManager`)
+     * Only callable by `DistributionManager`
+     * @return uint256 The index of the newly created snapshot
+     */
     function snapshot() external onlyDistributionManager returns (uint256) {
         snapshots.push();
         return snapshots.length - 1;
     }
 
+    /**
+     * @notice Retrieves the index of the current (last created) snapshot
+     * @return uint256 The index of the current snapshot
+     */
     function currentSnapshotId() external view returns (uint256) {
         return snapshots.length - 1;
     }
 
+    /**
+     * @notice Retrieves all the active tags and their counts at a specific snapshot
+     * @dev Tags are set by the owner of the Dataset NFT token (see `setTagWeights()` in DatasetNFT).
+     * The count of each tag indicates how many times the respective contribution type is incorporated in the Dataset.
+     * @param snapshotId The index of the snapshot array targeting a specific snapshot
+     * @return tags_ An array containing the tags (encoded labels for contirbution types) 
+     * @return counts An array containing the respective counts of the tags
+     */
     function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
@@ -102,6 +142,16 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    /**
+     * @notice Retrieves the active tags (and their counts) associated with a specific account at a specific snapshot
+     * @dev Tags are set by the owner of the Dataset NFT token (see `setTagWeights()` in DatasetNFT).
+     * The count of each tag indicates how many times the respective contribution type is incorporated in the Dataset.
+     * The associated account is the owner of the respecitve fragment NFTs.
+     * @param snapshotId The index of the snapshot array targeting a specific snapshot
+     * @param account The address of the account to inquire
+     * @return tags_ An array containing the tags (encoded labels for contirbution types) 
+     * @return counts An array containing the respective counts of the tags
+     */
     function accountTagCountAt(uint256 snapshotId, address account) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_findAccountSnapshotId(account, snapshotId)].accountTagCount[account];
@@ -112,6 +162,16 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    /**
+     * @notice Retrieves the percentages of the specified tags associated with a specific account at a specific snapshot.
+     * Tags are set by the owner of the Dataset NFT token (see `setTagWeights()` in DatasetNFT).
+     * Each percentage represents how much the `account` has contributed with respect to the associated tag.
+     * Percentages are encoded such that 100% is represented as 1e18. 
+     * @param snapshotId The index of the snapshot array targeting a specific snapshot
+     * @param account The address of the account to inquire
+     * @param tags_ An array containing the tags (encoded labels for contirbution types) 
+     * @return percentages An array containing the respective percentages
+     */
     function accountTagPercentageAt(uint256 snapshotId, address account, bytes32[] calldata tags_) external view returns (uint256[] memory percentages) {
         require(snapshotId < snapshots.length, "bad snapshot id");
         uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
@@ -126,15 +186,16 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
                 (, uint256 accountCount) = accountTagCount.tryGet(tag);
                 percentages[i] = 1e18 * accountCount / totalCount;
             }
-            // else:  percentages[i] = 0, but we skip it because percentages is initialized with zeroes
+            // else:  percentages[i] = 0, but we skip it because percentages are initialized with zeroes
         }
     }
 
     /**
-     * @notice Adds a Fragment as Pending
-     * @param to Fragment owner
-     * @param tag Hash of tag name of contribution
-     * @param signature Signature from a DT service confirming creation of the Fragment
+     * @notice Proposes a specific type of contribution and sets the respetive Fragment as Pending
+     * @dev Only callable by DatasetNFT contract
+     * @param to The address of the contributor
+     * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
+     * @param signature Signature from a DT service confirming the proposal request
      */
     function propose(
         address to,
@@ -151,15 +212,16 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
         // Here we call VeriferManager and EXPECT it to call accept()
         // during this call OR at any following transaction.
-        // DO NOT do any state changes after this point!
+        // DO NOT implement any state changes after this point!
         IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
     }
 
     /**
-     * @notice Adds a batch of Fragments as Pending
-     * @param owners Fragments owners
-     * @param tags_ Hashes of tag name of contribution
-     * @param signature Signature from a DT service confirming creation of the Fragment
+     * @notice Proposes a batch of contribution types and sets a batch of respective Fragments as Pending
+     * @dev Only callable by DatasetNFT contract
+     * @param owners An array containing the addresses of the contributors
+     * @param tags_ An array containing the encoded labels (Hash of the contributions' name) indicating the types
+     * @param signature Signature from a DT service confirming the proposal request
      */
     function proposeMany(
         address[] memory owners,
@@ -178,17 +240,27 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             tags[id] = tag;
             emit FragmentPending(id, tag);
 
-            // Here we call VeriferManager and EXPECT it to call accept()
+            // Here we call VeriferManager and EXPECT it to call `accept()`
             // during this call OR at any following transaction.
-            // DO NOT do any state changes after this point!
+            // DO NOT implement any state changes after this point!
             IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
         }
     }
 
+    /**
+     * @notice Retrieves the current value of `mintCounter` which is associated
+     * with the ID of the last pending Fragment.
+     * @return uint256 The Id of the last pending Fragment
+     */
     function lastFragmentPendingId() external view returns (uint256) {
         return mintCounter;
     }
 
+    /**
+     * @notice Accepts a specific proposed contribution by minting the respective pending Fragment NFT to contributor
+     * @dev Only callable by VerifierManager contract  
+     * @param id The ID of the pending Fragment NFT associated with the proposed contribution to be accepted 
+     */
     function accept(uint256 id) external onlyVerifierManager {
         address to = pendingFragmentOwners[id];
         require(!_exists(id) && to != address(0), "Not a pending fragment");
@@ -197,6 +269,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         emit FragmentAccepted(id);
     }
 
+    /**
+     * @notice Rejects a specific proposed contribution by removing the associated pending Fragment NFT 
+     * @dev Only callable by VerifierManager contract 
+     * @param id The ID of the pending Fragment NFT associated with the proposed contribution to be rejected
+     */
     function reject(uint256 id) external onlyVerifierManager {
         address to = pendingFragmentOwners[id];
         require(!_exists(id) && to != address(0), "Not a pending fragment");
@@ -205,6 +282,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         emit FragmentRejected(id);
     }
 
+    /**
+     * @notice Removes an already accepted contribution by burning the associated Fragment NFT
+     * @dev Only callable by `Admin` whhich is the Dataset owner
+     * @param id The ID of the Fragment NFT associated with the contribution to be removed
+     */
     function remove(uint256 id) external onlyAdmin {
         delete pendingFragmentOwners[id]; // in case we are deleting pending one
         _burn(id);
@@ -212,6 +294,12 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         emit FragmentRemoved(id);
     }
 
+    /**
+     * @notice Checks whether the interface ID provided is supported by this Contract
+     * @dev For more information, see `ERC165`
+     * @param interfaceId The interface ID to check
+     * @return bool true if it is supported, false if it is not
+     */
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override(IERC165, ERC721) returns (bool) {
@@ -220,6 +308,14 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @notice Internal before token transfer function
+     * @dev Handles any necessary checks and updates respectively the associated snapshots
+     * @param from Sender of the Fragment NFT token(s)
+     * @param to Receiver of the Fragment NFT token(s)
+     * @param firstTokenId The ID of the first Fragment NFT token in the batch
+     * @param batchSize Number of Fragment NFT tokens being transferred in the batch
+     */
     function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal override {
         super._beforeTokenTransfer(from, to, firstTokenId, batchSize);
 
@@ -238,6 +334,15 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
     }
 
+    /**
+     * @notice Updates the account-specific tag counts for a batch of Fragment NFT tokens
+     * @dev This function is used to record changes in the counts of different tags associated with a specific account
+     * during the respective Fragment NFT tokens transfer operations.
+     * @param account The address of the account for which the respective tag counts are updated
+     * @param firstTokenId The ID of the first Fragment NFT token in the batch
+     * @param batchSize Number of Fragment NFT tokens in the batch
+     * @param add A boolean flag indicating whether to increase (`add`) or decrease (`false`) the tag counts
+     */
     function _updateAccountSnapshot(address account, uint256 firstTokenId, uint256 batchSize, bool add) private {
         uint256 currentSnapshot = _currentSnapshot();
         EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = snapshots[currentSnapshot].accountTagCount[account];
@@ -254,6 +359,15 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    /**
+     * @notice Updates the total counts of tags associated with a batch of Fragment NFT tokens
+     * @dev This function is used to record changes in the counts of associated tags during
+     * minting and burning of Fragment NFT tokens.
+     * @param firstTokenId The ID of the first Fragment NFT token in the batch
+     * @param batchSize Number of Fragment NFT tokens in the batch
+     * @param add A boolean flag indicating whether to increase (`true`) i.e minting operation,
+     * or decrease (`false`) i.e burning operation, the tag counts
+     */
     function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
         uint256 currentSnapshot = _currentSnapshot();
         EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[currentSnapshot].totalTagCount;
@@ -270,6 +384,13 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    /**
+     * @notice Retrieves the closest matching snapshot index based on the specified `targetSnapshotId` index
+     * and the available snapshots for a given account.
+     * @param account The address of the account for which to find the snapshot index
+     * @param targetSnapshotId The target snapshot index to match or locate 
+     * @return uint256 The closest matching snapshot index or 0 if no account-specific snapshot is found
+     */
     function _findAccountSnapshotId(address account, uint256 targetSnapshotId) private view returns(uint256) {
         uint256[] storage snapshotIds = accountSnapshotIds[account];
         uint256 bound = snapshotIds.findUpperBound(targetSnapshotId);
@@ -299,10 +420,21 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
         }
     }
 
+    /**
+     * @notice Private function that retrieves the index of the current (last created) snapshot
+     * @return uint256 The index of the current snapshot
+     */
     function _currentSnapshot() private view returns(uint256) {
         return snapshots.length - 1;
     }
 
+    /**
+     * @notice Returns an Ethereum Signed Message hash for proposing a specific contribution type
+     * @param id The ID of the pending Fragment NFT associated with the proposed contribution
+     * @param to The address of the contributor
+     * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
+     * @return bytes32 The generated signed message hash
+     */
     function _proposeMessageHash(
         uint256 id,
         address to,
@@ -321,6 +453,14 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             );
     }
 
+    /**
+     * @notice Returns an Ethereum Signed Message hash for proposing a batch of specified contribution types
+     * @param fromId The first pending Fragment NFT ID in the batch (associated with the first proposal)
+     * @param toId The last pending Fragment NFT ID in the batch (associated with the last proposal)
+     * @param owners An array containing the addresses of the respective contributors
+     * @param tags_ An array containing the encoded labels (Hash of the contributions' name) indicating the types
+     * @return bytes32 The generated signed message hash
+     */
     function _proposeManyMessageHash(
         uint256 fromId,
         uint256 toId,
@@ -341,6 +481,12 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             );
     }
 
+    /**
+     * @notice Copies key-value pairs from one `EnumerableMap.Bytes32ToUintMap` storage to another
+     * @dev Ensures that the target map is initially empty to prevent data overwriting
+     * @param from The source map from which key-value pairs are copied
+     * @param to The target map where key-value pairs are copied to
+     */
     function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
         require(to.length() == 0, "target should be empty");
         uint256 length = from.length();
@@ -349,7 +495,13 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
             to.set(k, v);
         }
     }
-
+    
+    /**
+     * @notice Retrieves the last element from a dynamic unsigned integer array
+     * @dev If the target array is empty, it initializes it with a single element (uint256(0)) before returning
+     * @param arr The dynamic integer array from which to retrieve the last element
+     * @return uint256 The value of the last element in the array
+     */
     function _lastUint256ArrayElement(uint256[] storage arr) private returns (uint256) {
         if (arr.length == 0) arr.push();
         return arr[arr.length-1];
