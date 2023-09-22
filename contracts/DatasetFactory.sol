@@ -10,6 +10,7 @@ import "./verifier/VerifierManager.sol";
  * @author Data Tunnel
  * @notice This contract facilitates the streamlined integration and configuration of Datasets
  * in the Data Tunnel protocol in a single transaction.
+ * @dev Extends Ownable
  */
 contract DatasetFactory is Ownable {
     ///@dev address of the DatasetNFT contract
