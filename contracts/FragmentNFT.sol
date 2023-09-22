@@ -283,13 +283,18 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     }
 
     /**
-     * @notice Removes an already accepted contribution by burning the associated Fragment NFT
-     * @dev Only callable by `Admin` whhich is the Dataset owner
-     * @param id The ID of the Fragment NFT associated with the contribution to be removed
+     * @notice Removes a contribution which is either:
+     *  - already incorporated
+     *  - or pending to be accepted - rejected
+     * @dev Either removes an already accepted contribution by burning the associated Fragment NFT,
+     * or rejects a specific proposed contribution by removing the associated pending Fragment NFT. 
+     * Only callable by `Admin` which is the Dataset owner
+     * @param id The ID of the Fragment NFT (pending or already minted) associated with the contribution to be removed
      */
     function remove(uint256 id) external onlyAdmin {
         delete pendingFragmentOwners[id]; // in case we are deleting pending one
-        _burn(id);
+        if (_exists(id)) 
+            _burn(id);
         delete tags[id];
         emit FragmentRemoved(id);
     }
