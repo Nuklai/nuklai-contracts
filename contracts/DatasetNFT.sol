@@ -90,7 +90,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
      * @notice Sets and configures the Manager contracts for a specific Dataset NFT
      * @dev Only callable by the owner of the Dataset NFT token
      * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier)
-     * @param id The ID of the target DatasetNFT token
+     * @param id The ID of the target Dataset NFT token
      * @param config A struct containing the addresses of the Managers' implementation contracts
      */
     function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
