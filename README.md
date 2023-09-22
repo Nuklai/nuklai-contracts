@@ -109,7 +109,7 @@ For best practices and guidelines, read more [here](https://allianceblock.io/).
 
 |  Smart Contract   |                                                                Description                                                                 |
 | :---------------: | :----------------------------------------------------------------------------------------------------------------------------------------: |
-| **`DatasetFactory`** |   Enables Dataset owners to seamlessly integrate and configure their Datasets in the protocol, in a single transaction. Each Dataset integration results in the minting of an ERC721 token which is transferred to the respective Dataset owner |
+| **`DatasetFactory`** |   Facilitates the streamlined integration and configuration of Datasets in the Data Tunnel protocol, in a single transaction. Each Dataset integration results in the minting of an ERC721 token (Dataset NFT) which is transferred to the respective Dataset owner |
 | **`DatasetNFT`** | The protocol's core extends ERC721 to mint tokens representing unique datasets, enabling dataset configuration, and maintaining a record of these configurations |
 |   **`FragmentNFT`** | An ERC721 extension where each token represents an incorporated  contribution to a specific dataset. Contribution types are encoded as `tags` which are linked to the respective token|
 |   **`DistributionManager`**   | Manages the distribution of fees to dataset owners and contributors. It provides configuration options for fee distribution percentages among parties|
