@@ -10,8 +10,8 @@
     "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
     "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
-    "prettier:check": "prettier --check .",
-    "prettier:fix": "prettier --write .",
+    "prettier:check": "cross-env prettier --check .",
+    "prettier:fix": "cross-env prettier --write .",
     "clean": "npx hardhat clean"
   },
   "devDependencies": {
