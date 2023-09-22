@@ -7,7 +7,7 @@ import "./ISubscriptionManager.sol";
 import "./IVerifierManager.sol";
 
 /**
- * @title Interface of DatsetNFT
+ * @title Interface of DatasetNFT
  * @notice Defines functions available for DatasetNFT Admin, Dataset Owners and FragmentNFT contract
  */
 interface IDatasetNFT is IERC721 {

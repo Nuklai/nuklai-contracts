@@ -47,7 +47,7 @@ contract DatasetFactory is Ownable {
     }
 
     /**
-     * @notice Mints a Dataset NFT token and configures the Managers associated with the minted Datset NFT token.
+     * @notice Mints a Dataset NFT token and configures the Managers associated with the minted Dataset NFT token.
      * @dev Percentages are encoded such that 100% is represented as 1e18. 
      * The sum of weights should be 100%, and 100% is encoded as 1e18.
      * @param to The address of the beneficiary (Dataset owner)
