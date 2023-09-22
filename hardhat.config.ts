@@ -1,19 +1,19 @@
-import "dotenv/config";
-import { HardhatUserConfig } from "hardhat/config";
-import "@nomicfoundation/hardhat-ethers";
-import "@nomicfoundation/hardhat-chai-matchers";
-import "@nomicfoundation/hardhat-toolbox";
-import "@typechain/hardhat";
-import "solidity-coverage";
-import "hardhat-deploy";
-import "hardhat-deploy-ethers";
-import "hardhat-contract-sizer";
-import { network } from "./utils";
-import "./tasks";
+import 'dotenv/config';
+import { HardhatUserConfig } from 'hardhat/config';
+import '@nomicfoundation/hardhat-ethers';
+import '@nomicfoundation/hardhat-chai-matchers';
+import '@nomicfoundation/hardhat-toolbox';
+import '@typechain/hardhat';
+import 'solidity-coverage';
+import 'hardhat-deploy';
+import 'hardhat-deploy-ethers';
+import 'hardhat-contract-sizer';
+import { network } from './utils';
+import './tasks';
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.18",
+    version: '0.8.18',
     settings: {
       optimizer: {
         enabled: true,
@@ -21,8 +21,8 @@ const config: HardhatUserConfig = {
       },
     },
     overrides: {
-      "contracts/DatasetFactory.sol": {
-        version: "0.8.18",
+      'contracts/DatasetFactory.sol': {
+        version: '0.8.18',
         settings: {
           viaIR: true,
         },
@@ -31,8 +31,8 @@ const config: HardhatUserConfig = {
   },
   networks: {
     goerli: {
-      url: network.getNodeUrl("goerli"),
-      accounts: network.getAccounts("goerli"),
+      url: network.getNodeUrl('goerli'),
+      accounts: network.getAccounts('goerli'),
       verify: {
         etherscan: {
           apiKey: process.env.ETHERSCAN_API_KEY_GOERLI,
@@ -40,8 +40,8 @@ const config: HardhatUserConfig = {
       },
     },
     fuji: {
-      url: network.getNodeUrl("fuji"),
-      accounts: network.getAccounts("fuji"),
+      url: network.getNodeUrl('fuji'),
+      accounts: network.getAccounts('fuji'),
       verify: {
         etherscan: {
           apiKey: process.env.ETHERSCAN_API_KEY_FUJI,
