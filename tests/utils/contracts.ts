@@ -1,6 +1,6 @@
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
-import { TestToken } from "@typechained";
-import { deployments, ethers } from "hardhat";
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { TestToken } from '@typechained';
+import { deployments, ethers } from 'hardhat';
 
 export async function getTestTokenContract(
   beneficiary: HardhatEthersSigner,
@@ -10,12 +10,12 @@ export async function getTestTokenContract(
 ) {
   const { dtAdmin } = await ethers.getNamedSigners();
 
-  const DeployedToken = await deployments.deploy("TestToken", {
+  const DeployedToken = await deployments.deploy('TestToken', {
     from: dtAdmin.address,
   });
 
   const token = (await ethers.getContractAt(
-    "TestToken",
+    'TestToken',
     DeployedToken.address,
     dtAdmin
   )) as unknown as TestToken;
