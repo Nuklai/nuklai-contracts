@@ -75,7 +75,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
   /**
    * @notice Sets a universally unique identifier (UUID) for the next Dataset NFT to be minted
-   * @dev Only callable by DatasetNFT ADMIN
+   * @dev Only callable by DatasetNFT ADMIN.
+   * Emits a `DatasetUuidSet` event.
    * @param uuid Unique identifier to set
    * @return ds The ID of the token for which the UUID was set
    */
@@ -88,8 +89,9 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
   /**
    * @notice Sets and configures the Manager contracts for a specific Dataset NFT
-   * @dev Only callable by the owner of the Dataset NFT token
-   * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier)
+   * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier).
+   * Only callable by the owner of the Dataset NFT token.
+   * Emits a `ManagersConfigChange` event on condition.
    * @param id The ID of the target Dataset NFT token
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
@@ -234,7 +236,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
   /**
    * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
-   * @dev Only callable by the owner of the Dataset NFT token
+   * @dev Only callable by the owner of the Dataset NFT token.
+   * Emits a `FragmentInstanceDeployement` event.
    * @param id The ID of the target Dataset NFT token
    * @return address The address of the deployed FragmentNFT instance
    */

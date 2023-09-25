@@ -193,7 +193,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
   /**
    * @notice Proposes a specific type of contribution and sets the respetive Fragment as Pending
-   * @dev Only callable by DatasetNFT contract
+   * @dev Only callable by DatasetNFT contract.
+   * Emits a `FragmentPending` event.
    * @param to The address of the contributor
    * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
    * @param signature Signature from a DT service confirming the proposal request
@@ -215,7 +216,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
   /**
    * @notice Proposes a batch of contribution types and sets a batch of respective Fragments as Pending
-   * @dev Only callable by DatasetNFT contract
+   * @dev Only callable by DatasetNFT contract.
+   * Emits `FragmentPending` event(s).
    * @param owners An array containing the addresses of the contributors
    * @param tags_ An array containing the encoded labels (Hash of the contributions' name) indicating the types
    * @param signature Signature from a DT service confirming the proposal request
@@ -255,7 +257,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
   /**
    * @notice Accepts a specific proposed contribution by minting the respective pending Fragment NFT to contributor
-   * @dev Only callable by VerifierManager contract
+   * @dev Only callable by VerifierManager contract.
+   * Emits a `FragmentAccepted` event.
    * @param id The ID of the pending Fragment NFT associated with the proposed contribution to be accepted
    */
   function accept(uint256 id) external onlyVerifierManager {
@@ -268,7 +271,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
   /**
    * @notice Rejects a specific proposed contribution by removing the associated pending Fragment NFT
-   * @dev Only callable by VerifierManager contract
+   * @dev Only callable by VerifierManager contract.
+   * Emits a `FragmentRejected` event.
    * @param id The ID of the pending Fragment NFT associated with the proposed contribution to be rejected
    */
   function reject(uint256 id) external onlyVerifierManager {
@@ -285,7 +289,8 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    *  - or pending to be accepted - rejected
    * @dev Either removes an already accepted contribution by burning the associated Fragment NFT,
    * or rejects a specific proposed contribution by removing the associated pending Fragment NFT.
-   * Only callable by the Dataset owner
+   * Only callable by the Dataset owner.
+   * Emits a `FragmentRemoved` event.
    * @param id The ID of the Fragment NFT (pending or already minted) associated with the contribution to be removed
    */
   function remove(uint256 id) external onlyDatasetOwner {
