@@ -1,4 +1,4 @@
-import { AddressLike, getBytes, solidityPacked } from "ethers";
+import { AddressLike, getBytes, solidityPacked } from 'ethers';
 
 export const getDatasetMintMessage = (
   chainId: number,
@@ -6,7 +6,7 @@ export const getDatasetMintMessage = (
   datasetId: bigint
 ): Uint8Array => {
   const message = solidityPacked(
-    ["uint256", "address", "uint256"],
+    ['uint256', 'address', 'uint256'],
     [chainId, datasetAddress, datasetId]
   );
 
@@ -22,7 +22,7 @@ export const getDatasetFragmentProposeMessage = (
   tag: string
 ): Uint8Array => {
   const proposeMessage = solidityPacked(
-    ["uint256", "address", "uint256", "uint256", "address", "bytes32"],
+    ['uint256', 'address', 'uint256', 'uint256', 'address', 'bytes32'],
     [chainId, datasetAddress, datasetId, counter, owner, tag]
   );
 
@@ -39,15 +39,7 @@ export const getDatasetFragmentProposeBatchMessage = (
   tags: string[]
 ): Uint8Array => {
   const proposeMessage = solidityPacked(
-    [
-      "uint256",
-      "address",
-      "uint256",
-      "uint256",
-      "uint256",
-      "address[]",
-      "bytes32[]",
-    ],
+    ['uint256', 'address', 'uint256', 'uint256', 'uint256', 'address[]', 'bytes32[]'],
     [chainId, datasetAddress, datasetId, fromId, toId, owners, tags]
   );
 
@@ -62,20 +54,8 @@ export const getRevenueClaimMessage = (
   signatureValidTill: bigint
 ): Uint8Array => {
   const revenueClaimMessage = solidityPacked(
-    [
-      "uint256",
-      "address",
-      "address",
-      "uint256",
-      "uint256",
-    ],
-    [
-      chainId,
-      distributionAddress,
-      beneficiary,
-      signatureValidSince,
-      signatureValidTill,
-    ]
+    ['uint256', 'address', 'address', 'uint256', 'uint256'],
+    [chainId, distributionAddress, beneficiary, signatureValidSince, signatureValidTill]
   );
 
   return getBytes(revenueClaimMessage);

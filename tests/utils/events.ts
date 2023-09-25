@@ -1,4 +1,4 @@
-import { BaseContract, EventLog, Log, LogDescription } from "ethers";
+import { BaseContract, EventLog, Log, LogDescription } from 'ethers';
 
 export function getDecodedEvents(
   logs: Log[] | EventLog[],
@@ -20,11 +20,7 @@ export function getDecodedEvents(
   return events;
 }
 
-export function getEvent(
-  eventName: string,
-  logs: Log[] | EventLog[],
-  contract: BaseContract
-) {
+export function getEvent(eventName: string, logs: Log[] | EventLog[], contract: BaseContract) {
   const events = getDecodedEvents(logs, contract);
 
   for (const event of events) {

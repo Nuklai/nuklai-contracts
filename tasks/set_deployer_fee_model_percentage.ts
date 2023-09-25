@@ -1,6 +1,6 @@
-import { DatasetNFT } from "@typechained";
-import { Addressable, parseUnits } from "ethers";
-import { constants } from "../utils";
+import { DatasetNFT } from '@typechained';
+import { Addressable, parseUnits } from 'ethers';
+import { constants } from '../utils';
 
 interface TaskArgs {
   pk: string;
@@ -9,55 +9,40 @@ interface TaskArgs {
   percentages: string;
 }
 
-task(
-  "set-deploy-fee-model-percentage",
-  "Sets the deployer fee models percentages"
-)
-  .addParam("pk", "Signer private key with ADMIN_ROLE")
-  .addParam("contractAddress", "Address of the DatasetNFT contract")
-  .addParam("models", "Deployer fee models, separated by commas (1,2)")
-  .addParam(
-    "percentages",
-    "Percentages of the deployer fee models, separated by commas (0.1,0.35)"
-  )
+task('set-deploy-fee-model-percentage', 'Sets the deployer fee models percentages')
+  .addParam('pk', 'Signer private key with ADMIN_ROLE')
+  .addParam('contractAddress', 'Address of the DatasetNFT contract')
+  .addParam('models', 'Deployer fee models, separated by commas (1,2)')
+  .addParam('percentages', 'Percentages of the deployer fee models, separated by commas (0.1,0.35)')
   .setAction(async (taskArgs: TaskArgs) => {
     const wallet = new ethers.Wallet(taskArgs.pk, ethers.provider);
 
     const dataset = (await ethers.getContractAt(
-      "DatasetNFT",
+      'DatasetNFT',
       taskArgs.contractAddress,
       wallet
     )) as unknown as DatasetNFT;
 
-    const models = taskArgs.models.split(",");
+    const models = taskArgs.models.split(',');
     const percentages = taskArgs.percentages
-      .split(",")
+      .split(',')
       .map((percentage) => parseUnits(String(percentage), 18));
 
-    if (models.length !== percentages.length)
-      throw new Error("args length mismatch");
+    if (models.length !== percentages.length) throw new Error('args length mismatch');
 
-    console.log("Setting deployer fee models percentages...");
-    await (
-      await dataset.setDeployerFeeModelPercentages(models, percentages)
-    ).wait();
+    console.log('Setting deployer fee models percentages...');
+    await (await dataset.setDeployerFeeModelPercentages(models, percentages)).wait();
 
     console.log(
-      "No fee model percentage:",
-      await dataset.deployerFeeModelPercentage(
-        constants.DeployerFeeModel.NO_FEE
-      )
+      'No fee model percentage:',
+      await dataset.deployerFeeModelPercentage(constants.DeployerFeeModel.NO_FEE)
     );
     console.log(
-      "Dataset Owner Storage model percentage:",
-      await dataset.deployerFeeModelPercentage(
-        constants.DeployerFeeModel.DATASET_OWNER_STORAGE
-      )
+      'Dataset Owner Storage model percentage:',
+      await dataset.deployerFeeModelPercentage(constants.DeployerFeeModel.DATASET_OWNER_STORAGE)
     );
     console.log(
-      "Deployer Storage model percentage:",
-      await dataset.deployerFeeModelPercentage(
-        constants.DeployerFeeModel.DEPLOYER_STORAGE
-      )
+      'Deployer Storage model percentage:',
+      await dataset.deployerFeeModelPercentage(constants.DeployerFeeModel.DEPLOYER_STORAGE)
     );
   });
