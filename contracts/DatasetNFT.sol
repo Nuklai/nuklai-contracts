@@ -31,7 +31,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
 
   event ManagersConfigChange(uint256 id);
-  event FragmentInstanceDeployement(uint256 id, address instance);
+  event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
   address public fragmentImplementation;
@@ -237,7 +237,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
   /**
    * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
    * @dev Only callable by the owner of the Dataset NFT token.
-   * Emits a `FragmentInstanceDeployement` event.
+   * Emits a `FragmentInstanceDeployment` event.
    * @param id The ID of the target Dataset NFT token
    * @return address The address of the deployed FragmentNFT instance
    */
@@ -246,7 +246,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     require(address(fragments[id]) == address(0), 'fragment instance already deployed');
     IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
     fragments[id] = instance;
-    emit FragmentInstanceDeployement(id, address(instance));
+    emit FragmentInstanceDeployment(id, address(instance));
     return address(instance);
   }
 
