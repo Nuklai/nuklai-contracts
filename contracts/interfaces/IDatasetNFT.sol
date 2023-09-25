@@ -35,6 +35,7 @@ interface IDatasetNFT is IERC721 {
 
   /**
    * @notice Sets a universally unique identifier (UUID) for the next Dataset NFT to be minted
+   * @dev Emits a `DatasetUuidSet` event
    * @param uuid Unique identifier to set
    * @return uint256 The ID of the token for which the UUID was set
    */
@@ -42,7 +43,8 @@ interface IDatasetNFT is IERC721 {
 
   /**
    * @notice Sets and configures the Manager contracts for a specific Dataset NFT
-   * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier)
+   * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier).
+   * Emits a `ManagersConfigChange` event on condition.
    * @param id The ID of the target DatasetNFT token
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
@@ -50,6 +52,7 @@ interface IDatasetNFT is IERC721 {
 
   /**
    * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
+   * @dev Emits a `FragmentInstanceDeployment` event
    * @param id The ID of the target Dataset NFT token
    * @return address The address of the deployed FragmentNFT instance
    */
