@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+/**
+ * @title IDatasetLinkInitializable
+ * @notice Interface for setting a link between DatasetNFT contract and given Dataset NFT token,
+ * for the corresponding Manager contracts' instances
+ */
 interface IDatasetLinkInitializable {
   /**
    * @notice Intialization function
