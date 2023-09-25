@@ -146,7 +146,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    *  - `durationInDays` must be greater than 0 and less than or equal to 365
    *  - `consumers` length must be greater than 0
    * 
-   * Emits a {SubscriptionPaid} and a {Transfer} event.
+   * Emits a {SubscriptionPaid}, a {Transfer}, and {ConsumerAdded} event(s).
    * 
    * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of subscription in days (maximum 365 days)
@@ -197,7 +197,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Adds the given addresses as consumers of an already existing specified subscription
-   * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription) 
+   * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription).
+   * Emits {ConsumerAdded} event(s). 
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array of consumers to have access to the data with the specifed subscription
    */
@@ -212,6 +213,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @notice Removes the specified consumers from the set of consumers of the given subscription
    * @dev No refund is paid, but count of consumers is retained.
    * Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription)
+   * Emits {ConsumerRemoved} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array with the addresses of the consumers to remove
    */
@@ -226,7 +228,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @notice Replaces a set of old consumers with a same-size set of new consumers for the given subscription
    * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription).
    * Reverts with `CONSUMER_NOT_FOUND` custom error if `oldConsumers` contains address(es) not present in the subscription's
-   * current set of consumers. 
+   * current set of consumers.
+   * Emits {ConsumerAdded} and {ConsumerRemoved} event(s). 
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param oldConsumers Array containing the addresses of consumers to remove
    * @param newConsumers Array containing the addresses of consumers to add
@@ -317,7 +320,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Internal addConsumers function
-   * @dev Called by `addConsumers()` and `subscribeAndAddConsumers()`
+   * @dev Called by `addConsumers()` and `subscribeAndAddConsumers()`.
+   * Emits {ConsumerAdded} event(s) on condition.
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array of consumers to have access to the data with the specifed subscription
    */
@@ -330,13 +334,15 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
       bool added = sd.consumers.add(consumer);
       if (added) {
         consumerSubscriptions[consumer].add(subscription);
+        emit ConsumerAdded(subscription, consumer);
       }
     }
   }
 
   /**
    * @notice Internal removeConsumers function
-   * @dev Called by `removeConsumers()`
+   * @dev Called by `removeConsumers()`.
+   * Emits {ConsumerRemoved} event(s) on condition.
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array with the addresses of the consumers to remove
    */
@@ -348,13 +354,15 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
         consumerSubscriptions[consumer].remove(subscription);
+        emit ConsumerRemoved(subscription, consumer);
       }
     }
   }
 
   /**
    * @notice Internal replaceConsumers function
-   * @dev Called by `replaceConsumers()`
+   * @dev Called by `replaceConsumers()`.
+   * Emits {ConsumerAdded}, {ConsumerRemoved} event(s) on conditions.
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param oldConsumers Array containing the addresses of consumers to remove
    * @param newConsumers Array containing the addresses of consumers to add
@@ -372,6 +380,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
         consumerSubscriptions[consumer].remove(subscription);
+        emit ConsumerRemoved(subscription, consumer);
       } else {
         // Should revert because otherwise we can exeed paidConsumers limit
         revert CONSUMER_NOT_FOUND(subscription, consumer);
@@ -380,6 +389,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
       bool added = sd.consumers.add(consumer);
       if (added) {
         consumerSubscriptions[consumer].add(subscription);
+        emit ConsumerAdded(subscription, consumer);
       }
     }
   }
