@@ -12,6 +12,15 @@ import '../interfaces/IDistributionManager.sol';
 import '../interfaces/IDatasetNFT.sol';
 import '../interfaces/IFragmentNFT.sol';
 
+/**
+ * @title DistributionManager contract
+ * @author Data Tunnel
+ * @notice Manages the distribution of fees to Dataset owner and contributors, and
+ * provides configuration options for fee distribution percentages among parties.
+ * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
+ * with a specific instance of this implementation.
+ * @dev Extends IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable
+ */
 contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable {
   using SafeERC20 for IERC20;
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
@@ -22,6 +31,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
 
+  /**
+   * @dev A Payment contains:
+   *  - The address of the ERC20 payment token (or 0 address for native currency)
+   *  - The amount to be distributed to contributors
+   *  - The index of the snapshot associated with the respective payment (see `FragmentNFT.sol`)
+   *  - The version (state) of the tag weights associated with the respective payment
+   */
   struct Payment {
     address token;
     uint256 distributionAmount;
@@ -58,6 +74,11 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _disableInitializers();
   }
 
+  /**
+   * @notice Initializes the DistributionManager contract
+   * @param dataset_ The address of the DatasetNFT contract
+   * @param datasetId_ The ID of the target Dataset NFT token
+   */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ReentrancyGuard_init();
     dataset = IDatasetNFT(dataset_);
@@ -66,11 +87,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Defines how to distribute payment to different tags
-   * The sum of weights should be 100%, and 100% is encoded as 1e18
-   * @dev Only callable by DatasetNFT
-   * @param tags tags participating in the payment distributions
-   * @param weights weights of the tags
+   * @notice Sets the weights of the respective provided tags.
+   * @dev Weights are encoded such that 100% is represented as 1e18. 
+   * The weights define how payments are distributed to the tags (contributions).
+   * Tags are encodings used as labels to categorize different types of contributions.
+   * Only callable by DatasetNFT
+   * @param tags The tags participating in the payment distributions
+   * @param weights The weights of the respective tags to set
    */
   function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetNFT {
     EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
@@ -84,8 +107,11 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Retrieves the respective weights of the provided tags
-   * @param tags array with tags to retrieve their weights
-   * @return weights array with the respective weights
+   * @dev The weights define how payments are distributed to the tags (contributions).
+   * Tags are encodings used as labels to categorize different types of contributions (see `FragmentNFT.sol`).
+   * If a tag present in the `tags` array is not set by the Dataset onwer, its respective weight is 0.
+   * @param tags An array with the tags to retrieve their weights
+   * @return weights An array with the respective weights
    */
   function getTagWeights(bytes32[] calldata tags) external view returns (uint256[] memory weights) {
     require(tags.length != 0, 'No tags provided');
@@ -100,8 +126,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Set percentage of each payment that should be sent to the Dataset Owner
-   * @dev Percentages are encoded such that 100% is represented as 1e18
+   * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner.
+   * Percentages are encoded such that 100% is represented as 1e18.
    * @dev Only callable by DatasetNFT
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
@@ -111,11 +137,14 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Called by SubscriptionManager to initiate payment
-   * @dev if token is address(0) - native currency, the amount should match the msg.value
-   * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender
-   * @param token Payment token ERC20, address(0) means native currency
-   * @param amount Payment amount
+   * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and 
+   * creates a record of the amounts eligible for claiming by the Dataset owner and contributors respectively.
+   * @dev Called by SubscriptionManager when a subscription payment is initiated.
+   * If `token` is address(0) (indicating native currency), the `amount` should match the `msg.value`,
+   * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender.
+   * Emits `PaymentReceived` and `PayoutSent` events.
+   * @param token The address of the ERC20 payment token, or address(0) indicating native currency
+   * @param amount The provided payment amount 
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     require(versionedTagWeights.length > 0, 'tag weights not initialized');
@@ -157,6 +186,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     emit PaymentReceived();
   }
 
+  /**
+   * @notice Sends all unclaimed ownership-fee payouts to the Dataset owner
+   * @dev Only callable by the Dataset owner
+   * @param sigValidSince The Unix timestamp after which claiming is enabled
+   * @param sigValidTill The Unix timestamp until which claiming is enabled
+   * @param signature Signature from a DT service confirming the claiming request
+   */
   function claimDatasetOwnerPayouts(
     uint256 sigValidSince,
     uint256 sigValidTill,
@@ -172,6 +208,15 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _claimOwnerPayouts(_msgSender());
   }
 
+  /**
+   * @notice Sends all respective unclaimed ownership-fee and contribution-fee payouts to the Dataset owner
+   * @dev The Dataset owner is able to contribute (own FragmentNFT tokens) to his own Dataset
+   * and gain revenue from his contributions.
+   * Only callable by the Dataset owner.
+   * @param sigValidSince The Unix timestamp after which claiming is enabled
+   * @param sigValidTill The Unix timestamp until which claiming is enabled
+   * @param payoutSignature Signature from a DT service confirming the claiming request
+   */
   function claimDatasetOwnerAndFragmentPayouts(
     uint256 sigValidSince,
     uint256 sigValidTill,
@@ -193,7 +238,12 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Claim all payouts (for Fragment owners)
+   * @notice Sends all respective unclaimed contribution-fee payouts to the contributor
+   * @dev In the context of this function, the caller is the contributor (FragmentNFT token owner).
+   * Emits `PayoutSent` event(s).
+   * @param sigValidSince The Unix timestamp after which claiming is enabled
+   * @param sigValidTill The Unix timestamp until which claiming is enabled
+   * @param signature Signature from a DT service confirming the claiming request
    */
   function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external nonReentrant {
     // Validate signature
@@ -206,7 +256,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     uint256 firstUnclaimedPayout = firstUnclaimedContribution[_msgSender()];
     if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
 
-    firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern
+    firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
@@ -225,6 +275,12 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _sendPayout(collectToken, collectAmount, _msgSender());
   }
 
+  /**
+   * @notice Calculates and returns a given account's total contribution-based unclaimed payouts for the given payment `token`
+   * @param token The address of the target ERC20 token, or address(0) for native currency, that should be utilized for subscription payments
+   * @param account The address of the account to inquire
+   * @return collectAmount The account's total contribution-based unclaimed payout amount for `token`
+   */
   function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
     uint256 firstUnclaimedPayout = firstUnclaimedContribution[account];
 
@@ -239,13 +295,15 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Internal _claimOwnerPayouts for claiming all pendingOwnerFees
-   * @param owner the adress of the owner
+   * @notice Internal _claimOwnerPayouts for claiming all pending Dataset ownership fees
+   * @dev Called by `claimDatasetOwnerPayouts()` & `claimDatasetOwnerAndFragmentPayouts()`.
+   * Emits `PayoutSent` event(s).
+   * @param owner the adress of the Dataset owner
    */
   function _claimOwnerPayouts(address owner) internal {
     if (firstUnclaimed >= payments.length) return; // Nothing to claim
     uint256 firstUnclaimedPayout = firstUnclaimed;
-    firstUnclaimed = payments.length; // Updating firstUnclaimed before sending any tokens to prevent reentrancy
+    firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
 
     address collectToken;
     for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
@@ -259,14 +317,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Internal _claimPayouts for claiming all pending revenue from fragments
-   * @param beneficiary the address to receive the payout
+   * @notice Internal _claimPayouts for claiming all pending contribution fees (from fragments) for a specific contributor
+   * @dev Called by `claimDatasetOwnerAndFragmentPayouts()`.
+   * Emits `PayoutSent` event(s).
+   * @param beneficiary the contributor's address to receive the payout
    */
   function _claimPayouts(address beneficiary) internal {
     // Claim payouts
     uint256 firstUnclaimedPayout = firstUnclaimedContribution[beneficiary];
     if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-    firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern
+    firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
@@ -284,6 +344,19 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _sendPayout(collectToken, collectAmount, beneficiary);
   }
 
+  /**
+   * @notice Calculates and returns the contribution-based payout amount for `account`
+   * based on the contribution percentages and tag weights. 
+   * 
+   * @dev Called by:
+   *  - `_claimPayouts()`
+   *  - `claimPayouts()`
+   *  - `calculatePayoutByToken()`
+   * 
+   * @param p The Payment struct containing distribution and tags related information
+   * @param account The address of the account for which the respective payout is calculated
+   * @return payout The calculated contribution-based payout amount for `account`
+   */
   function _calculatePayout(Payment storage p, address account) internal view returns (uint256 payout) {
     uint256 paymentAmount = p.distributionAmount;
     EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[p.tagWeightsVersion];
@@ -297,6 +370,21 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     }
   }
 
+  /**
+   * @notice Internal function for sending a payout in either native currency or an ERC20 token
+   * 
+   * @dev Called by:
+   *  - `receivePayment()`
+   *  - `claimPayouts()`
+   *  - `_claimOwnerPayouts()`
+   *  - `_claimPayouts()`
+   *  
+   * Emits a `PayoutSent` event.
+   *  
+   * @param token The address of the ERC20 payment token, or address(0) for native currency
+   * @param amount The amount of the payout to send
+   * @param to The address of the recipient
+   */
   function _sendPayout(address token, uint256 amount, address to) internal {
     if (token == address(0)) {
       payable(to).sendValue(amount);
@@ -306,6 +394,11 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     emit PayoutSent(to, token, amount);
   }
 
+  /**
+   * @notice Clears all entries in the provided `Bytes32ToUintMap` storage
+   * @dev This function removes all key-value pairs from the storage map
+   * @param map The `Bytes32ToUintMap` storage to be cleared
+   */
   function _clear(EnumerableMap.Bytes32ToUintMap storage map) private {
     bytes32[] memory keys = map.keys();
     for (uint256 i; i < keys.length; i++) {
@@ -313,6 +406,14 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     }
   }
 
+  /**
+   * @notice Returns an Ethereum Signed Message hash for revenue claiming
+   * @dev Utilized for both revenue types (owneship-based and contribution-based) 
+   * @param beneficiary The address of the beneficiary
+   * @param sigValidSince The Unix timestamp after which claiming is enabled
+   * @param sigValidTill The Unix timestamp until which claiming is enabled
+   * @return bytes32 The generated Ethereum signed message hash
+   */
   function _claimRevenueMessageHash(
     address beneficiary,
     uint256 sigValidSince,
