@@ -3,16 +3,29 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import './GenericSingleDatasetSubscriptionManager.sol';
 
+/**
+ * @title ERC20LinearSingleDatasetSubscriptionManager contract
+ * @author Data Tunnel
+ * @notice This implementation contract handles single Dataset subscription operations using ERC20 tokens or native currency as payments.
+ * 
+ * It calculates subscription fees based on a 3rd degree polynomial formula f(x, y, z) where:
+ * 
+ *  - f(x, y, z) = x * y * z 
+ *  - x : The fee per consumer per day
+ *  - y : The number of days
+ *  - z : The number of consumers
+ * 
+ * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
+ * with a specific instance of this implementation. 
+ * @dev Extends GenericSingleDatasetSubscriptionManager
+ */
 contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant TOKEN_NAME = 'DataTunnel Subscription';
+  string internal constant TOKEN_NAME = 'Data Tunnel Subscription';
   string internal constant TOKEN_SYMBOL = 'DTSUB';
-
-  error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
@@ -26,6 +39,13 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
     _disableInitializers();
   }
 
+  /**
+   * @notice Initialization function
+   * @dev Initializes the contract by setting the `dataset` and `datasetId` state variables
+   * (see `GenericSingleDatasetSubscriptionManager.sol`)
+   * @param dataset_ The address of the DatasetNFT contract
+   * @param datasetId_ The ID of the Dataset NFT token
+   */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
   }
@@ -33,8 +53,8 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
   /**
    * @notice Sets the daily subscription fee for a single consumer
    * @dev Only callable by the DatasetNFT
-   * @param token_ the ERC20 token used for subscription payments
-   * @param feePerConsumerPerDay_ the fee to set
+   * @param token_ The address of the ERC20 token tp be used for subscription payments, or address(0) for native currency
+   * @param feePerConsumerPerDay_ The fee to set
    */
   function setFee(address token_, uint256 feePerConsumerPerDay_) external onlyDatasetNFT {
     token = IERC20(token_);
@@ -43,10 +63,10 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
 
   /**
    * @notice Calculates subscription fee for a given duration (in days) and number of consumers
-   * @param durationInDays the duration of the subscription in days
-   * @param consumers number of consumers for the subscription (including owner)
-   * @return address the ERC20 token used as payment, zeroAddress for native coin
-   * @return uint256 the calculated fee
+   * @param durationInDays The duration of the subscription in days
+   * @param consumers Number of consumers for the subscription (including owner)
+   * @return address The address of the ERC20 token used as payment, or address(0) for native currency
+   * @return uint256 The calculated fee
    */
   function calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
     return (address(token), feePerConsumerPerDay * durationInDays * consumers);
