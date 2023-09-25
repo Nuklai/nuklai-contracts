@@ -10,8 +10,10 @@
     "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
     "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
-    "lint:check": "cross-env prettier --check .",
-    "lint": "cross-env prettier --write .",
+    "prettier:check": "cross-env prettier --check .",
+    "prettier:fix": "cross-env prettier --write .",
+    "lint:check": "cross-env solhint 'contracts/**/*.sol' && cross-env prettier --check .",
+    "lint:fix": "sort-package-json && cross-env prettier --write . && cross-env solhint --fix 'contracts/**/*.sol'",
     "clean": "npx hardhat clean"
   },
   "devDependencies": {
@@ -37,7 +39,10 @@
     "mocha": "^10.2.0",
     "prettier": "2.8.3",
     "prettier-plugin-solidity": "^1.1.3",
+    "solhint": "^3.6.2",
+    "solhint-plugin-prettier": "^0.0.5",
     "solidity-coverage": "^0.8.1",
+    "sort-package-json": "^2.5.1",
     "ts-node": "^10.9.1",
     "typechain": "^8.2.0",
     "typescript": "^5.1.6",
