@@ -12,7 +12,7 @@ import './VerifierManager.sol';
 contract AcceptAllVerifier is IVerifier {
   /**
    * @notice Propose function
-   * @dev Calls the VerifierManager's resolve function with a 'true' acceptance flag. 
+   * @dev Calls the VerifierManager's resolve function with a 'true' acceptance flag.
    * @param id ID of the fragment
    */
   function propose(address /*fragmentNFT*/, uint256 id, bytes32 /*tag*/) external {

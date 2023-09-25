@@ -39,7 +39,7 @@ contract AcceptManuallyVerifier is IVerifier {
    * @notice Adds the fragment ID to the verification queue
    * @dev Only callable by the configured VerifierManager contract instance
    * @param fragmentNFT The address of the FragmentNFT contract instance
-   * @param id The ID of the pending fragment 
+   * @param id The ID of the pending fragment
    */
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
     pendingFragments[fragmentNFT].add(id);

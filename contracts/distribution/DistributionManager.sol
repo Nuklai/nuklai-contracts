@@ -88,7 +88,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Sets the weights of the respective provided tags.
-   * @dev Weights are encoded such that 100% is represented as 1e18. 
+   * @dev Weights are encoded such that 100% is represented as 1e18.
    * The weights define how payments are distributed to the tags (contributions).
    * Tags are encodings used as labels to categorize different types of contributions.
    * Only callable by DatasetNFT
@@ -137,14 +137,14 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and 
+   * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and
    * creates a record of the amounts eligible for claiming by the Dataset owner and contributors respectively.
    * @dev Called by SubscriptionManager when a subscription payment is initiated.
    * If `token` is address(0) (indicating native currency), the `amount` should match the `msg.value`,
    * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender.
    * Emits {PaymentReceived} and {PayoutSent} events.
    * @param token The address of the ERC20 payment token, or address(0) indicating native currency
-   * @param amount The provided payment amount 
+   * @param amount The provided payment amount
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     require(versionedTagWeights.length > 0, 'tag weights not initialized');
@@ -346,14 +346,14 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Calculates and returns the contribution-based payout amount for `account`
-   * based on the contribution percentages and tag weights. 
-   * 
+   * based on the contribution percentages and tag weights.
+   *
    * @dev Called by:
-   * 
+   *
    *  - `_claimPayouts()`
    *  - `claimPayouts()`
    *  - `calculatePayoutByToken()`
-   * 
+   *
    * @param p The Payment struct containing distribution and tags related information
    * @param account The address of the account for which the respective payout is calculated
    * @return payout The calculated contribution-based payout amount for `account`
@@ -373,16 +373,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Internal function for sending a payout in either native currency or an ERC20 token
-   * 
+   *
    * @dev Called by:
-   * 
+   *
    *  - `receivePayment()`
    *  - `claimPayouts()`
    *  - `_claimOwnerPayouts()`
    *  - `_claimPayouts()`
-   *  
+   *
    * Emits a {PayoutSent} event.
-   *  
+   *
    * @param token The address of the ERC20 payment token, or address(0) for native currency
    * @param amount The amount of the payout to send
    * @param to The address of the recipient
@@ -398,7 +398,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Returns an Ethereum Signed Message hash for revenue claiming
-   * @dev Utilized for both revenue types (owneship-based and contribution-based) 
+   * @dev Utilized for both revenue types (owneship-based and contribution-based)
    * @param beneficiary The address of the beneficiary
    * @param sigValidSince The Unix timestamp after which claiming is enabled
    * @param sigValidTill The Unix timestamp until which claiming is enabled

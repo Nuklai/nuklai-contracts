@@ -49,14 +49,14 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
 
   /**
    * @notice Subscribes to a Dataset and makes payment
-   * 
+   *
    * @dev Requirements:
-   * 
+   *
    *  - `duration` must be greater than 0 and less than or equal to 365
    *  - `consumers` must be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid} and a {Transfer} event.
-   * 
+   *
    * @param dataset ID of the Dataset (ID of the target Dataset NFT token)
    * @param duration Duration of the subscription in days
    * @param consumers Count of consumers who have access to the data with this subscription
@@ -66,14 +66,14 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
 
   /**
    * @notice Subscribes to a Dataset, makes payment and adds consumers' addresses
-   * 
+   *
    * @dev Requirements:
-   * 
+   *
    *  - `duration` must be greater than 0 and less than or equal to 365
    *  - `consumers` length must be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid}, a {Transfer}, and {ConsumerAdded} event(s).
-   * 
+   *
    * @param dataset ID of the Dataset (ID of the target Dataset NFT token)
    * @param duration Duration of subscription in days (maximum 365 days)
    * @param consumers Array of consumers who have access to the data with this subscription
@@ -88,24 +88,24 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
   /**
    * @notice Extends a specific subscription with additional duration (in days) and/or consumers
    * @dev Subscriptions can only be extended duration-wise if remaining duration <= 30 days
-   * 
+   *
    * To extend a subscription only consumer-wise:
-   * 
+   *
    *  - `extraDuration` should be 0
    *  - `extraConsumers` should be greater than 0
-   * 
+   *
    * To extend a subscription only duration-wise:
-   * 
+   *
    *  - `extraDuration` should be greater than 0 and less than or equal to 365
    *  - `extraConsumers` should be 0
-   * 
+   *
    * To extend a subscription both duration-wise and consumer-wise:
-   * 
+   *
    *  -`extraDuration` should be greater than 0 and less than or equal to 365
    *  -`extraConsumers` should be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid} event.
-   * 
+   *
    * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDuration Days to extend the subscription by
    * @param extraConsumers Number of consumers to add
@@ -114,7 +114,7 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
 
   /**
    * @notice Adds the given addresses as consumers of an already existing specified subscription
-   * @dev Emits {ConsumerAdded} event(s) 
+   * @dev Emits {ConsumerAdded} event(s)
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array of consumers to have access to the data with the specifed subscription
    */
@@ -132,7 +132,7 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
   /**
    * @notice Replaces a set of old consumers with a same-size set of new consumers for the given subscription
    * @dev Reverts with `CONSUMER_NOT_FOUND` custom error if `oldConsumers` contains address(es) not present in the subscription's
-   * current set of consumers. 
+   * current set of consumers.
    * Emits {ConsumerAdded} and {ConsumerRemoved} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param oldConsumers Array containing the addresses of consumers to remove

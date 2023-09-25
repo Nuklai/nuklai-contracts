@@ -9,16 +9,16 @@ import './GenericSingleDatasetSubscriptionManager.sol';
  * @title ERC20LinearSingleDatasetSubscriptionManager contract
  * @author Data Tunnel
  * @notice This implementation contract handles single Dataset subscription operations using ERC20 tokens or native currency as payments.
- * 
+ *
  * It calculates subscription fees based on a 3rd degree polynomial formula f(x, y, z) where:
- * 
- *  - f(x, y, z) = x * y * z 
+ *
+ *  - f(x, y, z) = x * y * z
  *  - x : The fee per consumer per day
  *  - y : The number of days
  *  - z : The number of consumers
- * 
+ *
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
- * with a specific instance of this implementation. 
+ * with a specific instance of this implementation.
  * @dev Extends GenericSingleDatasetSubscriptionManager
  */
 contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {

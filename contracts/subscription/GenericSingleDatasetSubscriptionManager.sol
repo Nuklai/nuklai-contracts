@@ -126,14 +126,14 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Subscribes to a Dataset and makes payment
-   * 
+   *
    * @dev Requirements:
-   * 
+   *
    *  - `durationInDays` must be greater than 0 and less than or equal to 365
    *  - `consumers` must be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid} and a {Transfer} event.
-   * 
+   *
    * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of the subscription in days
    * @param consumers Count of consumers who have access to the data with this subscription
@@ -145,14 +145,14 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Subscribes to a Dataset, makes payment and adds consumers' addresses
-   * 
+   *
    * @dev Requirements:
-   * 
+   *
    *  - `durationInDays` must be greater than 0 and less than or equal to 365
    *  - `consumers` length must be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid}, a {Transfer}, and {ConsumerAdded} event(s).
-   * 
+   *
    * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of subscription in days (maximum 365 days)
    * @param consumers Array of consumers who have access to the data with this subscription
@@ -170,24 +170,24 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   /**
    * @notice Extends a specific subscription with additional duration (in days) and/or consumers
    * @dev Subscriptions can only be extended duration-wise if remaining duration <= 30 days
-   * 
+   *
    * To extend a subscription only consumer-wise:
-   * 
+   *
    *  - `extraDurationInDays` should be 0
    *  - `extraConsumers` should be greater than 0
-   * 
+   *
    * To extend a subscription only duration-wise:
-   * 
+   *
    *  - `extraDurationInDays` should be greater than 0 and less than or equal to 365
    *  - `extraConsumers` should be 0
-   * 
+   *
    * To extend a subscription both duration-wise and consumer-wise:
-   * 
+   *
    *  -`extraDurationInDays` should be greater than 0 and less than or equal to 365
    *  -`extraConsumers` should be greater than 0
-   * 
+   *
    * Emits a {SubscriptionPaid} event.
-   * 
+   *
    * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDurationInDays Days to extend the subscription by
    * @param extraConsumers Number of consumers to add
@@ -203,7 +203,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   /**
    * @notice Adds the given addresses as consumers of an already existing specified subscription
    * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription).
-   * Emits {ConsumerAdded} event(s). 
+   * Emits {ConsumerAdded} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array of consumers to have access to the data with the specifed subscription
    */
@@ -234,7 +234,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription).
    * Reverts with `CONSUMER_NOT_FOUND` custom error if `oldConsumers` contains address(es) not present in the subscription's
    * current set of consumers.
-   * Emits {ConsumerAdded} and {ConsumerRemoved} event(s). 
+   * Emits {ConsumerAdded} and {ConsumerRemoved} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param oldConsumers Array containing the addresses of consumers to remove
    * @param newConsumers Array containing the addresses of consumers to add

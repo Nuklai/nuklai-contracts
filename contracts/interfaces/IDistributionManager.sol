@@ -5,14 +5,14 @@ import './IDatasetLinkInitializable.sol';
 
 interface IDistributionManager is IDatasetLinkInitializable {
   /**
-   * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and 
+   * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and
    * creates a record of the amounts eligible for claiming by the Dataset owner and contributors respectively.
    * @dev Called by SubscriptionManager when a subscription payment is initiated.
    * If `token` is address(0) (indicating native currency), the `amount` should match the `msg.value`,
    * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender.
    * Emits `PaymentReceived` and `PayoutSent` events.
    * @param token The address of the ERC20 payment token, or address(0) indicating native currency
-   * @param amount The provided payment amount 
+   * @param amount The provided payment amount
    */
   function receivePayment(address token, uint256 amount) external payable;
 
@@ -38,7 +38,7 @@ interface IDistributionManager is IDatasetLinkInitializable {
 
   /**
    * @notice Sets the weights of the respective provided tags.
-   * @dev Weights are encoded such that 100% is represented as 1e18. 
+   * @dev Weights are encoded such that 100% is represented as 1e18.
    * The weights define how payments are distributed to the tags (contributions).
    * Tags are encodings used as labels to categorize different types of contributions.
    * @param tags The tags participating in the payment distributions
