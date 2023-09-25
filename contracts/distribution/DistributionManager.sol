@@ -395,18 +395,6 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Clears all entries in the provided `Bytes32ToUintMap` storage
-   * @dev This function removes all key-value pairs from the storage map
-   * @param map The `Bytes32ToUintMap` storage to be cleared
-   */
-  function _clear(EnumerableMap.Bytes32ToUintMap storage map) private {
-    bytes32[] memory keys = map.keys();
-    for (uint256 i; i < keys.length; i++) {
-      map.remove(keys[i]);
-    }
-  }
-
-  /**
    * @notice Returns an Ethereum Signed Message hash for revenue claiming
    * @dev Utilized for both revenue types (owneship-based and contribution-based) 
    * @param beneficiary The address of the beneficiary
