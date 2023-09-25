@@ -56,7 +56,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   uint256 internal firstUnclaimed; // from owner's revenue
 
   modifier onlyDatasetOwner() {
-    require(dataset.ownerOf(datasetId) == _msgSender(), 'Not a Dataset owner');
+    require(dataset.ownerOf(datasetId) == _msgSender(), 'Only Dataset owner');
     _;
   }
 
