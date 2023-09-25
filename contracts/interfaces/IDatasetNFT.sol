@@ -9,6 +9,7 @@ import './IVerifierManager.sol';
 /**
  * @title Interface of DatasetNFT
  * @notice Defines functions available for DatasetNFT Admin, Dataset Owners and FragmentNFT contract
+ * @dev Extends IERC721
  */
 interface IDatasetNFT is IERC721 {
   ///@dev Defines the model for the deployer (ALlianceblock/Nexera) fee

@@ -8,6 +8,7 @@ import './IDatasetNFT.sol';
 /**
  * @title Interface of FragmentNFT implementation contract
  * @notice Defines functions available for users, Dataset NFT token owner (Admin), DistributionManager & VerifierManager contracts
+ * @dev Extends IDatasetLinkInitializable` and IERC721
  */
 interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
   /**
