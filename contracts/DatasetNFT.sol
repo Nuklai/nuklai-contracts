@@ -363,7 +363,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @notice Returns an Ethereum Signed Message hash for minting a Dataset NFT token
    * @dev See `ECDSA.sol`
    * @param id The ID of the target Dataset NFT token to mint
-   * @return bytes32 The generated signed message hash
+   * @return bytes32 The generated Ethereum signed message hash
    */
   function _mintMessageHash(uint256 id) private view returns (bytes32) {
     return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), id));

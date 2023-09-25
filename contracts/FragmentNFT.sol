@@ -431,7 +431,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    * @param id The ID of the pending Fragment NFT associated with the proposed contribution
    * @param to The address of the contributor
    * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
-   * @return bytes32 The generated signed message hash
+   * @return bytes32 The generated Ethereum signed message hash
    */
   function _proposeMessageHash(uint256 id, address to, bytes32 tag) private view returns (bytes32) {
     return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(dataset), datasetId, id, to, tag));
@@ -443,7 +443,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    * @param toId The last pending Fragment NFT ID in the batch (associated with the last proposal)
    * @param owners An array containing the addresses of the respective contributors
    * @param tags_ An array containing the encoded labels (Hash of the contributions' name) indicating the types
-   * @return bytes32 The generated signed message hash
+   * @return bytes32 The generated Ethereum signed message hash
    */
   function _proposeManyMessageHash(
     uint256 fromId,
