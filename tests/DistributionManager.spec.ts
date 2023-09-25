@@ -534,7 +534,7 @@ describe('DistributionManager', () => {
         BigInt(validTill),
         claimDatasetOwnerSignature
       )
-    ).to.be.revertedWith('Not a Dataset owner');
+    ).to.be.revertedWith('Only Dataset owner');
   });
 
   it('Should revert data set owner from claiming revenue if signature is wrong', async function () {
