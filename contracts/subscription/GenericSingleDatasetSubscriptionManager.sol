@@ -45,6 +45,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     _;
   }
 
+  /**
+   * @notice Initialization function
+   * @param dataset_ The address of the DatasetNFT contract
+   * @param datasetId_ The ID of the Dataset NFT token
+   */
   function __GenericSubscriptionManager_init_unchained(address dataset_, uint256 datasetId_) internal onlyInitializing {
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
