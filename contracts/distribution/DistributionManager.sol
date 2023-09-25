@@ -142,7 +142,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @dev Called by SubscriptionManager when a subscription payment is initiated.
    * If `token` is address(0) (indicating native currency), the `amount` should match the `msg.value`,
    * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender.
-   * Emits `PaymentReceived` and `PayoutSent` events.
+   * Emits {PaymentReceived} and {PayoutSent} events.
    * @param token The address of the ERC20 payment token, or address(0) indicating native currency
    * @param amount The provided payment amount 
    */
@@ -240,7 +240,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   /**
    * @notice Sends all respective unclaimed contribution-fee payouts to the contributor
    * @dev In the context of this function, the caller is the contributor (FragmentNFT token owner).
-   * Emits `PayoutSent` event(s).
+   * Emits {PayoutSent} event(s).
    * @param sigValidSince The Unix timestamp after which claiming is enabled
    * @param sigValidTill The Unix timestamp until which claiming is enabled
    * @param signature Signature from a DT service confirming the claiming request
@@ -297,7 +297,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   /**
    * @notice Internal _claimOwnerPayouts for claiming all pending Dataset ownership fees
    * @dev Called by `claimDatasetOwnerPayouts()` & `claimDatasetOwnerAndFragmentPayouts()`.
-   * Emits `PayoutSent` event(s).
+   * Emits {PayoutSent} event(s).
    * @param owner the adress of the Dataset owner
    */
   function _claimOwnerPayouts(address owner) internal {
@@ -319,7 +319,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   /**
    * @notice Internal _claimPayouts for claiming all pending contribution fees (from fragments) for a specific contributor
    * @dev Called by `claimDatasetOwnerAndFragmentPayouts()`.
-   * Emits `PayoutSent` event(s).
+   * Emits {PayoutSent} event(s).
    * @param beneficiary the contributor's address to receive the payout
    */
   function _claimPayouts(address beneficiary) internal {
@@ -349,6 +349,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * based on the contribution percentages and tag weights. 
    * 
    * @dev Called by:
+   * 
    *  - `_claimPayouts()`
    *  - `claimPayouts()`
    *  - `calculatePayoutByToken()`
@@ -374,12 +375,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @notice Internal function for sending a payout in either native currency or an ERC20 token
    * 
    * @dev Called by:
+   * 
    *  - `receivePayment()`
    *  - `claimPayouts()`
    *  - `_claimOwnerPayouts()`
    *  - `_claimPayouts()`
    *  
-   * Emits a `PayoutSent` event.
+   * Emits a {PayoutSent} event.
    *  
    * @param token The address of the ERC20 payment token, or address(0) for native currency
    * @param amount The amount of the payout to send
