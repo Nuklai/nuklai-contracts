@@ -7,6 +7,14 @@ import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
 import '../interfaces/ISubscriptionManager.sol';
 import '../interfaces/IDatasetNFT.sol';
 
+/**
+ * @title GenericSingleDatasetSubscriptionManager contract
+ * @author Data Tunnel
+ * @notice Abstract contract serving as the foundation for managing single Dataset subscriptions and related operations.
+ * Derived contracts mint ERC721 tokens that represent subscriptions to the managed Dataset, thus, subscriptions
+ * have unique IDs which are the respective minted ERC721 tokens' IDs.
+ * @dev Extends ISubscriptionManager, Initializable, ERC721Enumerable
+ */
 abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, ERC721Enumerable {
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
@@ -43,26 +51,27 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Calculates subscription fee for a given duration (in days) and number of consumers
-   * @param durationInDays the duration of the subscription in days
-   * @param consumers number of consumers for the subscription (including owner)
-   * @return address payment token, zero address for native coin
-   * @return uint256 amount to pay
+   * @notice Calculates the subscription fee for a given duration (in days) and number of consumers
+   * @param durationInDays The duration of the subscription in days
+   * @param consumers Number of consumers for the subscription (including owner)
+   * @return address The payment token, zero address for native coin
+   * @return uint256 The amount to pay
    */
   function calculateFee(uint256 durationInDays, uint256 consumers) internal view virtual returns (address, uint256);
 
   /**
    * @notice Should charge the subscriber or revert
-   * @dev Should call IDistributionManager.receivePayment() to distribute the payment
+   * @dev Should call `IDistributionManager.receivePayment()` to distribute the payment
    * @param subscriber Who to charge
    * @param amount Amount to charge
    */
   function charge(address subscriber, uint256 amount) internal virtual;
 
   /**
-   * @notice Verivies if subscription is paid for a consumer
-   * @param ds Id of the dataset to access
+   * @notice Verifies if a given subscription is paid for a specified consumer
+   * @param ds ID of the Dataset to access (ID of the target Dataset NFT token)
    * @param consumer Address of consumer, signing the data request
+   * @return bool True if subscription is paid for `consumer`, false if it is not
    */
   function isSubscriptionPaidFor(uint256 ds, address consumer) external view returns (bool) {
     _requireCorrectDataset(ds);
@@ -75,12 +84,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Returns a fee for a dataset subscription with a given duration (in days) and number of consumers
-   * @param ds Id of the dataset to access
-   * @param durationInDays the duration of the subscription in days
-   * @param consumers count of consumers who have access to a data using this subscription (including owner)
-   * @return token Token used to pay subscription or address(0) if native coin
-   * @return amount Amount to pay
+   * @notice Returns a fee for a Dataset subscription with a given duration (in days) and number of consumers
+   * @param ds ID of the Dataset to access (ID of the target Dataset NFT token)
+   * @param durationInDays The duration of the subscription in days
+   * @param consumers Count of consumers who have access to the data using this subscription (including owner)
+   * @return token Token used as payment for the subscription, or address(0) for native currency
+   * @return amount The fee amount to pay
    */
   function subscriptionFee(
     uint256 ds,
@@ -94,9 +103,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Returns a fee to add new consumers to the subscription
-   * @param subscription Id of subscriptions
-   * @param extraConsumers Count of new consumers
+   * @notice Returns a fee for adding new consumers to a specific subscription
+   * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
+   * @param extraConsumers Count of new consumers to add
+   * @return amount The fee amount
    */
   function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns (uint256 amount) {
     require(extraConsumers > 0, 'Should add at least 1 consumer');
@@ -110,22 +120,38 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Subscribe for a dataset and make payment
-   * @param ds Id of the dataset
+   * @notice Subscribes to a Dataset and makes payment
+   * 
+   * @dev Requirements:
+   * 
+   *  - `durationInDays` must be greater than 0 and less than or equal to 365
+   *  - `consumers` must be greater than 0
+   * 
+   * Emits a {SubscriptionPaid} and a {Transfer} event.
+   * 
+   * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of the subscription in days
    * @param consumers Count of consumers who have access to the data with this subscription
-   * @return sid of subscription
+   * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
   function subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) external payable returns (uint256 sid) {
     return _subscribe(ds, durationInDays, consumers);
   }
 
   /**
-   * @notice Subscribe for a dataset, make payment and add consumer addresses
-   * @param ds Id of the dataset
-   * @param durationInDays Duration of subscription in days
-   * @param consumers List of consumers who have access to the data with this subscription
-   * @return sid of subscription
+   * @notice Subscribes to a Dataset, makes payment and adds consumers' addresses
+   * 
+   * @dev Requirements:
+   * 
+   *  - `durationInDays` must be greater than 0 and less than or equal to 365
+   *  - `consumers` length must be greater than 0
+   * 
+   * Emits a {SubscriptionPaid} and a {Transfer} event.
+   * 
+   * @param ds ID of the Dataset (ID of the target Dataset NFT token)
+   * @param durationInDays Duration of subscription in days (maximum 365 days)
+   * @param consumers Array of consumers who have access to the data with this subscription
+   * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
   function subscribeAndAddConsumers(
     uint256 ds,
@@ -137,11 +163,29 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Extend subscription with additional duration (in days) or consumers
-   * @dev Subscriptions can only be extended if remaining duration <= 30 days
-   * @param subscription Id of subscription
+   * @notice Extends a specific subscription with additional duration (in days) and/or consumers
+   * @dev Subscriptions can only be extended duration-wise if remaining duration <= 30 days
+   * 
+   * To extend a subscription only consumer-wise:
+   * 
+   *  - `extraDurationInDays` should be 0
+   *  - `extraConsumers` should be greater than 0
+   * 
+   * To extend a subscription only duration-wise:
+   * 
+   *  - `extraDurationInDays` should be greater than 0 and less than or equal to 365
+   *  - `extraConsumers` should be 0
+   * 
+   * To extend a subscription both duration-wise and consumer-wise:
+   * 
+   *  -`extraDurationInDays` should be greater than 0 and less than or equal to 365
+   *  -`extraConsumers` should be greater than 0
+   * 
+   * Emits a {SubscriptionPaid} event.
+   * 
+   * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDurationInDays Days to extend the subscription by
-   * @param extraConsumers Consumer count to add
+   * @param extraConsumers Number of consumers to add
    */
   function extendSubscription(
     uint256 subscription,
@@ -151,6 +195,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     _extendSubscription(subscription, extraDurationInDays, extraConsumers);
   }
 
+  /**
+   * @notice Adds the given addresses as consumers of an already existing specified subscription
+   * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription) 
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param consumers Array of consumers to have access to the data with the specifed subscription
+   */
   function addConsumers(
     uint256 subscription,
     address[] calldata consumers
@@ -159,10 +209,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Removes consumers from the list for this subscription
-   * @dev No refund is paid, but count of consumers is not decreased
-   * @param subscription Id of subscription
-   * @param consumers List of consumers to remove
+   * @notice Removes the specified consumers from the set of consumers of the given subscription
+   * @dev No refund is paid, but count of consumers is retained.
+   * Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription)
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param consumers Array with the addresses of the consumers to remove
    */
   function removeConsumers(
     uint256 subscription,
@@ -172,10 +223,13 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   }
 
   /**
-   * @notice Replaces a set of old consumers with a same-size set of new consumers
-   * @param subscription Id of subscription
-   * @param oldConsumers List of consumers to remove
-   * @param newConsumers List of consumers to add
+   * @notice Replaces a set of old consumers with a same-size set of new consumers for the given subscription
+   * @dev Only callable by the owner of the respective subscription (owner of the ERC721 token that represents the subscription).
+   * Reverts with `CONSUMER_NOT_FOUND` custom error if `oldConsumers` contains address(es) not present in the subscription's
+   * current set of consumers. 
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param oldConsumers Array containing the addresses of consumers to remove
+   * @param newConsumers Array containing the addresses of consumers to add
    */
   function replaceConsumers(
     uint256 subscription,
@@ -187,10 +241,13 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Internal subscribe function
-   * @param ds Id of the dataset to subscribe to
-   * @param durationInDays Duration of subscription in days
-   * @param consumers Count of consumers who have access to the data with this subscription
-   * @return sid of subscription
+   * @dev Mints an ERC721 token that represents the creation of the subscription.
+   * Called by `subscribe()` and `subscribeAndAddConsumers()`.
+   * Emits a {SubscriptionPaid} and a {Transfer} event.
+   * @param ds ID of the Dataset to subscribe to (ID of the target Dataset NFT token)
+   * @param durationInDays Duration of subscription in days (maximum 365 days)
+   * @param consumers Count of consumers to have access to the data with this subscription
+   * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
   function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
@@ -213,10 +270,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   /**
    * @notice Internal extendSubscription function
-   * @dev Subscription can only be extended if remaining duration <= 30 days
-   * @param subscription Id for subscription
+   * @dev Subscriptions can only be extended if remaining duration <= 30 days.
+   * Called by `extendSubscription()`.
+   * Emits a {SubscriptionPaid} event.
+   * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDurationInDays Days to extend the subscription by
-   * @param extraConsumers number of extra consumers to add
+   * @param extraConsumers Number of extra consumers to add
    */
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
@@ -256,6 +315,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     emit SubscriptionPaid(subscription, sd.validSince, sd.validTill, sd.paidConsumers);
   }
 
+  /**
+   * @notice Internal addConsumers function
+   * @dev Called by `addConsumers()` and `subscribeAndAddConsumers()`
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param consumers Array of consumers to have access to the data with the specifed subscription
+   */
   function _addConsumers(uint256 subscription, address[] calldata consumers) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = subscriptions[subscription];
@@ -269,6 +334,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
   }
 
+  /**
+   * @notice Internal removeConsumers function
+   * @dev Called by `removeConsumers()`
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param consumers Array with the addresses of the consumers to remove
+   */
   function _removeConsumers(uint256 subscription, address[] calldata consumers) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = subscriptions[subscription];
@@ -281,6 +352,13 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
   }
 
+  /**
+   * @notice Internal replaceConsumers function
+   * @dev Called by `replaceConsumers()`
+   * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
+   * @param oldConsumers Array containing the addresses of consumers to remove
+   * @param newConsumers Array containing the addresses of consumers to add
+   */
   function _replaceConsumers(
     uint256 subscription,
     address[] calldata oldConsumers,
@@ -306,6 +384,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
   }
 
+  /**
+   * @notice Reverts with `UNSUPPORTED_DATASET` custom error if `_datasetId` is not the ID of the managed Dataset
+   * @dev The ID of the managed dataset is set at `__GenericSubscriptionManager_init_unchained()`
+   * @param _datasetId The ID to check
+   */
   function _requireCorrectDataset(uint256 _datasetId) internal view {
     if (datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
   }
