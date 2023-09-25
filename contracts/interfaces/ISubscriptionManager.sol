@@ -72,7 +72,7 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
    *  - `duration` must be greater than 0 and less than or equal to 365
    *  - `consumers` length must be greater than 0
    * 
-   * Emits a {SubscriptionPaid} and a {Transfer} event.
+   * Emits a {SubscriptionPaid}, a {Transfer}, and {ConsumerAdded} event(s).
    * 
    * @param dataset ID of the Dataset (ID of the target Dataset NFT token)
    * @param duration Duration of subscription in days (maximum 365 days)
@@ -113,7 +113,8 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
   function extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) external payable;
 
   /**
-   * @notice Adds the given addresses as consumers of an already existing specified subscription 
+   * @notice Adds the given addresses as consumers of an already existing specified subscription
+   * @dev Emits {ConsumerAdded} event(s) 
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array of consumers to have access to the data with the specifed subscription
    */
@@ -121,7 +122,8 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
 
   /**
    * @notice Removes the specified consumers from the set of consumers of the given subscription
-   * @dev No refund is paid, but count of consumers is retained
+   * @dev No refund is paid, but count of consumers is retained.
+   * Emits {ConsumerRemoved} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param consumers Array with the addresses of the consumers to remove
    */
@@ -131,6 +133,7 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
    * @notice Replaces a set of old consumers with a same-size set of new consumers for the given subscription
    * @dev Reverts with `CONSUMER_NOT_FOUND` custom error if `oldConsumers` contains address(es) not present in the subscription's
    * current set of consumers. 
+   * Emits {ConsumerAdded} and {ConsumerRemoved} event(s).
    * @param subscription ID of subscription (ID of the NFT token that represents the subscription)
    * @param oldConsumers Array containing the addresses of consumers to remove
    * @param newConsumers Array containing the addresses of consumers to add
