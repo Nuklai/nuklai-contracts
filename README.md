@@ -89,6 +89,14 @@ To generate a contracts size report, execute the following command:
 yarn contract-size
 ```
 
+### 6. Linting
+
+To run linting on all configured source files (`*.sol`, `*.ts`, `*.js`, `*.json`), execute the following command:
+
+```bash
+yarn lint
+```
+
 ## Contributing
 
 1. Fork it or Clone it
