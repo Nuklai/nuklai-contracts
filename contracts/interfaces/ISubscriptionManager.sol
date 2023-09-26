@@ -34,7 +34,7 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
 
   /**
    * @notice Sets the daily subscription fee for a single consumer
-   * @param token, The address of the ERC20 token used for subscription payments, or zero address for native currency
+   * @param token, The address of the ERC20 token used for subscription payments, or address(0) for native currency
    * @param fee The fee to set
    */
   function setFee(address token, uint256 fee) external;
