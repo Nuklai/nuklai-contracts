@@ -15,7 +15,7 @@ import './verifier/VerifierManager.sol';
 contract DatasetFactory is Ownable {
   ///@dev address of the DatasetNFT contract
   IDatasetNFT public datasetNFT;
-  ///@dev address of deployed SubscriptionManager implementation contract (ERC20LinearSingleDatasetSubscriptionManager)
+  ///@dev address of deployed SubscriptionManager implementation contract
   address public subscriptionManagerImpl;
   ///@dev address of deployed DistributionManager implementation contract
   address public distributionManagerImpl;
@@ -47,7 +47,7 @@ contract DatasetFactory is Ownable {
   }
 
   /**
-   * @notice Mints a Dataset NFT token and configures the Managers associated with the minted Dataset NFT token.
+   * @notice Mints a Dataset NFT token, configures its associated Managers, and transfers it to `to`.
    * @dev Percentages are encoded such that 100% is represented as 1e18.
    * The sum of weights should be 100%, and 100% is encoded as 1e18.
    * @param to The address of the beneficiary (Dataset owner)
