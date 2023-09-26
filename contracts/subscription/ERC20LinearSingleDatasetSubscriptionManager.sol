@@ -53,7 +53,7 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
   /**
    * @notice Sets the daily subscription fee for a single consumer
    * @dev Only callable by the DatasetNFT
-   * @param token_ The address of the ERC20 token tp be used for subscription payments, or address(0) for native currency
+   * @param token_ The address of the ERC20 token to be used for subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay_ The fee to set
    */
   function setFee(address token_, uint256 feePerConsumerPerDay_) external onlyDatasetNFT {
@@ -74,7 +74,7 @@ contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubs
 
   /**
    * @notice Should charge the subscriber or revert
-   * @dev Should call IDistributionManager.receivePayment() to distribute the payment
+   * @dev Should call `IDistributionManager.receivePayment()` to distribute the payment
    * @param subscriber Who to charge
    * @param amount Amount to charge
    */
