@@ -48,7 +48,7 @@ contract AcceptManuallyVerifier is IVerifier {
 
   /**
    * @notice Resolves a single contribution proposal
-   * @dev Only callable by the Dataset owner 
+   * @dev Only callable by the Dataset owner
    * @param fragmentNFT The address of the FragmentNFT contract instance
    * @param id The ID of the pending Fragment associated with the contribution proposal
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
