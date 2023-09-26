@@ -33,7 +33,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @dev A Payment contains:
-   *  - The address of the ERC20 payment token (or 0 address for native currency)
+   *  - The address of the ERC20 payment token (or address(0) for native currency)
    *  - The amount to be distributed to contributors
    *  - The index of the snapshot associated with the respective payment (see `FragmentNFT.sol`)
    *  - The version (state) of the tag weights associated with the respective payment
