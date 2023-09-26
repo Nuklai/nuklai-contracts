@@ -3,6 +3,11 @@ pragma solidity ^0.8.0;
 
 import './IDatasetLinkInitializable.sol';
 
+/**
+ * @title DistributionManager Interface 
+ * @notice Defines functions available for Dataset NFT token owner, users, contributors, DatasetNFT & SubscriptionManager contracts
+ * @dev Extends IDatasetLinkInitializable
+ */
 interface IDistributionManager is IDatasetLinkInitializable {
   /**
    * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and
