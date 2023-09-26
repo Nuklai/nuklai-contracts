@@ -7,9 +7,9 @@ pragma solidity ^0.8.0;
  */
 interface IVerifier {
   /**
-   * @notice Adds the fragment ID to the verification queue
+   * @notice Adds the pending Fragment ID to the verification queue
    * @param fragmentNFT The address of the FragmentNFT contract instance
-   * @param id ID of the fragment
+   * @param id ID of the pending Fragment
    * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
    */
   function propose(address fragmentNFT, uint256 id, bytes32 tag) external;
