@@ -56,7 +56,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
   //TODO handle metadata URI stuff
 
   /**
-   * @notice Mints a Dataset NFT token
+   * @notice Mints a Dataset NFT token to `to`
+   * @dev Emits a {Transfer} event
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
@@ -119,7 +120,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @notice Sets the daily subscription fee for a single consumer of a specific Dataset
    * @dev Only callable by the owner of the Dataset NFT token
    * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or the zero address for native currency
+   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay The fee amount to set
    */
   function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external onlyTokenOwner(id) {
@@ -160,7 +161,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * Tags are encodings used as labels to categorize different types of contributions.
    * @dev Only callable by the owner of the Dataset NFT token
    * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or the zero address for native currency
+   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay The fee amount to set
    * @param tags The tags participating in the payment distributions
    * @param weights The weights of the respective tags to set
