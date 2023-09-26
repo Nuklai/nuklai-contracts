@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
@@ -17,9 +17,9 @@ import './interfaces/IFragmentNFT.sol';
  * @author Data Tunnel
  * @notice This contract mints ERC721 tokens, each representing a unique Dataset integrated into the Data Tunnel Protocol.
  * It enables the configuration of Datasets, including their monetization, and maintains a record of these configurations.
- * @dev Extends IDatasetNFT, ERC721 & AccessControl
+ * @dev Extends IDatasetNFT, ERC721Upgradeable & AccessControlUpgradeable
  */
-contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
+contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable {
   string private constant NAME = 'Data Tunnel Dataset';
   string private constant SYMBOL = 'DTDS';
 
@@ -47,8 +47,15 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     _;
   }
 
-  constructor() ERC721(NAME, SYMBOL) {
-    _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
+  /**
+   * @notice Initializes the contract
+   * @dev Sets the name & symbol of the token collection and
+   * grants `DEFAULT_ADMIN_ROLE` role to `admin_`
+   * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
+   */
+  function initialize(address admin_) external initializer {
+    __ERC721_init(NAME, SYMBOL);
+    _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
   //TODO handle metadata URI stuff
@@ -344,7 +351,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    */
   function supportsInterface(
     bytes4 interfaceId
-  ) public view virtual override(IERC165, ERC721, AccessControl) returns (bool) {
+  ) public view virtual override(IERC165Upgradeable, ERC721Upgradeable, AccessControlUpgradeable) returns (bool) {
     return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
   }
 
