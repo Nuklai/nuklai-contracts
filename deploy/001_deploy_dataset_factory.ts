@@ -19,7 +19,22 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('DatasetFactory deployed successfully at', deployedDatasetFactory.address);
 
   const deployedDatasetNFT = await deploy('DatasetNFT', {
+    contract: 'DatasetNFT',
     from: dtAdmin,
+    log: true,
+    proxy: {
+      owner: dtAdmin,
+      proxyContract: 'OptimizedTransparentProxy',
+      execute: {
+        init: {
+          methodName: 'initialize',
+          args: [dtAdmin],
+        },
+      },
+    },
+    nonce: 'pending',
+    waitConfirmations: 1,
+    autoMine: true, // speed up deployment on local network (ganache, hardhat), no effect on live networks
   });
 
   console.log('DatasetNFT deployed successfully at', deployedDatasetNFT.address);
