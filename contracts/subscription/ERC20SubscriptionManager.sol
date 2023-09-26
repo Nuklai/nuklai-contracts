@@ -6,7 +6,7 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './GenericSingleDatasetSubscriptionManager.sol';
 
 /**
- * @title ERC20DatasetSubscriptionManager contract
+ * @title ERC20SubscriptionManager contract
  * @author Data Tunnel
  * @notice This implementation contract handles Dataset subscription operations using ERC20 tokens or native currency as payments.
  *
@@ -21,7 +21,7 @@ import './GenericSingleDatasetSubscriptionManager.sol';
  * with a specific instance of this implementation.
  * @dev Extends GenericSingleDatasetSubscriptionManager
  */
-contract ERC20DatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
+contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
   string internal constant TOKEN_NAME = 'Data Tunnel Subscription';
