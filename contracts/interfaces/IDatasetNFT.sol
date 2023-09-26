@@ -27,7 +27,7 @@ interface IDatasetNFT is IERC721 {
   }
 
   /**
-   * @notice Mints a Dataset NFT token
+   * @notice Mints a Dataset NFT token to `to`
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
@@ -36,7 +36,7 @@ interface IDatasetNFT is IERC721 {
 
   /**
    * @notice Sets a universally unique identifier (UUID) for the next Dataset NFT to be minted
-   * @dev Emits a `DatasetUuidSet` event
+   * @dev Emits a {DatasetUuidSet} event
    * @param uuid Unique identifier to set
    * @return uint256 The ID of the token for which the UUID was set
    */
@@ -45,7 +45,7 @@ interface IDatasetNFT is IERC721 {
   /**
    * @notice Sets and configures the Manager contracts for a specific Dataset NFT
    * @dev Each Dataset NFT token is linked to a unique set of Manager contracts (Distribution, Subscription, Verifier).
-   * Emits a `ManagersConfigChange` event on condition.
+   * Emits a {ManagersConfigChange} event on condition.
    * @param id The ID of the target DatasetNFT token
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
@@ -53,7 +53,7 @@ interface IDatasetNFT is IERC721 {
 
   /**
    * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
-   * @dev Emits a `FragmentInstanceDeployment` event
+   * @dev Emits a {FragmentInstanceDeployment} event
    * @param id The ID of the target Dataset NFT token
    * @return address The address of the deployed FragmentNFT instance
    */
@@ -62,7 +62,7 @@ interface IDatasetNFT is IERC721 {
   /**
    * @notice Sets the daily subscription fee for a single consumer of a specific Dataset
    * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or the zero address for native currency
+   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay The fee amount to set
    */
   function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external;
@@ -91,7 +91,7 @@ interface IDatasetNFT is IERC721 {
    * and the distribution of payments among different tags in a single Tx.
    * Tags are encodings used as labels to categorize different types of contributions.
    * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or the zero address for native currency
+   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay The fee amount to set
    * @param tags The tags participating in the payment distributions
    * @param weights The weights of the respective tags to set
