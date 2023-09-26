@@ -86,10 +86,10 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   }
 
   /**
-   * @notice Adds the fragment ID to the verification queue
+   * @notice Adds the pending Fragment ID to the verification queue
    * @dev Only callable by the respective FragmentNFT contract instance
    * Emits a {FragmentPending} event.
-   * @param id The ID of the pending fragment
+   * @param id The ID of the pending Fragment
    * @param tag The encoded label (Hash of the contribution's name) indicating the type of contribution
    */
   function propose(uint256 id, bytes32 tag) external onlyFragmentNFT {
@@ -105,7 +105,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
    * @notice Resolves a single contribution proposal
    * @dev Only callable by the configured Verifier for the associated tag.
    * Emits a {FragmentResolved} event.
-   * @param id The ID of the pending fragment associated with the contribution proposal
+   * @param id The ID of the pending Fragment associated with the contribution proposal
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(uint256 id, bool accept) external {
