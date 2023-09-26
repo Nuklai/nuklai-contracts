@@ -7,12 +7,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { dtAdmin } = await getNamedAccounts();
 
-  const deployedErc20SubscriptionManager = await deploy(
-    'ERC20SubscriptionManager',
-    {
-      from: dtAdmin,
-    }
-  );
+  const deployedErc20SubscriptionManager = await deploy('ERC20SubscriptionManager', {
+    from: dtAdmin,
+  });
 
   console.log(
     'ERC20SubscriptionManager deployed successfully at',

@@ -91,9 +91,7 @@ const setupOnMint = async () => {
 
   const factories = {
     DistributionManagerFactory: await ethers.getContractFactory('DistributionManager'),
-    ERC20SubscriptionManagerFactory: await ethers.getContractFactory(
-      'ERC20SubscriptionManager'
-    ),
+    ERC20SubscriptionManagerFactory: await ethers.getContractFactory('ERC20SubscriptionManager'),
     VerifierManagerFactory: await ethers.getContractFactory('VerifierManager'),
     AcceptManuallyVerifierFactory: await ethers.getContractFactory('AcceptManuallyVerifier'),
     AcceptAllVerifierFactory: await ethers.getContractFactory('AcceptAllVerifier'),
