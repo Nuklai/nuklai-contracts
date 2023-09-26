@@ -4,7 +4,7 @@ import {
   DatasetFactory,
   DatasetNFT,
   DistributionManager,
-  ERC20LinearSingleDatasetSubscriptionManager,
+  ERC20SubscriptionManager,
   FragmentNFT,
 } from '@typechained';
 import {
@@ -92,7 +92,7 @@ const setupOnMint = async () => {
   const factories = {
     DistributionManagerFactory: await ethers.getContractFactory('DistributionManager'),
     ERC20SubscriptionManagerFactory: await ethers.getContractFactory(
-      'ERC20LinearSingleDatasetSubscriptionManager'
+      'ERC20SubscriptionManager'
     ),
     VerifierManagerFactory: await ethers.getContractFactory('VerifierManager'),
     AcceptManuallyVerifierFactory: await ethers.getContractFactory('AcceptManuallyVerifier'),
@@ -1148,7 +1148,7 @@ describe('DatasetNFT', () => {
       // Currently (see `setup()`) fee is 0.1 & tags = [ZeroHash] with weight 100%
       const subscriptionManager = ERC20SubscriptionManagerFactory_.attach(
         subscriptionAddress
-      ) as unknown as ERC20LinearSingleDatasetSubscriptionManager;
+      ) as unknown as ERC20SubscriptionManager;
       const distributionManager = DistributionManagerFactory_.attach(
         distributionAddress
       ) as unknown as DistributionManager;

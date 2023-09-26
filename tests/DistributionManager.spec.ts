@@ -3,7 +3,7 @@ import {
   DatasetFactory,
   DatasetNFT,
   DistributionManager,
-  ERC20LinearSingleDatasetSubscriptionManager,
+  ERC20SubscriptionManager,
   FragmentNFT,
   TestToken,
   VerifierManager,
@@ -102,9 +102,9 @@ const setup = async () => {
     datasetId,
     DatasetFragment,
     DatasetSubscriptionManager: (await ethers.getContractAt(
-      'ERC20LinearSingleDatasetSubscriptionManager',
+      'ERC20SubscriptionManager',
       await contracts.DatasetNFT.subscriptionManager(datasetId)
-    )) as unknown as ERC20LinearSingleDatasetSubscriptionManager,
+    )) as unknown as ERC20SubscriptionManager,
     DatasetDistributionManager: (await ethers.getContractAt(
       'DistributionManager',
       await contracts.DatasetNFT.distributionManager(datasetId),
@@ -122,7 +122,7 @@ describe('DistributionManager', () => {
   let DatasetNFT_: DatasetNFT;
   let FragmentNFTImplementation_: FragmentNFT;
   let DatasetFragment_: Contract;
-  let DatasetSubscriptionManager_: ERC20LinearSingleDatasetSubscriptionManager;
+  let DatasetSubscriptionManager_: ERC20SubscriptionManager;
   let DatasetDistributionManager_: DistributionManager;
   let DatasetVerifierManager_: VerifierManager;
   let users_: Record<string, Signer>;
