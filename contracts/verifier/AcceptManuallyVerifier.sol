@@ -36,10 +36,10 @@ contract AcceptManuallyVerifier is IVerifier {
   }
 
   /**
-   * @notice Adds the fragment ID to the verification queue
+   * @notice Adds the pending Fragment ID to the verification queue
    * @dev Only callable by the configured VerifierManager contract instance
    * @param fragmentNFT The address of the FragmentNFT contract instance
-   * @param id The ID of the pending fragment
+   * @param id The ID of the pending Fragment
    */
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
     pendingFragments[fragmentNFT].add(id);
@@ -48,8 +48,9 @@ contract AcceptManuallyVerifier is IVerifier {
 
   /**
    * @notice Resolves a single contribution proposal
+   * @dev Only callable by the Dataset owner 
    * @param fragmentNFT The address of the FragmentNFT contract instance
-   * @param id The ID of the pending fragment associated with the contribution proposal
+   * @param id The ID of the pending Fragment associated with the contribution proposal
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(address fragmentNFT, uint256 id, bool accept) external onlyDatasetOwner(fragmentNFT) {
@@ -62,8 +63,9 @@ contract AcceptManuallyVerifier is IVerifier {
 
   /**
    * @notice Resolves a batch of contribution proposals
+   * @dev Only callable by the Dataset owner
    * @param fragmentNFT The address of the FragmentNFT contract instance
-   * @param ids Array with the IDs of the pending fragments in the batch
+   * @param ids Array with the IDs of the pending Fragments in the batch
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolveMany(address fragmentNFT, uint256[] memory ids, bool accept) external onlyDatasetOwner(fragmentNFT) {
