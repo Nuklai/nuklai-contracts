@@ -6,9 +6,9 @@ import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import './GenericSingleDatasetSubscriptionManager.sol';
 
 /**
- * @title ERC20LinearSingleDatasetSubscriptionManager contract
+ * @title ERC20DatasetSubscriptionManager contract
  * @author Data Tunnel
- * @notice This implementation contract handles single Dataset subscription operations using ERC20 tokens or native currency as payments.
+ * @notice This implementation contract handles Dataset subscription operations using ERC20 tokens or native currency as payments.
  *
  * It calculates subscription fees based on a 3rd degree polynomial formula f(x, y, z) where:
  *
@@ -21,7 +21,7 @@ import './GenericSingleDatasetSubscriptionManager.sol';
  * with a specific instance of this implementation.
  * @dev Extends GenericSingleDatasetSubscriptionManager
  */
-contract ERC20LinearSingleDatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
+contract ERC20DatasetSubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
   string internal constant TOKEN_NAME = 'Data Tunnel Subscription';
