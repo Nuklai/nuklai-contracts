@@ -1,5 +1,5 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { DeployFunction } from "hardhat-deploy/types";
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { DeployFunction } from 'hardhat-deploy/types';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -7,29 +7,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { dtAdmin } = await getNamedAccounts();
 
-  const deployedAcceptManuallyVerifier = await deploy(
-    "AcceptManuallyVerifier",
-    {
-      from: dtAdmin,
-    }
-  );
-
-  console.log(
-    "AcceptManuallyVerifier deployed successfully at",
-    deployedAcceptManuallyVerifier.address
-  );
-
-  const deployedAcceptAllVerifier = await deploy("AcceptAllVerifier", {
+  const deployedAcceptManuallyVerifier = await deploy('AcceptManuallyVerifier', {
     from: dtAdmin,
   });
 
   console.log(
-    "AcceptAllVerifier deployed successfully at",
-    deployedAcceptAllVerifier.address
+    'AcceptManuallyVerifier deployed successfully at',
+    deployedAcceptManuallyVerifier.address
   );
 
-  if (process.env.TEST !== "true") await hre.run("etherscan-verify");
+  const deployedAcceptAllVerifier = await deploy('AcceptAllVerifier', {
+    from: dtAdmin,
+  });
+
+  console.log('AcceptAllVerifier deployed successfully at', deployedAcceptAllVerifier.address);
+
+  if (process.env.TEST !== 'true') await hre.run('etherscan-verify');
 };
 
 export default func;
-func.tags = ["DatasetVerifiers"];
+func.tags = ['DatasetVerifiers'];

@@ -1,5 +1,5 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import { DeployFunction } from "hardhat-deploy/types";
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { DeployFunction } from 'hardhat-deploy/types';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts } = hre;
@@ -7,38 +7,29 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const { dtAdmin } = await getNamedAccounts();
 
-  const deployedErc20SubscriptionManager = await deploy(
-    "ERC20LinearSingleDatasetSubscriptionManager",
-    {
-      from: dtAdmin,
-    }
-  );
+  const deployedErc20SubscriptionManager = await deploy('ERC20SubscriptionManager', {
+    from: dtAdmin,
+  });
 
   console.log(
-    "ERC20LinearSingleDatasetSubscriptionManager deployed successfully at",
+    'ERC20SubscriptionManager deployed successfully at',
     deployedErc20SubscriptionManager.address
   );
 
-  const deployedVerifierManager = await deploy("VerifierManager", {
+  const deployedVerifierManager = await deploy('VerifierManager', {
     from: dtAdmin,
   });
 
-  console.log(
-    "VerifierManager deployed successfully at",
-    deployedVerifierManager.address
-  );
+  console.log('VerifierManager deployed successfully at', deployedVerifierManager.address);
 
-  const deployedDistributionManager = await deploy("DistributionManager", {
+  const deployedDistributionManager = await deploy('DistributionManager', {
     from: dtAdmin,
   });
 
-  console.log(
-    "DistributionManager deployed successfully at",
-    deployedDistributionManager.address
-  );
+  console.log('DistributionManager deployed successfully at', deployedDistributionManager.address);
 
-  if (process.env.TEST !== "true") await hre.run("etherscan-verify");
+  if (process.env.TEST !== 'true') await hre.run('etherscan-verify');
 };
 
 export default func;
-func.tags = ["DatasetManagers"];
+func.tags = ['DatasetManagers'];

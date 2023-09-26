@@ -20,7 +20,6 @@ Contributions are recorded on-chain as distinct ERC721 tokens called fragments, 
 
 ---
 
-
 ## Table of Contents
 
 <details>
@@ -42,7 +41,7 @@ To install all the dependencies of this repo, execute the following command:
 yarn
 ```
 
-or 
+or
 
 ```bash
 yarn install
@@ -82,31 +81,44 @@ To generate a coverage report, execute the following command:
 yarn coverage
 ```
 
+### 5. Contracts Size
+
+To generate a contracts size report, execute the following command:
+
+```bash
+yarn contract-size
+```
+
+### 6. Linting
+
+To run linting on all configured source files (`*.sol`, `*.ts`, `*.js`, `*.json`), execute the following command:
+
+```bash
+yarn lint
+```
 
 ## Contributing
 
-1. Fork it or Clone it 
+1. Fork it or Clone it
 2. Create your feature or fix branch (`git checkout -b feature/foo`)
 3. Commit your changes (`git commit -am 'add something'`)
 4. Push the branch (`git push origin feature/foo`)
 5. Create a new Pull Request
 
-
 ## Development guidelines
 
 For best practices and guidelines, read more [here](https://allianceblock.io/).
 
-
 ## Contracts Description
 
-|  Smart Contract   |                                                                Description                                                                 |
-| :---------------: | :----------------------------------------------------------------------------------------------------------------------------------------: |
-| **`DatasetFactory`** |   Enables Dataset owners to seamlessly integrate and configure their Datasets in the protocol, in a single transaction. Each Dataset integration results in the minting of an ERC721 token which is transferred to the respective Dataset owner |
-| **`DatasetNFT`** | The protocol's core extends ERC721 to mint tokens representing unique datasets, enabling dataset configuration, and maintaining a record of these configurations |
-|   **`FragmentNFT`** | An ERC721 extension where each token represents an incorporated  contribution to a specific dataset. Contribution types are encoded as `tags` which are linked to the respective token|
-|   **`DistributionManager`**   | Manages the distribution of fees to dataset owners and contributors. It provides configuration options for fee distribution percentages among parties|
-|   **`GenericSingleDatasetSubscriptionManager`**   | An abstract contract serving as the foundation for managing single dataset subscriptions and related operations |
-|   **`ERC20LinearSingleDatasetSubscriptionManager`**   | Extends the abstract `GenericSingleDatasetSubscriptionManager` contract to handle single dataset subscriptions using ERC20 or native tokens as payment|
-|   **`VerifierManager`**   | Configures and coordinates verifiers for datasets' proposed contributions, handling approval or rejection operations based on the configured verifiers |
-|   **`AcceptManuallyVerifier`**   | Verifier that provides the resolution mechanisms for the Dataset owner to either accept or reject proposed contributions manually |
-|   **`AcceptAllVerifier`**   | Verifier that automatically accepts all proposed contributions by default |
+|                Smart Contract                 |                                                                                                                            Description                                                                                                                            |
+| :-------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+|             **`DatasetFactory`**              | Facilitates the streamlined integration and configuration of Datasets in the Data Tunnel protocol, in a single transaction. Each Dataset integration results in the minting of an ERC721 token (Dataset NFT) which is transferred to the respective Dataset owner |
+|               **`DatasetNFT`**                |                                                 The protocol's core extends ERC721 to mint tokens representing unique datasets, enabling dataset configuration, and maintaining a record of these configurations                                                  |
+|               **`FragmentNFT`**               |                                       An ERC721 extension where each token represents an incorporated contribution to a specific dataset. Contribution types are encoded as `tags` which are linked to the respective token                                       |
+|           **`DistributionManager`**           |                                                       Manages the distribution of fees to dataset owners and contributors. It provides configuration options for fee distribution percentages among parties                                                       |
+| **`GenericSingleDatasetSubscriptionManager`** |                                                                          An abstract contract serving as the foundation for managing single dataset subscriptions and related operations                                                                          |
+|        **`ERC20SubscriptionManager`**         |                                                          Extends the abstract `GenericSingleDatasetSubscriptionManager` contract to handle dataset subscriptions using ERC20 or native tokens as payment                                                          |
+|             **`VerifierManager`**             |                                                      Configures and coordinates verifiers for datasets' proposed contributions, handling approval or rejection operations based on the configured verifiers                                                       |
+|         **`AcceptManuallyVerifier`**          |                                                                 Verifier that provides the resolution mechanisms for the Dataset owner to either accept or reject proposed contributions manually                                                                 |
+|            **`AcceptAllVerifier`**            |                                                                                             Verifier that automatically accepts all proposed contributions by default                                                                                             |
