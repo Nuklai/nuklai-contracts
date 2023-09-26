@@ -44,7 +44,7 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
   /**
    * @notice Retrieves the current value of `mintCounter` which is associated
    * with the ID of the last pending Fragment.
-   * @return uint256 The Id of the last pending Fragment
+   * @return uint256 The ID of the last pending Fragment
    */
   function lastFragmentPendingId() external view returns (uint256);
 
