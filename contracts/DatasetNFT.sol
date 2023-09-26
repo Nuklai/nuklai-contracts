@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts/access/AccessControl.sol';
-//import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
@@ -10,7 +9,6 @@ import '@openzeppelin/contracts/proxy/Clones.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
 import './interfaces/IDistributionManager.sol';
 import './interfaces/ISubscriptionManager.sol';
-//import './interfaces/IVerifierManager.sol';
 import './interfaces/IDatasetNFT.sol';
 import './interfaces/IFragmentNFT.sol';
 
