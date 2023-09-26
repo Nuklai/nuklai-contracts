@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
@@ -16,7 +15,7 @@ import './interfaces/IVerifierManager.sol';
  * @notice This contract mints ERC721 tokens, called Fragments, to contributors,
  * and maintains a record of its state at each subscription payment event.
  * Each Fragment NFT represents an incorporated contribution to the linked Dataset and
- * is associated with a specific tag, indicating the contribution type it represents.
+ * is associated with a specific tag, indicating the contribution type.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
  * @dev Extends IFragmentNFT, ERC721 & Initializable
@@ -249,7 +248,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
   /**
    * @notice Retrieves the current value of `mintCounter` which is associated
    * with the ID of the last pending Fragment.
-   * @return uint256 The Id of the last pending Fragment
+   * @return uint256 The ID of the last pending Fragment
    */
   function lastFragmentPendingId() external view returns (uint256) {
     return mintCounter;
