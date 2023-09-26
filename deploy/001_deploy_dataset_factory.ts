@@ -43,7 +43,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('DatasetNFT granted role to', dtAdmin);
 
   const subscriptionManager = await ethers.getContract(
-    'ERC20DatasetSubscriptionManager'
+    'ERC20SubscriptionManager'
   );
   const distributionManager = await ethers.getContract('DistributionManager');
   const verifierManager = await ethers.getContract('VerifierManager');

@@ -8,14 +8,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { dtAdmin } = await getNamedAccounts();
 
   const deployedErc20SubscriptionManager = await deploy(
-    'ERC20DatasetSubscriptionManager',
+    'ERC20SubscriptionManager',
     {
       from: dtAdmin,
     }
   );
 
   console.log(
-    'ERC20DatasetSubscriptionManager deployed successfully at',
+    'ERC20SubscriptionManager deployed successfully at',
     deployedErc20SubscriptionManager.address
   );
 
