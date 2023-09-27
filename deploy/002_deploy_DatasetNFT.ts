@@ -1,6 +1,6 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import {DatasetNFT } from '@typechained';
+import { DatasetNFT } from '@typechained';
 import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -18,7 +18,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('ProxyAdmin: ', proxyAdminAddress);
   console.log('DT admin: ', dtAdmin);
-  
+
   const deployedDatasetNFT = await deploy('DatasetNFT', {
     contract: 'DatasetNFT',
     from: dtAdmin,
@@ -32,9 +32,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           args: [dtAdmin],
         },
       },
-    }
+    },
   });
-  
+
   console.log('DatasetNFT deployed successfully at', deployedDatasetNFT.address);
 
   const dataset: DatasetNFT = await ethers.getContractAtWithSignerAddress(

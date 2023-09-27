@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import './interfaces/IDatasetNFT.sol';
-import './verifier/VerifierManager.sol';
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "./interfaces/IDatasetNFT.sol";
+import "./verifier/VerifierManager.sol";
 
 /**
  * @title DatasetFactory contract
@@ -36,10 +36,10 @@ contract DatasetFactory is Ownable {
     address distributionManager,
     address verifierManager
   ) external onlyOwner {
-    require(dataset != address(0), 'incorrect dataset address');
-    require(subscriptionManager != address(0), 'incorect subscriptionManager address');
-    require(distributionManager != address(0), 'incorect distributionManager address');
-    require(verifierManager != address(0), 'incorect verifierManager address');
+    require(dataset != address(0), "incorrect dataset address");
+    require(subscriptionManager != address(0), "incorect subscriptionManager address");
+    require(distributionManager != address(0), "incorect distributionManager address");
+    require(verifierManager != address(0), "incorect verifierManager address");
     datasetNFT = IDatasetNFT(dataset);
     subscriptionManagerImpl = subscriptionManager;
     distributionManagerImpl = distributionManager;

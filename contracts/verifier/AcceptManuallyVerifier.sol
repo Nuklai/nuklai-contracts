@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
-import '../interfaces/IVerifier.sol';
-import './VerifierManager.sol';
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "../interfaces/IVerifier.sol";
+import "./VerifierManager.sol";
 
 /**
  * @title AcceptManuallyVerifier contract
@@ -23,7 +23,7 @@ contract AcceptManuallyVerifier is IVerifier {
     address verifierManager = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(verifierManager == msg.sender, 'Not a VeriferManager');
+    require(verifierManager == msg.sender, "Not a VeriferManager");
     _;
   }
 
@@ -31,7 +31,7 @@ contract AcceptManuallyVerifier is IVerifier {
     address datasetOwner = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).ownerOf(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(datasetOwner == msg.sender, 'Not a Dataset owner');
+    require(datasetOwner == msg.sender, "Not a Dataset owner");
     _;
   }
 

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import './GenericSingleDatasetSubscriptionManager.sol';
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./GenericSingleDatasetSubscriptionManager.sol";
 
 /**
  * @title ERC20SubscriptionManager contract
@@ -24,14 +24,14 @@ import './GenericSingleDatasetSubscriptionManager.sol';
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant TOKEN_NAME = 'Data Tunnel Subscription';
-  string internal constant TOKEN_SYMBOL = 'DTSUB';
+  string internal constant TOKEN_NAME = "Data Tunnel Subscription";
+  string internal constant TOKEN_SYMBOL = "DTSUB";
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
 
   modifier onlyDatasetNFT() {
-    require(address(dataset) == _msgSender(), 'Only DatasetNFT');
+    require(address(dataset) == _msgSender(), "Only DatasetNFT");
     _;
   }
 

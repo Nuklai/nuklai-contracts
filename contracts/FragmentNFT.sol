@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableMap.sol';
-import '@openzeppelin/contracts/utils/Arrays.sol';
-import './interfaces/IFragmentNFT.sol';
-import './interfaces/IVerifierManager.sol';
+import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/Arrays.sol";
+import "./interfaces/IFragmentNFT.sol";
+import "./interfaces/IVerifierManager.sol";
 
 /**
  * @title FragmentNFT contract
@@ -23,8 +23,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Arrays for uint256[];
 
-  string private constant NAME = 'Data Tunnel Fragment';
-  string private constant SYMBOL = 'DTF';
+  string private constant NAME = "Data Tunnel Fragment";
+  string private constant SYMBOL = "DTF";
 
   event FragmentPending(uint256 id, bytes32 tag);
   event FragmentAccepted(uint256 id);
@@ -124,7 +124,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @return counts An array containing the respective counts of the tags
    */
   function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
-    require(snapshotId < snapshots.length, 'bad snapshot id');
+    require(snapshotId < snapshots.length, "bad snapshot id");
     EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[snapshotId].totalTagCount;
     tags_ = tagCount.keys();
 
@@ -150,7 +150,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     uint256 snapshotId,
     address account
   ) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
-    require(snapshotId < snapshots.length, 'bad snapshot id');
+    require(snapshotId < snapshots.length, "bad snapshot id");
     EnumerableMap.Bytes32ToUintMap storage tagCount = snapshots[_findAccountSnapshotId(account, snapshotId)]
       .accountTagCount[account];
     tags_ = tagCount.keys();
@@ -175,7 +175,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     address account,
     bytes32[] calldata tags_
   ) external view returns (uint256[] memory percentages) {
-    require(snapshotId < snapshots.length, 'bad snapshot id');
+    require(snapshotId < snapshots.length, "bad snapshot id");
     uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
     EnumerableMap.Bytes32ToUintMap storage totalTagCount = snapshots[latestAccountSnapshot].totalTagCount;
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = snapshots[latestAccountSnapshot].accountTagCount[account];
@@ -228,7 +228,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     bytes32[] memory tags_,
     bytes calldata signature
   ) external onlyDatasetNFT {
-    require(tags_.length == owners.length, 'invalid length of fragments items');
+    require(tags_.length == owners.length, "invalid length of fragments items");
     bytes32 msgHash = _proposeManyMessageHash(mintCounter + 1, mintCounter + tags_.length, owners, tags_);
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
@@ -264,7 +264,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    */
   function accept(uint256 id) external onlyVerifierManager {
     address to = pendingFragmentOwners[id];
-    require(!_exists(id) && to != address(0), 'Not a pending fragment');
+    require(!_exists(id) && to != address(0), "Not a pending fragment");
     delete pendingFragmentOwners[id];
     _safeMint(to, id);
     emit FragmentAccepted(id);
@@ -278,7 +278,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    */
   function reject(uint256 id) external onlyVerifierManager {
     address to = pendingFragmentOwners[id];
-    require(!_exists(id) && to != address(0), 'Not a pending fragment');
+    require(!_exists(id) && to != address(0), "Not a pending fragment");
     delete pendingFragmentOwners[id];
     delete tags[id];
     emit FragmentRejected(id);
@@ -307,7 +307,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @param interfaceId The interface ID to check
    * @return bool true if it is supported, false if it is not
    */
-  function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165Upgradeable, ERC721Upgradeable) returns (bool) {
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override(IERC165Upgradeable, ERC721Upgradeable) returns (bool) {
     return interfaceId == type(IFragmentNFT).interfaceId || super.supportsInterface(interfaceId);
   }
 
@@ -470,7 +472,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @param to The target map where key-value pairs are copied to
    */
   function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
-    require(to.length() == 0, 'target should be empty');
+    require(to.length() == 0, "target should be empty");
     uint256 length = from.length();
     for (uint256 i; i < length; i++) {
       (bytes32 k, uint256 v) = from.at(i);
