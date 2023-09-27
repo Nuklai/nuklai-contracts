@@ -35,10 +35,13 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
   event FragmentRemoved(uint256 id);
 
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
+  error BAD_SNAPSHOT_ID(uint256 currentId, uint256 targetId);
   error NOT_DATASET_OWNER(address account);
   error NOT_VERIFIER_MANAGER(address account);
   error NOT_DISTRIBUTION_MANAGER(address account);
   error NOT_DATASET_NFT(address account);
+  error NOT_PENDING_FRAGMENT(uint256 id);
+  error ARRAY_LENGTH_MISMATCH();
 
   /**
    * @dev A Snapshot contains:
@@ -124,7 +127,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    * @return counts An array containing the respective counts of the tags
    */
   function tagCountAt(uint256 snapshotId) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
-    require(snapshotId < _snapshots.length, 'bad snapshot id');
+    if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     EnumerableMap.Bytes32ToUintMap storage tagCount = _snapshots[snapshotId].totalTagCount;
     tags_ = tagCount.keys();
 
@@ -150,7 +153,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     uint256 snapshotId,
     address account
   ) external view returns (bytes32[] memory tags_, uint256[] memory counts) {
-    require(snapshotId < _snapshots.length, 'bad snapshot id');
+    if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     EnumerableMap.Bytes32ToUintMap storage tagCount = _snapshots[_findAccountSnapshotId(account, snapshotId)]
       .accountTagCount[account];
     tags_ = tagCount.keys();
@@ -175,7 +178,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     address account,
     bytes32[] calldata tags_
   ) external view returns (uint256[] memory percentages) {
-    require(snapshotId < _snapshots.length, 'bad snapshot id');
+    if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
     EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestAccountSnapshot].totalTagCount;
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = _snapshots[latestAccountSnapshot].accountTagCount[account];
@@ -228,7 +231,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     bytes32[] memory tags_,
     bytes calldata signature
   ) external onlyDatasetNFT {
-    require(tags_.length == owners.length, 'invalid length of fragments items');
+    if (tags_.length != owners.length) revert ARRAY_LENGTH_MISMATCH();
     bytes32 msgHash = _proposeManyMessageHash(_mintCounter + 1, _mintCounter + tags_.length, owners, tags_);
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
@@ -264,7 +267,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    */
   function accept(uint256 id) external onlyVerifierManager {
     address to = pendingFragmentOwners[id];
-    require(!_exists(id) && to != address(0), 'Not a pending fragment');
+    if (_exists(id) || to == address(0)) revert NOT_PENDING_FRAGMENT(id);
     delete pendingFragmentOwners[id];
     _safeMint(to, id);
     emit FragmentAccepted(id);
@@ -278,7 +281,7 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    */
   function reject(uint256 id) external onlyVerifierManager {
     address to = pendingFragmentOwners[id];
-    require(!_exists(id) && to != address(0), 'Not a pending fragment');
+    if (_exists(id) || to == address(0)) revert NOT_PENDING_FRAGMENT(id);
     delete pendingFragmentOwners[id];
     delete tags[id];
     emit FragmentRejected(id);
@@ -349,7 +352,9 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
    */
   function _updateAccountSnapshot(address account, uint256 firstTokenId, uint256 batchSize, bool add) private {
     uint256 currentSnapshot = _currentSnapshot();
-    EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = _snapshots[currentSnapshot].accountTagCount[account];
+    EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = _snapshots[currentSnapshot].accountTagCount[
+      account
+    ];
     uint256 lastAccountSnapshot = _lastUint256ArrayElement(_accountSnapshotIds[account]);
     if (lastAccountSnapshot < currentSnapshot) {
       _copy(_snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
