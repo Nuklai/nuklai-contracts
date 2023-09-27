@@ -16,6 +16,9 @@ import {VerifierManager} from './VerifierManager.sol';
 contract AcceptManuallyVerifier is IVerifier {
   using EnumerableSet for EnumerableSet.UintSet;
 
+  error NOT_DATASET_OWNER(address account);
+  error NOT_VERIFIER_MANAGER(address account);
+
   event FragmentPending(address fragmentNFT, uint256 id);
   event FragmentResolved(address fragmentNFT, uint256 id, bool accept);
 
@@ -25,7 +28,7 @@ contract AcceptManuallyVerifier is IVerifier {
     address verifierManager = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(verifierManager == msg.sender, 'Not a VeriferManager');
+    if (verifierManager != msg.sender) revert NOT_VERIFIER_MANAGER(msg.sender);
     _;
   }
 
@@ -33,7 +36,7 @@ contract AcceptManuallyVerifier is IVerifier {
     address datasetOwner = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).ownerOf(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(datasetOwner == msg.sender, 'Not a Dataset owner');
+    if (datasetOwner != msg.sender) revert NOT_DATASET_OWNER(msg.sender);
     _;
   }
 
