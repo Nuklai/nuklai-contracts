@@ -350,7 +350,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   /**
    * @notice Checks whether the interface ID provided is supported by this Contract
-   * @dev For more information, see `ERC165`
+   * @dev For more information, see `EIP-165`
    * @param interfaceId The interface ID to check
    * @return bool true if it is supported, false if it is not
    */
