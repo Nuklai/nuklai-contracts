@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import '@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol';
 import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol';
+import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/Address.sol';
 import '@openzeppelin/contracts/proxy/Clones.sol';
@@ -11,6 +12,7 @@ import './interfaces/IDistributionManager.sol';
 import './interfaces/ISubscriptionManager.sol';
 import './interfaces/IDatasetNFT.sol';
 import './interfaces/IFragmentNFT.sol';
+
 
 /**
  * @title DatasetNFT contract
@@ -32,6 +34,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
+  address private proxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
   uint256 internal mintCounter;
@@ -59,6 +62,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
+    require(admin_ != address(0), "Wrong initialization input");
     __ERC721_init(NAME, SYMBOL);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
@@ -232,6 +236,18 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
+   * @notice Sets the address of the ProxyAdmin contract
+   * @dev The ProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
+   * of FragmentNFT instances.
+   * Only callable by DatasetNFT ADMIN
+   * @param proxyAdmin_ The address to set
+   */
+  function setProxyAdminAddress(address proxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(Address.isContract(proxyAdmin_), "invalid proxyAdmin address");
+    proxyAdmin = proxyAdmin_;
+  }
+
+  /**
    * @notice Sets the address of the FragmentNFT implementation contract
    * @dev FragmentNFT is an ERC721 extension enabling on-chain integration of contributions to Datasets
    * Only callable by DatasetNFT ADMIN
@@ -246,7 +262,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
-   * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
+   * @notice Deploys a TransparentUpgradeableProxy of the FragmentNFT implementation contract for a specific Dataset
    * @dev Only callable by the owner of the Dataset NFT token.
    * Emits a {FragmentInstanceDeployment} event.
    * @param id The ID of the target Dataset NFT token
@@ -255,7 +271,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns (address) {
     require(fragmentImplementation != address(0), 'fragment creation disabled');
     require(address(fragments[id]) == address(0), 'fragment instance already deployed');
-    IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
+    IFragmentNFT instance = IFragmentNFT(_deployTransparentProxyAndInitialize(fragmentImplementation, id));
     fragments[id] = instance;
     emit FragmentInstanceDeployment(id, address(instance));
     return address(instance);
@@ -362,7 +378,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   /**
    * @notice Internal function for cloning, and initializing the given implementation contract
-   * @dev The deployed proxy is linked to the specified Dataset
+   * @dev The deployed proxy (minimal proxy) is linked to the specified Dataset.
+   * Only used for cloning the Manager implementation contracts. 
    * @param implementation The address of the target implementation contract
    * @param datasetId The ID of the target Dataset NFT token
    * @return proxy The address of the deployed proxy
@@ -371,6 +388,21 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     require(implementation != address(0), 'bad implementation address');
     proxy = Clones.clone(implementation);
     IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
+  }
+
+  /**
+   * @notice Deploys and initializes a TransparentUpgradeableProxy for the `implementation` contract
+   * @dev The TransparentUpgradeableProxy is linked to the specified Dataset.
+   * The admin of the TransparentUpgradeableProxy is the proxyAdmin.
+   * Only used for deploying FragmentNFT upgradeable instances.
+   * @param implementation The address of the implementation contract
+   * @param datasetId The ID of the target Dataset NFT token
+   * @return proxy The address of the deployed TransparentUpgradeableProxy
+   */
+  function _deployTransparentProxyAndInitialize(address implementation, uint256 datasetId) internal returns (address proxy) {
+    require(implementation != address(0), 'bad implementation address');
+    bytes memory intializePayload = abi.encodeWithSelector(IFragmentNFT.initialize.selector, address(this), datasetId);
+    return address(new TransparentUpgradeableProxy(implementation, proxyAdmin, intializePayload));
   }
 
   /**
