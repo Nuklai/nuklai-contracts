@@ -22,8 +22,8 @@ import {IFragmentNFT} from './interfaces/IFragmentNFT.sol';
  * @dev Extends IDatasetNFT, ERC721 & AccessControl
  */
 contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
-  string private constant NAME = 'Data Tunnel Dataset';
-  string private constant SYMBOL = 'DTDS';
+  string private constant _NAME = 'Data Tunnel Dataset';
+  string private constant _SYMBOL = 'DTDS';
 
   bytes32 public constant SIGNER_ROLE = keccak256('SIGNER_ROLE');
 
@@ -36,7 +36,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
-  uint256 internal mintCounter;
+  uint256 internal _mintCounter;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
@@ -49,7 +49,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     _;
   }
 
-  constructor() ERC721(NAME, SYMBOL) {
+  constructor() ERC721(_NAME, _SYMBOL) {
     _grantRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
 
@@ -63,15 +63,15 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @return uin256 ID of the minted token
    */
   function mint(address to, bytes calldata signature) external returns (uint256) {
-    require(!Strings.equal(uuids[mintCounter], ''), 'No uuid set for data set id');
-    bytes32 msgHash = _mintMessageHash(mintCounter);
+    require(!Strings.equal(uuids[_mintCounter], ''), 'No uuid set for data set id');
+    bytes32 msgHash = _mintMessageHash(_mintCounter);
     address signer = ECDSA.recover(msgHash, signature);
 
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    _mint(to, mintCounter);
+    _mint(to, _mintCounter);
 
-    return mintCounter;
+    return _mintCounter;
   }
 
   /**
@@ -82,7 +82,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @return ds The ID of the token for which the UUID was set
    */
   function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
-    ds = ++mintCounter;
+    ds = ++_mintCounter;
     uuids[ds] = uuid;
 
     emit DatasetUuidSet(uuid, ds);

@@ -19,7 +19,7 @@ contract AcceptManuallyVerifier is IVerifier {
   event FragmentPending(address fragmentNFT, uint256 id);
   event FragmentResolved(address fragmentNFT, uint256 id, bool accept);
 
-  mapping(address fragmentNFT => EnumerableSet.UintSet) internal pendingFragments;
+  mapping(address fragmentNFT => EnumerableSet.UintSet) internal _pendingFragments;
 
   modifier onlyVerifierManager(address fragmentNFT) {
     address verifierManager = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(
@@ -44,7 +44,7 @@ contract AcceptManuallyVerifier is IVerifier {
    * @param id The ID of the pending Fragment
    */
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
-    pendingFragments[fragmentNFT].add(id);
+    _pendingFragments[fragmentNFT].add(id);
     emit FragmentPending(fragmentNFT, id);
   }
 

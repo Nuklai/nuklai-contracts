@@ -24,7 +24,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   uint256 public datasetId;
   address public defaultVerifier;
   mapping(bytes32 tag => address verifier) public verifiers;
-  mapping(uint256 id => bytes32 tag) internal pendingFragmentTags;
+  mapping(uint256 id => bytes32 tag) internal _pendingFragmentTags;
 
   modifier onlyDatasetOwner() {
     require(dataset.ownerOf(datasetId) == _msgSender(), 'Not a Dataset owner');
@@ -96,7 +96,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
     address verifier = _verifierForTag(tag);
     require(verifier != address(0), 'verifier not set');
 
-    pendingFragmentTags[id] = tag;
+    _pendingFragmentTags[id] = tag;
     IVerifier(verifier).propose(_msgSender(), id, tag);
     emit FragmentPending(id);
   }
@@ -109,11 +109,11 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(uint256 id, bool accept) external {
-    bytes32 tag = pendingFragmentTags[id];
+    bytes32 tag = _pendingFragmentTags[id];
     address verifier = _verifierForTag(tag);
     require(verifier == _msgSender(), 'Wrong verifier');
     IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
-    delete pendingFragmentTags[id];
+    delete _pendingFragmentTags[id];
     if (accept) {
       fragmentNFT.accept(id);
     } else {

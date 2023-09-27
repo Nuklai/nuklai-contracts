@@ -26,8 +26,8 @@ import {GenericSingleDatasetSubscriptionManager} from './GenericSingleDatasetSub
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant TOKEN_NAME = 'Data Tunnel Subscription';
-  string internal constant TOKEN_SYMBOL = 'DTSUB';
+  string internal constant _NAME = 'Data Tunnel Subscription';
+  string internal constant _SYMBOL = 'DTSUB';
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
@@ -37,7 +37,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
     _;
   }
 
-  constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
+  constructor() ERC721(_NAME, _SYMBOL) {
     _disableInitializers();
   }
 
@@ -70,7 +70,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @return address The address of the ERC20 token used as payment, or address(0) for native currency
    * @return uint256 The calculated fee
    */
-  function calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
+  function _calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
     return (address(token), feePerConsumerPerDay * durationInDays * consumers);
   }
 
@@ -80,7 +80,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @param subscriber Who to charge
    * @param amount Amount to charge
    */
-  function charge(address subscriber, uint256 amount) internal override {
+  function _charge(address subscriber, uint256 amount) internal override {
     token.safeTransferFrom(subscriber, address(this), amount);
     address distributionManager = dataset.distributionManager(datasetId);
     token.approve(distributionManager, amount);
