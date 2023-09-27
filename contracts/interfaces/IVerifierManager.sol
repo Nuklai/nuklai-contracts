@@ -2,7 +2,6 @@
 pragma solidity ^0.8.0;
 
 import {IDatasetLinkInitializable} from './IDatasetLinkInitializable.sol';
-import {IFragmentNFT} from './IFragmentNFT.sol';
 
 interface IVerifierManager is IDatasetLinkInitializable {
   /**
