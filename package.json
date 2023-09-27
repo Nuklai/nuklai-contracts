@@ -9,7 +9,7 @@
     "typechain": "yarn hardhat typechain",
     "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
-    "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
+    "test": "npx hardhat test tests/index.spec.ts",
     "lint:check": "cross-env prettier --check .",
     "lint": "cross-env prettier --write .",
     "clean": "npx hardhat clean"
