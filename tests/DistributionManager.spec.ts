@@ -20,7 +20,7 @@ import { setupUsers, Signer } from './utils/users';
 import { encodeTag } from './utils/utils';
 
 const setup = async () => {
-  await deployments.fixture(['DatasetFactory', 'DatasetVerifiers']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory', 'TestToken']);
 
   const users = await setupUsers();
 
@@ -116,6 +116,7 @@ const setup = async () => {
   };
 };
 
+export default async function suite(): Promise<void> {
 describe('DistributionManager', () => {
   let snap: string;
   let DatasetFactory_: DatasetFactory;
@@ -2080,3 +2081,4 @@ describe('DistributionManager', () => {
     ).to.equal(parseUnits('3020.976', 18));
   });
 });
+}

@@ -13,6 +13,7 @@ const setup = async () => {
   };
 };
 
+export default async function suite(): Promise<void> {
 describe('TestToken', () => {
   it('Should admin mint tokens', async function () {
     const { users } = await setup();
@@ -22,3 +23,4 @@ describe('TestToken', () => {
       .withArgs(ZeroAddress, users.user.address, parseUnits('100', 18));
   });
 });
+}

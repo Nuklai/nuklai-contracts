@@ -16,7 +16,7 @@ import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
 
 const setup = async () => {
-  await deployments.fixture(['DatasetFactory', 'DatasetVerifiers']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory', 'TestToken']);
 
   const contracts = {
     DatasetFactory: (await ethers.getContract('DatasetFactory')) as DatasetFactory,
@@ -125,6 +125,7 @@ const setupOnSubscribe = async () => {
   };
 };
 
+export default async function suite(): Promise<void> {
 describe('SubscriptionManager', () => {
   let snap: string;
   let DatasetFactory_: DatasetFactory;
@@ -831,3 +832,4 @@ describe('SubscriptionManager', () => {
     });
   });
 });
+}

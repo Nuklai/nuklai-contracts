@@ -33,7 +33,7 @@ import {
 } from './utils/selectors';
 
 async function setup() {
-  await deployments.fixture(['DatasetFactory', 'DatasetVerifiers']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory', 'TestToken']);
 
   const users = await setupUsers();
 
@@ -50,7 +50,7 @@ async function setup() {
 }
 
 const setupOnMint = async () => {
-  await deployments.fixture(['DatasetFactory']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory']);
 
   const contracts = {
     DatasetNFT: (await ethers.getContract('DatasetNFT')) as DatasetNFT,
@@ -114,7 +114,7 @@ const setupOnMint = async () => {
 };
 
 // ---------------------------------------------------------------------------------------------------
-
+export default async function suite(): Promise<void> {
 describe('DatasetNFT', () => {
   let snap: string;
   let users_: Record<string, Signer>;
@@ -1195,3 +1195,4 @@ describe('DatasetNFT', () => {
     });
   });
 });
+}

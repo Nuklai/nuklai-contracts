@@ -1,4 +1,4 @@
-import { expect } from 'chai';
+import chai, { expect } from 'chai';
 import { deployments, ethers } from 'hardhat';
 import { DatasetFactory, DatasetNFT, FragmentNFT } from '@typechained';
 import { ZeroAddress } from 'ethers';
@@ -6,7 +6,7 @@ import { setupUsers } from './utils/users';
 import { Signer } from './utils/users';
 
 async function setup() {
-  await deployments.fixture(['DatasetFactory', 'DatasetVerifiers']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory']);
 
   const users = await setupUsers();
 
@@ -21,7 +21,7 @@ async function setup() {
     ...contracts,
   };
 }
-
+export default async function suite(): Promise<void> {
 describe('DatasetFactory', () => {
   let snap: string;
   let users_: Record<string, Signer>;
@@ -106,3 +106,4 @@ describe('DatasetFactory', () => {
     ).to.be.revertedWith('incorect verifierManager address');
   });
 });
+}

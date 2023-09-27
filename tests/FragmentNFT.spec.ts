@@ -21,7 +21,7 @@ import {
 } from './utils/selectors';
 
 const setup = async () => {
-  await deployments.fixture(['DatasetFactory', 'DatasetVerifiers']);
+  await deployments.fixture(['ProxyAdmin', 'FragmentNFT', 'DatasetNFT', 'DatasetManagers', 'DatasetVerifiers', 'DatasetFactory', 'TestToken']);
 
   const users = await setupUsers();
 
@@ -121,6 +121,7 @@ const setup = async () => {
   };
 };
 
+export default async function suite(): Promise<void> {
 describe('FragmentNFT', () => {
   let snap: string;
   let DatasetFactory_: DatasetFactory;
@@ -581,3 +582,4 @@ describe('FragmentNFT', () => {
     expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
   });
 });
+}
