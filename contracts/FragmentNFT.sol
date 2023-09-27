@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol';
 import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
 import '@openzeppelin/contracts/utils/structs/EnumerableMap.sol';
 import '@openzeppelin/contracts/utils/Arrays.sol';
@@ -18,9 +17,9 @@ import './interfaces/IVerifierManager.sol';
  * is associated with a specific tag, indicating the contribution type.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends IFragmentNFT, ERC721 & Initializable
+ * @dev Extends IFragmentNFT, ERC721Upgradeable
  */
-contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
+contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Arrays for uint256[];
 
@@ -76,16 +75,19 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
     _;
   }
 
-  constructor() ERC721(NAME, SYMBOL) {
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
     _disableInitializers();
   }
 
   /**
    * @notice Initializes the FragmentNFT contract
+   * @dev Sets the name & symbol of the token collection
    * @param dataset_ The address of the DatasetNFT contract
    * @param datasetId_ The ID of the target Dataset NFT token
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
+    __ERC721_init(NAME, SYMBOL);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     snapshots.push();
@@ -301,11 +303,11 @@ contract FragmentNFT is IFragmentNFT, ERC721, Initializable {
 
   /**
    * @notice Checks whether the interface ID provided is supported by this Contract
-   * @dev For more information, see `ERC165`
+   * @dev For more information, see `EIP-165`
    * @param interfaceId The interface ID to check
    * @return bool true if it is supported, false if it is not
    */
-  function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165, ERC721) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override(IERC165Upgradeable, ERC721Upgradeable) returns (bool) {
     return interfaceId == type(IFragmentNFT).interfaceId || super.supportsInterface(interfaceId);
   }
 
