@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+//import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import '@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol';
 import './IDatasetLinkInitializable.sol';
 import './IDatasetNFT.sol';
 
 /**
  * @title Interface of FragmentNFT implementation contract
  * @notice Defines functions available for users, Dataset NFT token owner, DistributionManager & VerifierManager contracts
- * @dev Extends IDatasetLinkInitializable` and IERC721
+ * @dev Extends IDatasetLinkInitializable` and IERC721Upgradeable
  */
-interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
+interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
   /**
    * @notice Retrieves the instance of the DatasetNFT set in the
    * respective instance of the FragmentNFT implementation contract
@@ -22,6 +23,14 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721 {
    * the respective instance of the FragmentNFT implementation contract
    */
   function datasetId() external returns (uint256);
+
+  /**
+   * @notice Intialization function
+   * @dev Sets the address of the DatasetNFT contract and the ID of the Dataset NFT token
+   * @param dataset The address of the DatasetNFT contract
+   * @param datasetId The ID of the Dataset NFT token
+   */
+  function initialize(address dataset, uint256 datasetId) external;
 
   /**
    * @notice Proposes a specific type of contribution and sets the respetive Fragment as Pending
