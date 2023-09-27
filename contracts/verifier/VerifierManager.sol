@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol';
-import '../interfaces/IDatasetNFT.sol';
-import '../interfaces/IFragmentNFT.sol';
-import '../interfaces/IVerifierManager.sol';
-import '../interfaces/IVerifier.sol';
+import {ContextUpgradeable} from '@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol';
+import {IDatasetNFT} from '../interfaces/IDatasetNFT.sol';
+import {IFragmentNFT} from '../interfaces/IFragmentNFT.sol';
+import {IVerifierManager} from '../interfaces/IVerifierManager.sol';
+import {IVerifier} from '../interfaces/IVerifier.sol';
 
 /**
  * @title VerifierManager contract

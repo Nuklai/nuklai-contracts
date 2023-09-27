@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
-import '../interfaces/IVerifier.sol';
-import './VerifierManager.sol';
+import {EnumerableSet} from '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import {IDatasetNFT} from '../interfaces/IDatasetNFT.sol';
+import {IFragmentNFT} from '../interfaces/IFragmentNFT.sol';
+import {IVerifier} from '../interfaces/IVerifier.sol';
+import {VerifierManager} from './VerifierManager.sol';
 
 /**
  * @title AcceptManuallyVerifier contract

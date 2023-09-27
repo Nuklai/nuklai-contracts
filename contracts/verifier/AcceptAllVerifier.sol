@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '../interfaces/IVerifier.sol';
-import './VerifierManager.sol';
+import {IVerifier} from '../interfaces/IVerifier.sol';
+import {VerifierManager} from './VerifierManager.sol';
 
 /**
  * @title AcceptAllVerifier contract

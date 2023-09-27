@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/Ownable.sol';
-import './interfaces/IDatasetNFT.sol';
-import './verifier/VerifierManager.sol';
+import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
+import {IDatasetNFT} from './interfaces/IDatasetNFT.sol';
+import {VerifierManager} from './verifier/VerifierManager.sol';
 
 /**
  * @title DatasetFactory contract

@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/access/AccessControl.sol';
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
-import '@openzeppelin/contracts/proxy/Clones.sol';
-import '@openzeppelin/contracts/utils/Strings.sol';
-import './interfaces/IDistributionManager.sol';
-import './interfaces/ISubscriptionManager.sol';
-import './interfaces/IDatasetNFT.sol';
-import './interfaces/IFragmentNFT.sol';
+import {IERC165} from '@openzeppelin/contracts/interfaces/IERC165.sol';
+import {AccessControl} from '@openzeppelin/contracts/access/AccessControl.sol';
+import {ERC721} from '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import {ECDSA} from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import {Address} from '@openzeppelin/contracts/utils/Address.sol';
+import {Clones} from '@openzeppelin/contracts/proxy/Clones.sol';
+import {Strings} from '@openzeppelin/contracts/utils/Strings.sol';
+import {IDatasetLinkInitializable} from './interfaces/IDatasetLinkInitializable.sol';
+import {IDistributionManager} from './interfaces/IDistributionManager.sol';
+import {ISubscriptionManager} from './interfaces/ISubscriptionManager.sol';
+import {IDatasetNFT} from './interfaces/IDatasetNFT.sol';
+import {IFragmentNFT} from './interfaces/IFragmentNFT.sol';
 
 /**
  * @title DatasetNFT contract

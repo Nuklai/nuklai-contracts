@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
-import '../interfaces/ISubscriptionManager.sol';
-import '../interfaces/IDatasetNFT.sol';
+import {Initializable} from '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
+import {EnumerableSet} from '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
+import {ERC721Enumerable} from '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
+import {ISubscriptionManager} from '../interfaces/ISubscriptionManager.sol';
+import {IDatasetNFT} from '../interfaces/IDatasetNFT.sol';
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract

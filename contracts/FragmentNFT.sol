@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableMap.sol';
-import '@openzeppelin/contracts/utils/Arrays.sol';
-import './interfaces/IFragmentNFT.sol';
-import './interfaces/IVerifierManager.sol';
+import {IERC165} from '@openzeppelin/contracts/interfaces/IERC165.sol';
+import {ERC721} from '@openzeppelin/contracts/token/ERC721/ERC721.sol';
+import {Initializable} from '@openzeppelin/contracts/proxy/utils/Initializable.sol';
+import {ECDSA} from '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
+import {EnumerableMap} from '@openzeppelin/contracts/utils/structs/EnumerableMap.sol';
+import {Arrays} from '@openzeppelin/contracts/utils/Arrays.sol';
+import {IDatasetNFT} from './interfaces/IDatasetNFT.sol';
+import {IFragmentNFT} from './interfaces/IFragmentNFT.sol';
+import {IVerifierManager} from './interfaces/IVerifierManager.sol';
 
 /**
  * @title FragmentNFT contract
