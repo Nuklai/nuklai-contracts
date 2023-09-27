@@ -13,6 +13,8 @@ import {VerifierManager} from './verifier/VerifierManager.sol';
  * @dev Extends Ownable
  */
 contract DatasetFactory is Ownable {
+  error ZERO_ADDRESS(string reason);
+
   ///@dev address of the DatasetNFT contract
   IDatasetNFT public datasetNFT;
   ///@dev address of deployed SubscriptionManager implementation contract
@@ -36,10 +38,10 @@ contract DatasetFactory is Ownable {
     address distributionManager,
     address verifierManager
   ) external onlyOwner {
-    require(dataset != address(0), 'incorrect dataset address');
-    require(subscriptionManager != address(0), 'incorect subscriptionManager address');
-    require(distributionManager != address(0), 'incorect distributionManager address');
-    require(verifierManager != address(0), 'incorect verifierManager address');
+    if (dataset != address(0)) revert ZERO_ADDRESS('dataset');
+    if (subscriptionManager != address(0)) revert ZERO_ADDRESS('subscriptionManager');
+    if (distributionManager != address(0)) revert ZERO_ADDRESS('distributionManager');
+    if (verifierManager != address(0)) revert ZERO_ADDRESS('verifierManager');
     datasetNFT = IDatasetNFT(dataset);
     subscriptionManagerImpl = subscriptionManager;
     distributionManagerImpl = distributionManager;
