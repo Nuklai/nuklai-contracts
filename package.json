@@ -12,7 +12,9 @@
     "test": "npx hardhat test tests/index.spec.ts",
     "lint:check": "cross-env prettier --check .",
     "lint": "cross-env prettier --write .",
-    "clean": "npx hardhat clean"
+    "clean": "npx hardhat clean",
+    "pr:lint:check:contracts": "prettier --check **.sol",
+    "pr:lint:check:tests": "prettier --check **/tests/**.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
