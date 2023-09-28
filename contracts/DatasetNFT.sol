@@ -403,7 +403,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     uint256 datasetId
   ) internal returns (address proxy) {
     require(implementation != address(0), "bad implementation address");
-    bytes memory intializePayload = abi.encodeWithSelector(IFragmentNFT.initialize.selector, address(this), datasetId);
+    bytes memory intializePayload = abi.encodeWithSelector(IDatasetLinkInitializable.initialize.selector, address(this), datasetId);
     return address(new TransparentUpgradeableProxy(implementation, proxyAdmin, intializePayload));
   }
 

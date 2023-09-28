@@ -25,14 +25,6 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
   function datasetId() external returns (uint256);
 
   /**
-   * @notice Intialization function
-   * @dev Sets the address of the DatasetNFT contract and the ID of the Dataset NFT token
-   * @param dataset The address of the DatasetNFT contract
-   * @param datasetId The ID of the Dataset NFT token
-   */
-  function initialize(address dataset, uint256 datasetId) external;
-
-  /**
    * @notice Proposes a specific type of contribution and sets the respetive Fragment as Pending
    * @dev Emits a {FragmentPending} event
    * @param to The address of the contributor
