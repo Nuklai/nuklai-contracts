@@ -3,11 +3,13 @@ import { HardhatUserConfig } from 'hardhat/config';
 import '@nomicfoundation/hardhat-ethers';
 import '@nomicfoundation/hardhat-chai-matchers';
 import '@nomicfoundation/hardhat-toolbox';
+import '@openzeppelin/hardhat-upgrades';
 import '@typechain/hardhat';
 import 'solidity-coverage';
 import 'hardhat-deploy';
 import 'hardhat-deploy-ethers';
 import 'hardhat-contract-sizer';
+import 'hardhat-dependency-compiler';
 import { network } from './utils';
 import './tasks';
 
@@ -58,6 +60,13 @@ const config: HardhatUserConfig = {
     secondSubscriber: 5,
     consumer: 6,
     secondConsumer: 7,
+  },
+
+  dependencyCompiler: {
+    paths: [
+      '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol',
+      '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol',
+    ],
   },
 };
 

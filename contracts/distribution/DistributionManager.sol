@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol';
-import '@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol';
-import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import '@openzeppelin/contracts/utils/Address.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableMap.sol';
-import '@openzeppelin/contracts/utils/cryptography/ECDSA.sol';
-import '../interfaces/IDistributionManager.sol';
-import '../interfaces/IDatasetNFT.sol';
-import '../interfaces/IFragmentNFT.sol';
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "../interfaces/IDistributionManager.sol";
+import "../interfaces/IDatasetNFT.sol";
+import "../interfaces/IFragmentNFT.sol";
 
 /**
  * @title DistributionManager contract
@@ -56,17 +56,17 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   uint256 internal firstUnclaimed; // from owner's revenue
 
   modifier onlyDatasetOwner() {
-    require(dataset.ownerOf(datasetId) == _msgSender(), 'Only Dataset owner');
+    require(dataset.ownerOf(datasetId) == _msgSender(), "Only Dataset owner");
     _;
   }
 
   modifier onlyDatasetNFT() {
-    require(address(dataset) == _msgSender(), 'Only DatasetNFT');
+    require(address(dataset) == _msgSender(), "Only DatasetNFT");
     _;
   }
 
   modifier onlySubscriptionManager() {
-    require(dataset.subscriptionManager(datasetId) == _msgSender(), 'Only Subscription manager');
+    require(dataset.subscriptionManager(datasetId) == _msgSender(), "Only Subscription manager");
     _;
   }
 
@@ -102,7 +102,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
       weightSum += weights[i];
       tagWeights.set(tags[i], weights[i]);
     }
-    require(weightSum == 1e18, 'Invalid weights sum');
+    require(weightSum == 1e18, "Invalid weights sum");
   }
 
   /**
@@ -114,7 +114,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @return weights An array with the respective weights
    */
   function getTagWeights(bytes32[] calldata tags) external view returns (uint256[] memory weights) {
-    require(tags.length != 0, 'No tags provided');
+    require(tags.length != 0, "No tags provided");
     EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights[versionedTagWeights.length - 1];
     uint256 tagsLength = tags.length;
     weights = new uint256[](tagsLength);
@@ -147,9 +147,9 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param amount The provided payment amount
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
-    require(versionedTagWeights.length > 0, 'tag weights not initialized');
+    require(versionedTagWeights.length > 0, "tag weights not initialized");
     if (address(token) == address(0)) {
-      require(amount == msg.value, 'value missmatch');
+      require(amount == msg.value, "value missmatch");
     } else {
       IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
     }
@@ -159,7 +159,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / 1e18;
     if (deployerFee > 0) {
       address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
-      require(deployerFeeBeneficiary != address(0), 'bad deployer fee beneficiary');
+      require(deployerFeeBeneficiary != address(0), "bad deployer fee beneficiary");
       _sendPayout(token, deployerFee, deployerFeeBeneficiary);
       amount -= deployerFee;
     }
@@ -199,8 +199,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     bytes calldata signature
   ) external onlyDatasetOwner nonReentrant {
     // Validate state & signature
-    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, 'signature overdue');
-    require(firstUnclaimed < payments.length, 'No unclaimed payments available');
+    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
+    require(firstUnclaimed < payments.length, "No unclaimed payments available");
     bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
@@ -223,8 +223,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     bytes calldata payoutSignature
   ) external onlyDatasetOwner nonReentrant {
     // Validate signature
-    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, 'signature overdue');
-    require(firstUnclaimed < payments.length, 'No unclaimed payments available');
+    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
+    require(firstUnclaimed < payments.length, "No unclaimed payments available");
 
     bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
     address signer = ECDSA.recover(msgHash, payoutSignature);
@@ -247,7 +247,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    */
   function claimPayouts(uint256 sigValidSince, uint256 sigValidTill, bytes calldata signature) external nonReentrant {
     // Validate signature
-    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, 'signature overdue');
+    require(block.timestamp >= sigValidSince && block.timestamp <= sigValidTill, "signature overdue");
     bytes32 msgHash = _claimRevenueMessageHash(_msgSender(), sigValidSince, sigValidTill);
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
-import '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
-import '../interfaces/ISubscriptionManager.sol';
-import '../interfaces/IDatasetNFT.sol';
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "../interfaces/ISubscriptionManager.sol";
+import "../interfaces/IDatasetNFT.sol";
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract
@@ -41,7 +41,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   mapping(address consumer => EnumerableSet.UintSet subscriptions) internal consumerSubscriptions;
 
   modifier onlySubscriptionOwner(uint256 subscription) {
-    require(ownerOf(subscription) == _msgSender(), 'Not a subscription owner');
+    require(ownerOf(subscription) == _msgSender(), "Not a subscription owner");
     _;
   }
 
@@ -102,8 +102,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     uint256 consumers
   ) external view returns (address token, uint256 amount) {
     _requireCorrectDataset(ds);
-    require(durationInDays > 0 && durationInDays <= 365, 'Invalid subscription duration');
-    require(consumers > 0, 'Should be at least 1 consumer');
+    require(durationInDays > 0 && durationInDays <= 365, "Invalid subscription duration");
+    require(consumers > 0, "Should be at least 1 consumer");
     return calculateFee(durationInDays, consumers);
   }
 
@@ -114,9 +114,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @return amount The fee amount
    */
   function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns (uint256 amount) {
-    require(extraConsumers > 0, 'Should add at least 1 consumer');
+    require(extraConsumers > 0, "Should add at least 1 consumer");
     SubscriptionDetails storage sd = subscriptions[subscription];
-    require(sd.validTill > block.timestamp, 'Subcription not valid');
+    require(sd.validTill > block.timestamp, "Subcription not valid");
     // (sd.validTill - sd.validSince) was enforced during subscription to be integral multiple of a day in seconds
     uint256 durationInDays_ = (sd.validTill - sd.validSince) / 1 days;
     (, uint256 currentFee) = calculateFee(durationInDays_, sd.paidConsumers);
@@ -259,10 +259,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    */
   function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
-    require(balanceOf(_msgSender()) == 0, 'User already subscribed');
-    require(durationInDays > 0 && durationInDays <= 365, 'Invalid subscription duration');
+    require(balanceOf(_msgSender()) == 0, "User already subscribed");
+    require(durationInDays > 0 && durationInDays <= 365, "Invalid subscription duration");
 
-    require(consumers > 0, 'Should be at least 1 consumer');
+    require(consumers > 0, "Should be at least 1 consumer");
 
     (, uint256 fee) = calculateFee(durationInDays, consumers);
     charge(_msgSender(), fee);
@@ -288,7 +288,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > 0) require(extraDurationInDays <= 365, 'Invalid extra duration provided');
+    if (extraDurationInDays > 0) require(extraDurationInDays <= 365, "Invalid extra duration provided");
 
     SubscriptionDetails storage sd = subscriptions[subscription];
     uint256 newDurationInDays;
@@ -298,7 +298,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     if (sd.validTill > block.timestamp) {
       // Subscription is still valid but remaining duration must be <= 30 days to extend it
       if (extraDurationInDays > 0)
-        require((sd.validTill - block.timestamp) <= 30 * 1 days, 'Remaining duration > 30 days');
+        require((sd.validTill - block.timestamp) <= 30 * 1 days, "Remaining duration > 30 days");
 
       // (sd.validTill - sd.validSince) was enforced during subscription to be an integral multiple of a day in seconds
       uint256 currentDurationInDays = (sd.validTill - sd.validSince) / 1 days;
@@ -313,7 +313,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = calculateFee(newDurationInDays, newConsumers);
-    require(newFee > currentFee, 'Nothing to pay');
+    require(newFee > currentFee, "Nothing to pay");
 
     charge(_msgSender(), newFee - currentFee);
 
@@ -333,7 +333,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _addConsumers(uint256 subscription, address[] calldata consumers) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = subscriptions[subscription];
-    require(sd.consumers.length() + consumers.length <= sd.paidConsumers, 'Too many consumers to add');
+    require(sd.consumers.length() + consumers.length <= sd.paidConsumers, "Too many consumers to add");
     for (uint256 i; i < consumers.length; i++) {
       address consumer = consumers[i];
       bool added = sd.consumers.add(consumer);
@@ -379,7 +379,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   ) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = subscriptions[subscription];
-    require(oldConsumers.length == newConsumers.length, 'Array length missmatch');
+    require(oldConsumers.length == newConsumers.length, "Array length missmatch");
     for (uint256 i; i < oldConsumers.length; i++) {
       address consumer = oldConsumers[i];
       bool removed = sd.consumers.remove(consumer);

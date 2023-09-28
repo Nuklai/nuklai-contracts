@@ -9,10 +9,12 @@
     "typechain": "yarn hardhat typechain",
     "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
-    "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
+    "test": "cross-env TEST=true npx hardhat test tests/index.spec.ts",
     "lint:check": "cross-env prettier --check .",
     "lint": "cross-env prettier --write .",
-    "clean": "npx hardhat clean"
+    "clean": "npx hardhat clean",
+    "pr:lint:check:contracts": "prettier --check **.sol",
+    "pr:lint:check:tests": "prettier --check **/tests/**.ts"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
@@ -23,6 +25,8 @@
     "@nomiclabs/hardhat-ethers": "^2.2.3",
     "@typechain/ethers-v6": "^0.4.0",
     "@typechain/hardhat": "^8.0.0",
+    "@openzeppelin/hardhat-upgrades": "^2.2.1",
+    "hardhat-dependency-compiler": "^1.1.3",
     "@types/chai": "^4.2.0",
     "@types/mocha": ">=9.1.0",
     "@types/node": "^16.4.13",

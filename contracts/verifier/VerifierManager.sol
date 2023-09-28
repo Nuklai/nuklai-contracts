@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import '@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol';
-import '../interfaces/IDatasetNFT.sol';
-import '../interfaces/IFragmentNFT.sol';
-import '../interfaces/IVerifierManager.sol';
-import '../interfaces/IVerifier.sol';
+import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import "../interfaces/IDatasetNFT.sol";
+import "../interfaces/IFragmentNFT.sol";
+import "../interfaces/IVerifierManager.sol";
+import "../interfaces/IVerifier.sol";
 
 /**
  * @title VerifierManager contract
@@ -27,12 +27,12 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   mapping(uint256 id => bytes32 tag) internal pendingFragmentTags;
 
   modifier onlyDatasetOwner() {
-    require(dataset.ownerOf(datasetId) == _msgSender(), 'Not a Dataset owner');
+    require(dataset.ownerOf(datasetId) == _msgSender(), "Not a Dataset owner");
     _;
   }
 
   modifier onlyFragmentNFT() {
-    require(dataset.fragmentNFT(datasetId) == _msgSender(), 'Not a Frament NFT for this Dataset');
+    require(dataset.fragmentNFT(datasetId) == _msgSender(), "Not a Frament NFT for this Dataset");
     _;
   }
 
@@ -79,7 +79,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
    * @param verifiers_ Array with the respective addresses of the verifier contracts to set for `tags`
    */
   function setTagVerifiers(bytes32[] calldata tags, address[] calldata verifiers_) external onlyDatasetOwner {
-    require(tags.length == verifiers_.length, 'Array length missmatch');
+    require(tags.length == verifiers_.length, "Array length missmatch");
     for (uint256 i; i < tags.length; i++) {
       verifiers[tags[i]] = verifiers_[i];
     }
@@ -94,7 +94,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
    */
   function propose(uint256 id, bytes32 tag) external onlyFragmentNFT {
     address verifier = _verifierForTag(tag);
-    require(verifier != address(0), 'verifier not set');
+    require(verifier != address(0), "verifier not set");
 
     pendingFragmentTags[id] = tag;
     IVerifier(verifier).propose(_msgSender(), id, tag);
@@ -111,7 +111,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   function resolve(uint256 id, bool accept) external {
     bytes32 tag = pendingFragmentTags[id];
     address verifier = _verifierForTag(tag);
-    require(verifier == _msgSender(), 'Wrong verifier');
+    require(verifier == _msgSender(), "Wrong verifier");
     IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
     delete pendingFragmentTags[id];
     if (accept) {

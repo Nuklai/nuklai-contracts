@@ -1,0 +1,27 @@
+name: Lint check contracts
+on: [pull_request]
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["18"]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Yarn install
+        run: yarn install --check-cache
+
+      ### Run lint
+      - name: Check contracts solidity linter
+        if: always()
+        run: yarn run pr:lint:check:contracts
+
+      - name: Check contracts tests linter
+        if: always()
+        run: yarn run pr:lint:check:tests
