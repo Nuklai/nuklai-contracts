@@ -9,7 +9,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployedProxyAdmin = await deploy('ProxyAdmin', {
     from: dtAdmin,
-    args: [dtAdmin],
   });
 
   console.log('ProxyAdmin deployed successfully at', deployedProxyAdmin.address);

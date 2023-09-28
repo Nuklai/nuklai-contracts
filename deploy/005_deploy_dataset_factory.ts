@@ -1,14 +1,11 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { DatasetFactory, DatasetNFT } from '@typechained';
-import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy, fixture } = deployments;
+  const { deploy } = deployments;
   const { dtAdmin } = await getNamedAccounts();
-
-  //await fixture(['DatasetManagers', 'FragmentNFT', 'ProxyAdmin']);
 
   const dataset = await ethers.getContract('DatasetNFT');
   const datasetAddress = await dataset.getAddress();

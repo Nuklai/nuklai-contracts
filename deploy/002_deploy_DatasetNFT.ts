@@ -25,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     proxy: {
       owner: proxyAdminAddress,
-      proxyContract: 'MyTransparentUpgradeableProxy',
+      proxyContract: 'TransparentUpgradeableProxy',
       execute: {
         init: {
           methodName: 'initialize',
