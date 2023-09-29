@@ -38,10 +38,10 @@ contract DatasetFactory is Ownable {
     address distributionManager,
     address verifierManager
   ) external onlyOwner {
-    if (dataset != address(0)) revert ZERO_ADDRESS("dataset");
-    if (subscriptionManager != address(0)) revert ZERO_ADDRESS("subscriptionManager");
-    if (distributionManager != address(0)) revert ZERO_ADDRESS("distributionManager");
-    if (verifierManager != address(0)) revert ZERO_ADDRESS("verifierManager");
+    if (dataset == address(0)) revert ZERO_ADDRESS("dataset");
+    if (subscriptionManager == address(0)) revert ZERO_ADDRESS("subscriptionManager");
+    if (distributionManager == address(0)) revert ZERO_ADDRESS("distributionManager");
+    if (verifierManager == address(0)) revert ZERO_ADDRESS("verifierManager");
     datasetNFT = IDatasetNFT(dataset);
     subscriptionManagerImpl = subscriptionManager;
     distributionManagerImpl = distributionManager;
