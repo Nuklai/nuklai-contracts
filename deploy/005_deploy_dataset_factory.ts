@@ -1,14 +1,14 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { DatasetFactory, DatasetNFT } from '@typechained';
-import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy, fixture } = deployments;
+  const { deploy } = deployments;
   const { dtAdmin } = await getNamedAccounts();
 
-  await fixture(['DatasetManagers', 'FragmentNFT']);
+  const dataset = await ethers.getContract('DatasetNFT');
+  const datasetAddress = await dataset.getAddress();
 
   console.log('DT admin: ', dtAdmin);
 
@@ -17,30 +17,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   });
 
   console.log('DatasetFactory deployed successfully at', deployedDatasetFactory.address);
-
-  const deployedDatasetNFT = await deploy('DatasetNFT', {
-    from: dtAdmin,
-  });
-
-  console.log('DatasetNFT deployed successfully at', deployedDatasetNFT.address);
-
-  const fragmentImplementation = await ethers.getContract('FragmentNFT');
-
-  const dataset: DatasetNFT = await ethers.getContractAtWithSignerAddress(
-    'DatasetNFT',
-    deployedDatasetNFT.address,
-    dtAdmin
-  );
-
-  const fragmentImplementationSet = await dataset.setFragmentImplementation(
-    await fragmentImplementation.getAddress()
-  );
-  await fragmentImplementationSet.wait();
-
-  const grantedRole = await dataset.grantRole(constants.SIGNER_ROLE, dtAdmin);
-  await grantedRole.wait();
-
-  console.log('DatasetNFT granted role to', dtAdmin);
 
   const subscriptionManager = await ethers.getContract('ERC20SubscriptionManager');
   const distributionManager = await ethers.getContract('DistributionManager');
@@ -53,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
 
   const datasetConfigured = await datasetFactory.configure(
-    deployedDatasetNFT.address,
+    datasetAddress,
     await subscriptionManager.getAddress(),
     await distributionManager.getAddress(),
     await verifierManager.getAddress()

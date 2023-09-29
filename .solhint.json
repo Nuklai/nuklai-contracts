@@ -5,7 +5,7 @@
     "prettier/prettier": "error",
     "compiler-version": ["off"],
     "constructor-syntax": "warn",
-    "quotes": ["error", "single"],
+    "quotes": ["error", "double"],
     "func-visibility": ["warn", { "ignoreConstructors": true }],
     "not-rely-on-time": "off",
     "private-vars-leading-underscore": ["warn", { "strict": false }]

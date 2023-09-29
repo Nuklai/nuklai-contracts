@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {Initializable} from '@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol';
-import {EnumerableSet} from '@openzeppelin/contracts/utils/structs/EnumerableSet.sol';
-import {ERC721Enumerable} from '@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol';
-import {ISubscriptionManager} from '../interfaces/ISubscriptionManager.sol';
-import {IDatasetNFT} from '../interfaces/IDatasetNFT.sol';
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import {ISubscriptionManager} from "../interfaces/ISubscriptionManager.sol";
+import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract
@@ -323,7 +323,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);
-    require(newFee > currentFee, 'Nothing to pay');
+    require(newFee > currentFee, "Nothing to pay");
 
     _charge(_msgSender(), newFee - currentFee);
 

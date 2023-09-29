@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC721} from '@openzeppelin/contracts/token/ERC721/IERC721.sol';
+import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/IERC721Upgradeable.sol";
 
 /**
  * @title Interface of DatasetNFT
  * @notice Defines functions available for DatasetNFT Admin, Dataset Owners and FragmentNFT contract
- * @dev Extends IERC721
+ * @dev Extends IERC721Upgradeable
  */
-interface IDatasetNFT is IERC721 {
+interface IDatasetNFT is IERC721Upgradeable {
   ///@dev Defines the model for the deployer (ALlianceblock/Nexera) fee
   enum DeployerFeeModel {
     NO_FEE, // No Fee wii

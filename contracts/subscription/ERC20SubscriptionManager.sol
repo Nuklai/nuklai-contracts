@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IERC20} from '@openzeppelin/contracts/token/ERC20/IERC20.sol';
-import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
-import {ERC721} from '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import {IDistributionManager} from '../interfaces/IDistributionManager.sol';
-import {GenericSingleDatasetSubscriptionManager} from './GenericSingleDatasetSubscriptionManager.sol';
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
+import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSubscriptionManager.sol";
 
 /**
  * @title ERC20SubscriptionManager contract
@@ -26,8 +26,8 @@ import {GenericSingleDatasetSubscriptionManager} from './GenericSingleDatasetSub
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant _NAME = 'Data Tunnel Subscription';
-  string internal constant _SYMBOL = 'DTSUB';
+  string internal constant _NAME = "Data Tunnel Subscription";
+  string internal constant _SYMBOL = "DTSUB";
 
   error NOT_DATASET_NFT(address account);
 
