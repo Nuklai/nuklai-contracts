@@ -25,6 +25,14 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
 
   error UNSUPPORTED_DATASET(uint256 id);
   error CONSUMER_NOT_FOUND(uint256 subscription, address consumer);
+  error CONSUMER_ALREADY_SUBSCRIBED(address account);
+  error CONSUMER_ZERO();
+  error MAX_CONSUMERS_ADDITION_REACHED(uint256 total, uint256 current);
+  error NOT_SUBSCRIPTION_OWNER(address account);
+  error SUBSCRIPTION_DURATION_INVALID(uint256 minimum, uint256 maximum, uint256 current);
+  error SUBSCRIPTION_ENDED(uint256 validTill, uint256 currentTimestamp);
+  error SUBSCRIPTION_REMAINING_DURATION(uint256 maximum, uint256 current);
+  error ARRAY_LENGTH_MISMATCH();
 
   struct SubscriptionDetails {
     uint256 validSince;
@@ -41,7 +49,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   mapping(address consumer => EnumerableSet.UintSet subscriptions) internal _consumerSubscriptions;
 
   modifier onlySubscriptionOwner(uint256 subscription) {
-    require(ownerOf(subscription) == _msgSender(), 'Not a subscription owner');
+    if (ownerOf(subscription) != _msgSender()) revert NOT_SUBSCRIPTION_OWNER(_msgSender());
     _;
   }
 
@@ -102,8 +110,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     uint256 consumers
   ) external view returns (address token, uint256 amount) {
     _requireCorrectDataset(ds);
-    require(durationInDays > 0 && durationInDays <= 365, 'Invalid subscription duration');
-    require(consumers > 0, 'Should be at least 1 consumer');
+    if (durationInDays <= 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
+    if (consumers <= 0) revert CONSUMER_ZERO();
     return _calculateFee(durationInDays, consumers);
   }
 
@@ -114,9 +122,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @return amount The fee amount
    */
   function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns (uint256 amount) {
-    require(extraConsumers > 0, 'Should add at least 1 consumer');
+    if (extraConsumers <= 0) revert CONSUMER_ZERO();
     SubscriptionDetails storage sd = _subscriptions[subscription];
-    require(sd.validTill > block.timestamp, 'Subcription not valid');
+    if (sd.validTill <= block.timestamp) revert SUBSCRIPTION_ENDED(sd.validTill, block.timestamp);
     // (sd.validTill - sd.validSince) was enforced during subscription to be integral multiple of a day in seconds
     uint256 durationInDays_ = (sd.validTill - sd.validSince) / 1 days;
     (, uint256 currentFee) = _calculateFee(durationInDays_, sd.paidConsumers);
@@ -259,10 +267,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    */
   function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
-    require(balanceOf(_msgSender()) == 0, 'User already subscribed');
-    require(durationInDays > 0 && durationInDays <= 365, 'Invalid subscription duration');
+    if (balanceOf(_msgSender()) != 0) revert CONSUMER_ALREADY_SUBSCRIBED(_msgSender());
+    if (durationInDays <= 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
 
-    require(consumers > 0, 'Should be at least 1 consumer');
+    if (consumers <= 0) revert CONSUMER_ZERO();
 
     (, uint256 fee) = _calculateFee(durationInDays, consumers);
     _charge(_msgSender(), fee);
@@ -288,7 +296,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > 0) require(extraDurationInDays <= 365, 'Invalid extra duration provided');
+    if (extraDurationInDays <= 0 || extraDurationInDays > 365)
+      revert SUBSCRIPTION_DURATION_INVALID(1, 365, extraDurationInDays);
 
     SubscriptionDetails storage sd = _subscriptions[subscription];
     uint256 newDurationInDays;
@@ -298,7 +307,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     if (sd.validTill > block.timestamp) {
       // Subscription is still valid but remaining duration must be <= 30 days to extend it
       if (extraDurationInDays > 0)
-        require((sd.validTill - block.timestamp) <= 30 * 1 days, 'Remaining duration > 30 days');
+        if ((sd.validTill - block.timestamp) > 30 * 1 days)
+          revert SUBSCRIPTION_REMAINING_DURATION(30 * 1 days, (sd.validTill - block.timestamp));
 
       // (sd.validTill - sd.validSince) was enforced during subscription to be an integral multiple of a day in seconds
       uint256 currentDurationInDays = (sd.validTill - sd.validSince) / 1 days;
@@ -333,7 +343,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _addConsumers(uint256 subscription, address[] calldata consumers) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = _subscriptions[subscription];
-    require(sd.consumers.length() + consumers.length <= sd.paidConsumers, 'Too many consumers to add');
+    if (sd.consumers.length() + consumers.length > sd.paidConsumers)
+      revert MAX_CONSUMERS_ADDITION_REACHED(sd.paidConsumers, sd.consumers.length() + consumers.length);
     for (uint256 i; i < consumers.length; i++) {
       address consumer = consumers[i];
       bool added = sd.consumers.add(consumer);
@@ -379,7 +390,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   ) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = _subscriptions[subscription];
-    require(oldConsumers.length == newConsumers.length, 'Array length missmatch');
+    if (oldConsumers.length != newConsumers.length) revert ARRAY_LENGTH_MISMATCH();
     for (uint256 i; i < oldConsumers.length; i++) {
       address consumer = oldConsumers[i];
       bool removed = sd.consumers.remove(consumer);

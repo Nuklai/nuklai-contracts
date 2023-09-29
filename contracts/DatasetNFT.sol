@@ -29,6 +29,14 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
 
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
+  error NOT_UUID_SET(uint256 datasetId);
+  error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
+  error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
+  error FRAGMENT_CREATION_DISABLED();
+  error FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
+  error FRAGMENT_INSTANCE_NOT_DEPLOYED();
+  error ZERO_ADDRESS();
+  error ARRAY_LENGTH_MISMATCH();
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
@@ -63,7 +71,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @return uin256 ID of the minted token
    */
   function mint(address to, bytes calldata signature) external returns (uint256) {
-    require(!Strings.equal(uuids[_mintCounter], ''), 'No uuid set for data set id');
+    if (Strings.equal(uuids[_mintCounter], '')) revert NOT_UUID_SET(_mintCounter);
     bytes32 msgHash = _mintMessageHash(_mintCounter);
     address signer = ECDSA.recover(msgHash, signature);
 
@@ -191,12 +199,12 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     DeployerFeeModel[] calldata models,
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(models.length == percentages.length, 'array length missmatch');
+    if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
     for (uint256 i; i < models.length; i++) {
       DeployerFeeModel m = models[i];
       require(uint8(m) != 0, 'model 0 always has no fee');
       uint256 p = percentages[i];
-      require(p <= 1e18, 'percentage can not be more than 100%');
+      if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
       deployerFeeModelPercentage[m] = p;
     }
   }
@@ -217,7 +225,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @param deployerFeeBeneficiary_  The address to set as the beneficiary
    */
   function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(deployerFeeBeneficiary_ != address(0), 'invalid zero address provided');
+    if (deployerFeeBeneficiary_ == address(0)) revert ZERO_ADDRESS();
     deployerFeeBeneficiary = deployerFeeBeneficiary_;
   }
 
@@ -228,10 +236,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @param fragmentImplementation_ The address of the FragmentNFT implementation contract
    */
   function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(
-      fragmentImplementation_ == address(0) || Address.isContract(fragmentImplementation_),
-      'invalid fragment implementation address'
-    );
+    if (fragmentImplementation_ != address(0) && !Address.isContract(fragmentImplementation_))
+      revert FRAGMENT_IMPLEMENTATION_INVALID(fragmentImplementation_);
     fragmentImplementation = fragmentImplementation_;
   }
 
@@ -243,8 +249,8 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @return address The address of the deployed FragmentNFT instance
    */
   function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns (address) {
-    require(fragmentImplementation != address(0), 'fragment creation disabled');
-    require(address(fragments[id]) == address(0), 'fragment instance already deployed');
+    if (fragmentImplementation == address(0)) revert FRAGMENT_CREATION_DISABLED();
+    if (address(fragments[id]) != address(0)) revert FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
     IFragmentNFT instance = IFragmentNFT(_cloneAndInitialize(fragmentImplementation, id));
     fragments[id] = instance;
     emit FragmentInstanceDeployment(id, address(instance));
@@ -260,7 +266,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    */
   function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    require(address(fragmentInstance) != address(0), 'No fragment instance deployed');
+    if (address(fragmentInstance) != address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.propose(to, tag, signature);
   }
 
@@ -278,7 +284,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
     bytes calldata signature
   ) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    require(address(fragmentInstance) != address(0), 'No fragment instance deployed');
+    if (address(fragmentInstance) != address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.proposeMany(owners, tags, signature);
   }
 
@@ -358,7 +364,7 @@ contract DatasetNFT is IDatasetNFT, ERC721, AccessControl {
    * @return proxy The address of the deployed proxy
    */
   function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns (address proxy) {
-    require(implementation != address(0), 'bad implementation address');
+    if (implementation == address(0)) revert ZERO_ADDRESS();
     proxy = Clones.clone(implementation);
     IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
   }
