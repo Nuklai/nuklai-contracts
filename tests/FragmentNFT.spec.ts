@@ -225,8 +225,9 @@ export default async function suite(): Promise<void> {
       const lastSnapshotIdx = await DatasetFragment_.currentSnapshotId();
       const invalidSnapshotIdx = lastSnapshotIdx + BigInt(1);
 
-      await expect(DatasetFragment_.tagCountAt(invalidSnapshotIdx)).to.be.revertedWith(
-        'bad snapshot id'
+      await expect(DatasetFragment_.tagCountAt(invalidSnapshotIdx)).to.be.revertedWithCustomError(
+        DatasetFragment_,
+        'BAD_SNAPSHOT_ID'
       );
     });
 
@@ -236,7 +237,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetFragment_.accountTagCountAt(invalidSnapshotIdx, ZeroAddress)
-      ).to.be.revertedWith('bad snapshot id');
+      ).to.be.revertedWithCustomError(DatasetFragment_, 'BAD_SNAPSHOT_ID');
     });
 
     it('Should accountTagPercentageAt() revert when provided snapshotId is not valid', async () => {
@@ -246,7 +247,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetFragment_.accountTagPercentageAt(invalidSnapshotIdx, ZeroAddress, [mockTag])
-      ).to.be.revertedWith('bad snapshot id');
+      ).to.be.revertedWithCustomError(DatasetFragment_, 'BAD_SNAPSHOT_ID');
     });
 
     it('Should revert data set owner set verifiers for tags if length does not match', async function () {
@@ -260,7 +261,7 @@ export default async function suite(): Promise<void> {
           [schemaRowsTag, schemaColsTag],
           [acceptManuallyVerifierAddress]
         )
-      ).to.be.revertedWith('Array length missmatch');
+      ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ARRAY_LENGTH_MISMATCH');
     });
 
     it('Should revert fragment propose if verifier is not set', async function () {
@@ -291,7 +292,9 @@ export default async function suite(): Promise<void> {
           ZeroHash,
           proposeSignatureSchemas
         )
-      ).to.be.revertedWith('verifier not set');
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_NOT_SET')
+        .withArgs(ZeroAddress);
     });
 
     it('Should data set owner accept fragment propose', async function () {
@@ -380,7 +383,9 @@ export default async function suite(): Promise<void> {
           wrongFragmentId,
           false
         )
-      ).to.be.revertedWith('Not a pending fragment');
+      )
+        .to.be.revertedWithCustomError(DatasetFragment_, 'NOT_PENDING_FRAGMENT')
+        .withArgs(wrongFragmentId);
 
       await expect(
         AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
@@ -388,7 +393,9 @@ export default async function suite(): Promise<void> {
           wrongFragmentId,
           true
         )
-      ).to.be.revertedWith('Not a pending fragment');
+      )
+        .to.be.revertedWithCustomError(DatasetFragment_, 'NOT_PENDING_FRAGMENT')
+        .withArgs(wrongFragmentId);
     });
 
     it('Should data set owner remove a fragment', async function () {
