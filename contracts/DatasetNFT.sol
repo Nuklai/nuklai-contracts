@@ -293,7 +293,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    if (address(fragmentInstance) != address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
+    if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.propose(to, tag, signature);
   }
 
@@ -311,7 +311,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     bytes calldata signature
   ) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    if (address(fragmentInstance) != address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
+    if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.proposeMany(owners, tags, signature);
   }
 
