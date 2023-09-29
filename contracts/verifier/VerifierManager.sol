@@ -33,12 +33,12 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   mapping(uint256 id => bytes32 tag) internal _pendingFragmentTags;
 
   modifier onlyDatasetOwner() {
-    if (dataset.ownerOf(datasetId) == _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
+    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
     _;
   }
 
   modifier onlyFragmentNFT() {
-    if (dataset.fragmentNFT(datasetId) == _msgSender()) revert NOT_FRAGMENT_NFT(_msgSender());
+    if (dataset.fragmentNFT(datasetId) != _msgSender()) revert NOT_FRAGMENT_NFT(_msgSender());
     _;
   }
 
