@@ -304,7 +304,9 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 0, 1)
-      ).to.be.revertedWith('Invalid subscription duration');
+      )
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'SUBSCRIPTION_DURATION_INVALID')
+        .withArgs(1, 365, 0);
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
@@ -312,7 +314,9 @@ export default async function suite(): Promise<void> {
           BigInt(365) + BigInt(1),
           1
         )
-      ).to.be.revertedWith('Invalid subscription duration');
+      )
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'SUBSCRIPTION_DURATION_INVALID')
+        .withArgs(1, 365, 365 + 1);
     });
 
     it('Should revert if user tries to subscribe for 0 consumers', async () => {
@@ -342,7 +346,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 30, 0)
-      ).to.be.revertedWith('Should be at least 1 consumer');
+      ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'CONSUMER_ZERO');
     });
 
     it('Should revert user pay data set subscription if wrong data set id is used', async function () {
@@ -488,7 +492,9 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, BigInt(1), 1)
-      ).to.be.revertedWith('User already subscribed');
+      )
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'CONSUMER_ALREADY_SUBSCRIBED')
+        .withArgs(users_.subscriber.address);
     });
 
     it('Should revert pay data set subscription with ERC-20 token if there is no enough allowance', async function () {
@@ -585,7 +591,9 @@ export default async function suite(): Promise<void> {
           DatasetSubscriptionManager_.connect(users_.user).addConsumers(subscriptionId_, [
             users_.consumer.address,
           ])
-        ).to.be.revertedWith('Not a subscription owner');
+        )
+          .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'NOT_SUBSCRIPTION_OWNER')
+          .withArgs(users_.user.address);
       });
 
       it('Should revert add consumers to the subscription with wrong id', async function () {
@@ -599,12 +607,19 @@ export default async function suite(): Promise<void> {
       });
 
       it('Should revert add consumers if more consumers are added than set', async function () {
+        const totalConsumers = 1;
+        const consumers = [users_.consumer.address, users_.secondConsumer.address];
         await expect(
-          DatasetSubscriptionManager_.connect(users_.subscriber).addConsumers(subscriptionId_, [
-            users_.consumer.address,
-            users_.secondConsumer.address,
-          ])
-        ).to.be.revertedWith('Too many consumers to add');
+          DatasetSubscriptionManager_.connect(users_.subscriber).addConsumers(
+            subscriptionId_,
+            consumers
+          )
+        )
+          .to.be.revertedWithCustomError(
+            DatasetSubscriptionManager_,
+            'MAX_CONSUMERS_ADDITION_REACHED'
+          )
+          .withArgs(totalConsumers, consumers.length);
       });
 
       it('Should subscription owner remove consumers to the subscription', async () => {
@@ -652,7 +667,9 @@ export default async function suite(): Promise<void> {
           DatasetSubscriptionManager_.connect(users_.user).removeConsumers(subscriptionId_, [
             users_.consumer.address,
           ])
-        ).to.be.revertedWith('Not a subscription owner');
+        )
+          .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'NOT_SUBSCRIPTION_OWNER')
+          .withArgs(users_.user.address);
       });
 
       it('Should subscription owner replace consumers from the subscription', async () => {
@@ -769,10 +786,15 @@ export default async function suite(): Promise<void> {
             daysInYear + BigInt(1),
             0
           )
-        ).to.be.revertedWith('Invalid extra duration provided');
+        )
+          .to.be.revertedWithCustomError(
+            DatasetSubscriptionManager_,
+            'SUBSCRIPTION_DURATION_INVALID'
+          )
+          .withArgs(1, 365, daysInYear + BigInt(1));
       });
 
-      it('Should revert if subscriber tries to extend non expired subscription when remainig duration < 30 days', async () => {
+      it('Should revert if subscriber tries to extend non expired subscription when remaining duration < 30 days', async () => {
         // Currently subscriber has subscription with remaining duration == 1 day
 
         // For 4 months and 1 consumer :: 0.1 * 30 * 4 * 1 = 12
@@ -797,7 +819,12 @@ export default async function suite(): Promise<void> {
             daysInYear,
             0
           )
-        ).to.be.revertedWith('Remaining duration > 30 days');
+        )
+          .to.be.revertedWithCustomError(
+            DatasetSubscriptionManager_,
+            'SUBSCRIPTION_REMAINING_DURATION'
+          )
+          .withArgs(30 * constants.ONE_DAY, 10454397);
 
         // Current remaining duration == 4 months + 1 day, increase time so that remaining < 30 days
         await time.increase(constants.ONE_MONTH * 3 + (constants.ONE_DAY + 400));
