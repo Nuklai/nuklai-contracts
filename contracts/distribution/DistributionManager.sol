@@ -60,11 +60,6 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _;
   }
 
-  modifier onlyDatasetNFT() {
-    require(address(dataset) == _msgSender(), "Only DatasetNFT");
-    _;
-  }
-
   modifier onlySubscriptionManager() {
     require(dataset.subscriptionManager(datasetId) == _msgSender(), "Only Subscription manager");
     _;
@@ -91,11 +86,11 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @dev Weights are encoded such that 100% is represented as 1e18.
    * The weights define how payments are distributed to the tags (contributions).
    * Tags are encodings used as labels to categorize different types of contributions.
-   * Only callable by DatasetNFT
+   * Only callable by the Dataset owner
    * @param tags The tags participating in the payment distributions
    * @param weights The weights of the respective tags to set
    */
-  function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetNFT {
+  function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
     EnumerableMap.Bytes32ToUintMap storage tagWeights = versionedTagWeights.push();
     uint256 weightSum;
     for (uint256 i; i < weights.length; i++) {
@@ -128,10 +123,10 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   /**
    * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner.
    * Percentages are encoded such that 100% is represented as 1e18.
-   * @dev Only callable by DatasetNFT
+   * @dev Only callable by the Dataset owner
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
-  function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetNFT {
+  function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
     require(percentage <= 5e17, "Can't be higher than 50%");
     datasetOwnerPercentage = percentage;
   }
