@@ -33,6 +33,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   error SUBSCRIPTION_ENDED(uint256 validTill, uint256 currentTimestamp);
   error SUBSCRIPTION_REMAINING_DURATION(uint256 maximum, uint256 current);
   error ARRAY_LENGTH_MISMATCH();
+  error NOTHING_TO_PAY();
 
   struct SubscriptionDetails {
     uint256 validSince;
@@ -296,8 +297,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > 365)
-      revert SUBSCRIPTION_DURATION_INVALID(1, 365, extraDurationInDays);
+    if (extraDurationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, extraDurationInDays);
 
     SubscriptionDetails storage sd = _subscriptions[subscription];
     uint256 newDurationInDays;
@@ -323,7 +323,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     }
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);
-    require(newFee > currentFee, "Nothing to pay");
+    if (newFee <= currentFee) revert NOTHING_TO_PAY();
 
     _charge(_msgSender(), newFee - currentFee);
 
