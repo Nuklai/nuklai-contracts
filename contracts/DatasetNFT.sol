@@ -8,7 +8,6 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
@@ -87,7 +86,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     bytes32 msgHash = _mintMessageHash(uuidHash);
     address signer = ECDSA.recover(msgHash, signature);
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
-    
+
     uint256 id = uint256(uuidHash);
 
     _mint(to, id);
