@@ -8,8 +8,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy, fixture } = deployments;
   const { dtAdmin } = await getNamedAccounts();
 
-  await fixture(['ProxyAdmin', 'FragmentNFT']);
-
   const proxyAdmin = await ethers.getContract('ProxyAdmin');
   const proxyAdminAddress = await proxyAdmin.getAddress();
 
