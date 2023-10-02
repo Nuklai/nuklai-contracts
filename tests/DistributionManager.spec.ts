@@ -173,7 +173,9 @@ export default async function suite(): Promise<void> {
       const percentage = parseUnits('0.50001', 18);
 
       await expect(
-        DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(percentage)
+        DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+          percentage
+        )
       ).to.be.revertedWith("Can't be higher than 50%");
     });
 
@@ -182,8 +184,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetDistributionManager_.connect(users_.user).setDatasetOwnerPercentage(percentage)
-      )
-      .to.be.revertedWith("Only Dataset owner");
+      ).to.be.revertedWith('Only Dataset owner');
     });
 
     it('Should data set owner set data set tag weights', async function () {
@@ -283,7 +284,10 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer :: 0.000864 * 7 * 1  = 0.006048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
@@ -378,7 +382,10 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
@@ -499,7 +506,10 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -580,7 +590,10 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -668,7 +681,10 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -788,7 +804,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -876,7 +895,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -993,7 +1015,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1124,7 +1149,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1265,7 +1293,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1405,7 +1436,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('86.4', 18); // totalFee for one week & 1 consumer:: 86.4 * 7 * 1 = 604.8
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1594,7 +1628,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('86.4', 18);
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1683,7 +1720,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1761,7 +1801,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('8640', 18); // totalSubscriptionFee for 1 week with 1 consumer :: 8640 * 7 * 1 = 60480
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1838,7 +1881,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1942,7 +1988,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -2044,7 +2093,10 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('864', 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
 
-      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
