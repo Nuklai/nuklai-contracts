@@ -37,6 +37,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   error FRAGMENT_PROXY_ADDRESS_INVALID();
   error ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
+  error INVALID_ZERO_MODEL_FEE();
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
@@ -154,7 +155,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
     for (uint256 i; i < models.length; i++) {
       DeployerFeeModel m = models[i];
-      require(uint8(m) != 0, "model 0 always has no fee");
+      if (uint8(m) == 0) revert INVALID_ZERO_MODEL_FEE();
       uint256 p = percentages[i];
       if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
       deployerFeeModelPercentage[m] = p;
@@ -347,7 +348,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     address implementation,
     uint256 datasetId
   ) internal returns (address proxy) {
-    require(implementation != address(0), "bad implementation address");
+    if (implementation == address(0)) revert ZERO_ADDRESS();
     bytes memory intializePayload = abi.encodeWithSelector(
       IDatasetLinkInitializable.initialize.selector,
       address(this),
