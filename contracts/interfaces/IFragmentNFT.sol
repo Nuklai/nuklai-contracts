@@ -13,11 +13,6 @@ import "./IDatasetNFT.sol";
  */
 interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
   /**
-   * @notice Retrieves the address of the owner by pending fragment id
-   */
-  function pendingFragmentOwners(uint256 id) external returns (address);
-
-  /**
    * @notice Retrieves the instance of the DatasetNFT set in the
    * respective instance of the FragmentNFT implementation contract
    */
@@ -53,6 +48,14 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
    * @return uint256 The ID of the last pending Fragment
    */
   function lastFragmentPendingId() external view returns (uint256);
+
+  /**
+   * @notice Retrieves the address of the pending `id` Fragment NFT owner
+   * @dev Pending Fragments represent proposed contributions that have not been resolved yet (accepted or rejected)
+   * @param id The ID of the pending Fragment NFT associated with the proposed contribution
+   * @return address The address of the contributor who made the proposal
+   */
+  function pendingFragmentOwners(uint256 id) external returns (address);
 
   /**
    * @notice Accepts a specific proposed contribution by minting the respective pending Fragment NFT to contributor
