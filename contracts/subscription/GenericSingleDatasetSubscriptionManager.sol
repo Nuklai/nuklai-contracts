@@ -110,8 +110,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     uint256 consumers
   ) external view returns (address token, uint256 amount) {
     _requireCorrectDataset(ds);
-    if (durationInDays <= 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
-    if (consumers <= 0) revert CONSUMER_ZERO();
+    if (durationInDays == 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
+    if (consumers == 0) revert CONSUMER_ZERO();
     return _calculateFee(durationInDays, consumers);
   }
 
@@ -122,7 +122,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @return amount The fee amount
    */
   function extraConsumerFee(uint256 subscription, uint256 extraConsumers) external view returns (uint256 amount) {
-    if (extraConsumers <= 0) revert CONSUMER_ZERO();
+    if (extraConsumers == 0) revert CONSUMER_ZERO();
     SubscriptionDetails storage sd = _subscriptions[subscription];
     if (sd.validTill <= block.timestamp) revert SUBSCRIPTION_ENDED(sd.validTill, block.timestamp);
     // (sd.validTill - sd.validSince) was enforced during subscription to be integral multiple of a day in seconds
@@ -268,9 +268,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
     if (balanceOf(_msgSender()) != 0) revert CONSUMER_ALREADY_SUBSCRIBED(_msgSender());
-    if (durationInDays <= 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
+    if (durationInDays == 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
 
-    if (consumers <= 0) revert CONSUMER_ZERO();
+    if (consumers == 0) revert CONSUMER_ZERO();
 
     (, uint256 fee) = _calculateFee(durationInDays, consumers);
     _charge(_msgSender(), fee);
@@ -296,7 +296,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > 0 && extraDurationInDays > 365)
+    if (extraDurationInDays > 365)
       revert SUBSCRIPTION_DURATION_INVALID(1, 365, extraDurationInDays);
 
     SubscriptionDetails storage sd = _subscriptions[subscription];
