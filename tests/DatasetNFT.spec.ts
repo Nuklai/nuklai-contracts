@@ -220,7 +220,7 @@ export default async function suite(): Promise<void> {
           ],
           percentages
         )
-      ).to.be.revertedWith('model 0 always has no fee');
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'INVALID_ZERO_MODEL_FEE');
     });
 
     it('Should DT admin set fee model percentage for deployer', async function () {

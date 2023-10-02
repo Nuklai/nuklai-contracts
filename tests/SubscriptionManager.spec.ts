@@ -823,7 +823,7 @@ export default async function suite(): Promise<void> {
             0,
             0
           )
-        ).to.be.revertedWith('Nothing to pay');
+        ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'NOTHING_TO_PAY');
       });
 
       it('Should subscriber extends his subscription if not expired', async () => {
