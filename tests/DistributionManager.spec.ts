@@ -186,7 +186,9 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetDistributionManager_.connect(users_.user).setDatasetOwnerPercentage(percentage)
-      ).to.be.revertedWith('Only Dataset owner');
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should data set owner set data set tag weights', async function () {

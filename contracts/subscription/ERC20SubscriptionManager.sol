@@ -29,13 +29,13 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   string internal constant _NAME = "Data Tunnel Subscription";
   string internal constant _SYMBOL = "DTSUB";
 
-  error NOT_DATASET_NFT(address account);
+  error NOT_DATASET_OWNER(address account);
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
 
   modifier onlyDatasetOwner() {
-    require(dataset.ownerOf(datasetId) == _msgSender(), "Only Dataset owner");
+    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
     _;
   }
 

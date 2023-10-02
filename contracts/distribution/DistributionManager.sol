@@ -32,7 +32,6 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
   error NOT_DATASET_OWNER(address account);
   error NOT_SUBSCRIPTION_MANAGER(address account);
-  error NOT_DATASET_NFT(address account);
   error MSG_VALUE_MISMATCH(uint256 msgValue, uint256 amount);
   error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
   error TAGS_NOT_PROVIDED();
@@ -138,7 +137,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
-    require(percentage <= 5e17, "Can't be higher than 50%");
+    if (percentage > 5e17) revert PERCENTAGE_VALUE_INVALID(5e17, percentage);
     datasetOwnerPercentage = percentage;
   }
 

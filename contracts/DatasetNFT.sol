@@ -10,8 +10,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
-import {IDistributionManager} from "./interfaces/IDistributionManager.sol";
-import {ISubscriptionManager} from "./interfaces/ISubscriptionManager.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
 
@@ -36,6 +34,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   error FRAGMENT_CREATION_DISABLED();
   error FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
   error FRAGMENT_INSTANCE_NOT_DEPLOYED();
+  error FRAGMENT_PROXY_ADDRESS_INVALID();
   error ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
 
@@ -43,7 +42,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
-  address private fragmentProxyAdmin;
+  address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
   uint256 internal _mintCounter;
@@ -72,7 +71,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
-    require(admin_ != address(0), "Wrong initialization input");
+    if (admin_ == address(0)) revert ZERO_ADDRESS();
     __ERC721_init(_NAME, _SYMBOL);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
@@ -190,8 +189,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param fragmentProxyAdmin_ The address to set
    */
   function setFragmentProxyAdminAddress(address fragmentProxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(Address.isContract(fragmentProxyAdmin_), "invalid proxyAdmin address");
-    fragmentProxyAdmin = fragmentProxyAdmin_;
+    if (!Address.isContract(fragmentProxyAdmin_)) revert FRAGMENT_PROXY_ADDRESS_INVALID();
+    _fragmentProxyAdmin = fragmentProxyAdmin_;
   }
 
   /**
@@ -354,7 +353,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
       address(this),
       datasetId
     );
-    return address(new TransparentUpgradeableProxy(implementation, fragmentProxyAdmin, intializePayload));
+    return address(new TransparentUpgradeableProxy(implementation, _fragmentProxyAdmin, intializePayload));
   }
 
   /**
