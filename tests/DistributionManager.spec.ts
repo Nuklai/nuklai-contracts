@@ -162,8 +162,7 @@ export default async function suite(): Promise<void> {
     it('Should data set owner set its percentage to be sent on each payment', async function () {
       const percentage = parseUnits('0.01', 18);
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         percentage
       );
 
@@ -174,7 +173,7 @@ export default async function suite(): Promise<void> {
       const percentage = parseUnits('0.50001', 18);
 
       await expect(
-        DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(datasetId_, percentage)
+        DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(percentage)
       ).to.be.revertedWith("Can't be higher than 50%");
     });
 
@@ -182,15 +181,13 @@ export default async function suite(): Promise<void> {
       const percentage = parseUnits('0.4', 18);
 
       await expect(
-        DatasetNFT_.connect(users_.user).setDatasetOwnerPercentage(datasetId_, percentage)
+        DatasetDistributionManager_.connect(users_.user).setDatasetOwnerPercentage(percentage)
       )
-        .to.be.revertedWithCustomError(DatasetNFT_, 'NOT_OWNER')
-        .withArgs(datasetId_, users_.user.address);
+      .to.be.revertedWith("Only Dataset owner");
     });
 
     it('Should data set owner set data set tag weights', async function () {
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
@@ -199,7 +196,7 @@ export default async function suite(): Promise<void> {
     it('Should user be able to get tag weights', async function () {
       const tags = [ZeroHash, encodeTag('metadata')];
       const weights = [parseUnits('0.3', 18), parseUnits('0.7', 18)];
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(datasetId_, tags, weights);
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(tags, weights);
 
       const tagWeights = await DatasetDistributionManager_.connect(users_.user).getTagWeights(tags);
 
@@ -227,8 +224,7 @@ export default async function suite(): Promise<void> {
       const datasetRowsTag = utils.encodeTag('dataset.rows');
 
       await expect(
-        DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-          datasetId_,
+        DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
           [datasetSchemasTag, datasetRowsTag],
           [parseUnits('0.4', 18), parseUnits('0.8', 18)]
         )
@@ -268,8 +264,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -280,8 +275,7 @@ export default async function suite(): Promise<void> {
         parseUnits('0.006048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
@@ -289,7 +283,7 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer :: 0.000864 * 7 * 1  = 0.006048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
@@ -365,8 +359,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -377,8 +370,7 @@ export default async function suite(): Promise<void> {
         parseUnits('0.006048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
@@ -386,7 +378,7 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
@@ -488,8 +480,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -500,8 +491,7 @@ export default async function suite(): Promise<void> {
         parseUnits('60480', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
@@ -509,7 +499,7 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -571,8 +561,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -583,8 +572,7 @@ export default async function suite(): Promise<void> {
         parseUnits('60480', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
@@ -592,7 +580,7 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -666,8 +654,7 @@ export default async function suite(): Promise<void> {
       // Currently 2 contributions are made of the same tag (one from dtOwner & one from contributor)
       // tag weight is 100% (see `setup()`)
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.1', 18)
       );
 
@@ -681,7 +668,7 @@ export default async function suite(): Promise<void> {
       // feePerDayPerConsumer
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -783,8 +770,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -795,15 +781,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -873,8 +858,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -885,15 +869,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -925,8 +908,7 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(
-        datasetId_,
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),
         parseUnits('86.4', 18)
       );
@@ -993,8 +975,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1005,15 +986,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1045,8 +1025,7 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(
-        datasetId_,
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),
         parseUnits('86.4', 18)
       );
@@ -1061,8 +1040,7 @@ export default async function suite(): Promise<void> {
         1
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(
-        datasetId_,
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         tokenAddress,
         parseUnits('8.64', 18)
       );
@@ -1128,8 +1106,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1140,15 +1117,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1271,8 +1247,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1283,15 +1258,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalFee for one week & 1 consumer:: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1413,8 +1387,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1425,15 +1398,14 @@ export default async function suite(): Promise<void> {
         parseUnits('604.8', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('86.4', 18); // totalFee for one week & 1 consumer:: 86.4 * 7 * 1 = 604.8
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1604,8 +1576,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1616,15 +1587,14 @@ export default async function suite(): Promise<void> {
         parseUnits('604.8')
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('86.4', 18);
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1695,8 +1665,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1707,15 +1676,14 @@ export default async function suite(): Promise<void> {
         parseUnits('0.006048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1775,8 +1743,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1787,15 +1754,14 @@ export default async function suite(): Promise<void> {
         parseUnits('60480', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('8640', 18); // totalSubscriptionFee for 1 week with 1 consumer :: 8640 * 7 * 1 = 60480
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1854,8 +1820,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1866,15 +1831,14 @@ export default async function suite(): Promise<void> {
         parseUnits('0.006048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('0.000864', 18); // totalFee for one week & 1 consumer:: 0.000864 * 7 * 1 = 0.006048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -1960,8 +1924,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -1972,15 +1935,14 @@ export default async function suite(): Promise<void> {
         parseUnits('60480', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('8640', 18); // totalFee for one week & 1 consumer:: 8640 * 7 * 1 = 60480
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
@@ -2064,8 +2026,7 @@ export default async function suite(): Promise<void> {
         true
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
         ethers.parseUnits('0.001', 18)
       );
 
@@ -2076,15 +2037,14 @@ export default async function suite(): Promise<void> {
         parseUnits('6048', 18)
       );
 
-      await DatasetNFT_.connect(users_.datasetOwner).setTagWeights(
-        datasetId_,
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
         [parseUnits('1', 18)]
       );
 
       const feeAmount = parseUnits('864', 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
 
-      await DatasetNFT_.connect(users_.datasetOwner).setFee(datasetId_, tokenAddress, feeAmount);
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(tokenAddress, feeAmount);
 
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
 
