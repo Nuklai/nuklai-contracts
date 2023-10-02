@@ -41,17 +41,13 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
-  event DatasetUuidSet(string uuid, uint256 ds);
 
   address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
-  uint256 internal _mintCounter;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
-  mapping(uint256 id => string uuid) public uuids;
-  mapping(string uuid => uint256 id) public datasetIds;
   mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
   mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
@@ -82,35 +78,21 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Mints a Dataset NFT token to `to`
    * @dev Emits a {Transfer} event
+   * @param uuidHash The hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
    */
-  function mint(address to, bytes calldata signature) external returns (uint256) {
-    if (Strings.equal(uuids[_mintCounter], "")) revert NOT_UUID_SET(_mintCounter);
-    bytes32 msgHash = _mintMessageHash(_mintCounter);
+  function mint(bytes32 uuidHash, address to, bytes calldata signature) external returns (uint256) {
+    bytes32 msgHash = _mintMessageHash(uuidHash);
     address signer = ECDSA.recover(msgHash, signature);
-
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
+    
+    uint256 id = uint256(uuidHash);
 
-    _mint(to, _mintCounter);
+    _mint(to, id);
 
-    return _mintCounter;
-  }
-
-  /**
-   * @notice Sets a universally unique identifier (UUID) for the next Dataset NFT to be minted
-   * @dev Only callable by DatasetNFT ADMIN.
-   * Emits a {DatasetUuidSet} event.
-   * @param uuid Unique identifier to set
-   * @return ds The ID of the token for which the UUID was set
-   */
-  function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
-    ds = ++_mintCounter;
-    uuids[ds] = uuid;
-    datasetIds[uuid] = ds;
-
-    emit DatasetUuidSet(uuid, ds);
+    return id;
   }
 
   /**
@@ -360,10 +342,10 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Returns an Ethereum Signed Message hash for minting a Dataset NFT token
    * @dev See `ECDSA.sol`
-   * @param id The ID of the target Dataset NFT token to mint
+   * @param uuidHash The hash of the off-chain generated UUID for the Dataset
    * @return bytes32 The generated Ethereum signed message hash
    */
-  function _mintMessageHash(uint256 id) private view returns (bytes32) {
-    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), id));
+  function _mintMessageHash(bytes32 uuidHash) private view returns (bytes32) {
+    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHash));
   }
 }
