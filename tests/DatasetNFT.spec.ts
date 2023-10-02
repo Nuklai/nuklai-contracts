@@ -875,6 +875,68 @@ export default async function suite(): Promise<void> {
           .withArgs(datasetId_, tag);
       });
 
+      it('Should data set owner to be exempt when adding a fragment - default AcceptManuallyVerifier', async function () {
+        const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+        const DistributionManager = await DistributionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+        const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
+          subscriptionManager: await SubscriptionManager.getAddress(),
+          distributionManager: await DistributionManager.getAddress(),
+          verifierManager: await VerifierManager.getAddress(),
+        });
+
+        const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(datasetId_);
+
+        const DatasetVerifierManager = await ethers.getContractAt(
+          'VerifierManager',
+          datasetVerifierManagerAddress,
+          users_.datasetOwner
+        );
+
+        const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        await DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
+
+        const tag = utils.encodeTag('dataset.schemas');
+
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            users_.datasetOwner.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.datasetOwner).proposeFragment(
+            datasetId_,
+            users_.datasetOwner.address,
+            tag,
+            proposeSignature
+          )
+        )
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          .withArgs(datasetId_, tag)
+          .to.emit(DatasetVerifierManager, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n)
+          .to.emit(DatasetVerifierManager, 'FragmentResolved')
+          .withArgs(lastFragmentPendingId + 1n, true)
+          .to.emit(DatasetFragment_, 'FragmentAccepted')
+          .withArgs(lastFragmentPendingId + 1n);
+      });
+
       it('Should proposeFragment() revert if no FragmentInstance for dataset is deployed', async () => {
         // Currently only one dataSet is supported from the protocol  with `datasetId_` erc721 id
         await expect(DatasetNFT_.ownerOf(datasetId_ + BigInt(1))).to.be.revertedWith(
