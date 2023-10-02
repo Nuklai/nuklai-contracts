@@ -46,7 +46,6 @@ const setup = async () => {
 
   const uuidHash = getUuidHash(datasetUUID);
 
-
   const datasetAddress = await contracts.DatasetNFT.getAddress();
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
@@ -59,20 +58,25 @@ const setup = async () => {
 
   const tag = utils.encodeTag('dataset.schemas');
 
-  const mintAndConfigureDatasetReceipt = await (await contracts.DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-    uuidHash,
-    users.datasetOwner.address,
-    signedMessage,
-    defaultVerifierAddress,
-    await users.subscriber.Token!.getAddress(),
-    feeAmount,
-    dsOwnerPercentage,
-    [tag],
-    [parseUnits('1', 18)]
-  )).wait();
+  const mintAndConfigureDatasetReceipt = await (
+    await contracts.DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
+      uuidHash,
+      users.datasetOwner.address,
+      signedMessage,
+      defaultVerifierAddress,
+      await users.subscriber.Token!.getAddress(),
+      feeAmount,
+      dsOwnerPercentage,
+      [tag],
+      [parseUnits('1', 18)]
+    )
+  ).wait();
 
-  const [from, to, datasetId] = getEvent('Transfer', mintAndConfigureDatasetReceipt?.logs!, contracts.DatasetNFT)!
-    .args as unknown as [string, string, bigint];
+  const [from, to, datasetId] = getEvent(
+    'Transfer',
+    mintAndConfigureDatasetReceipt?.logs!,
+    contracts.DatasetNFT
+  )!.args as unknown as [string, string, bigint];
 
   const fragmentAddress = await contracts.DatasetNFT.fragments(datasetId);
   const DatasetFragment = (await ethers.getContractAt(

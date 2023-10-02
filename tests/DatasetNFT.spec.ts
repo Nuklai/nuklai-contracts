@@ -89,21 +89,26 @@ const setupOnMint = async () => {
   const feeAmount = parseUnits('0.1', 18);
   const dsOwnerPercentage = parseUnits('0.001', 18);
 
-  const mintAndConfigureDatasetReceipt = await (await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-    uuidHash,
-    users.datasetOwner.address,
-    signedMessage,
-    defaultVerifierAddress,
-    await users.datasetOwner.Token!.getAddress(),
-    feeAmount,
-    dsOwnerPercentage,
-    [ZeroHash],
-    [parseUnits('1', 18)]
-  )).wait();
+  const mintAndConfigureDatasetReceipt = await (
+    await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
+      uuidHash,
+      users.datasetOwner.address,
+      signedMessage,
+      defaultVerifierAddress,
+      await users.datasetOwner.Token!.getAddress(),
+      feeAmount,
+      dsOwnerPercentage,
+      [ZeroHash],
+      [parseUnits('1', 18)]
+    )
+  ).wait();
 
-  const [from, to, datasetId] = getEvent('Transfer', mintAndConfigureDatasetReceipt?.logs!, DatasetNFT)!
-    .args as unknown as [string, string, bigint];
-  
+  const [from, to, datasetId] = getEvent(
+    'Transfer',
+    mintAndConfigureDatasetReceipt?.logs!,
+    DatasetNFT
+  )!.args as unknown as [string, string, bigint];
+
   const factories = {
     DistributionManagerFactory: await ethers.getContractFactory('DistributionManager'),
     ERC20SubscriptionManagerFactory: await ethers.getContractFactory('ERC20SubscriptionManager'),
@@ -347,7 +352,7 @@ export default async function suite(): Promise<void> {
         [ZeroHash],
         [parseUnits('1', 18)]
       );
-      
+
       // Same uuidHash used --> should revert since the same tokenId (uint256(uuidHash)) cannot be minted again
       await expect(
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
@@ -372,7 +377,11 @@ export default async function suite(): Promise<void> {
       const uuidHash = getUuidHash(datasetUUID);
 
       await expect(
-        DatasetNFT_.connect(users_.datasetOwner).mint(uuidHash, users_.datasetOwner.address, signedMessage)
+        DatasetNFT_.connect(users_.datasetOwner).mint(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage
+        )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
 

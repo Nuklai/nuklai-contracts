@@ -49,20 +49,25 @@ const setup = async () => {
   const feeAmount = parseUnits('0.1', 18); // feePerDayPerConsumer
   const dsOwnerPercentage = parseUnits('0.001', 18);
 
-  const mintAndConfigureDatasetReceipt = await (await contracts.DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
-    uuidHash,
-    users.datasetOwner.address,
-    signedMessage,
-    defaultVerifierAddress,
-    await users.datasetOwner.Token!.getAddress(),
-    feeAmount,
-    dsOwnerPercentage,
-    [ZeroHash],
-    [parseUnits('1', 18)]
-  )).wait();
+  const mintAndConfigureDatasetReceipt = await (
+    await contracts.DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
+      uuidHash,
+      users.datasetOwner.address,
+      signedMessage,
+      defaultVerifierAddress,
+      await users.datasetOwner.Token!.getAddress(),
+      feeAmount,
+      dsOwnerPercentage,
+      [ZeroHash],
+      [parseUnits('1', 18)]
+    )
+  ).wait();
 
-  const [from, to, datasetId] = getEvent('Transfer', mintAndConfigureDatasetReceipt?.logs!, contracts.DatasetNFT)!
-    .args as unknown as [string, string, bigint];
+  const [from, to, datasetId] = getEvent(
+    'Transfer',
+    mintAndConfigureDatasetReceipt?.logs!,
+    contracts.DatasetNFT
+  )!.args as unknown as [string, string, bigint];
 
   return {
     datasetId,
