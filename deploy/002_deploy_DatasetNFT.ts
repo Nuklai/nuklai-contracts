@@ -5,7 +5,7 @@ import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy, fixture } = deployments;
+  const { deploy } = deployments;
   const { dtAdmin } = await getNamedAccounts();
 
   const proxyAdmin = await ethers.getContract('ProxyAdmin');

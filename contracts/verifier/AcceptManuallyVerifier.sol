@@ -38,17 +38,46 @@ contract AcceptManuallyVerifier is IVerifier {
   /**
    * @notice Adds the pending Fragment ID to the verification queue
    * @dev Only callable by the configured VerifierManager contract instance
+   * Emits a {FragmentPending} event.
+   * Emits a {FragmentResolved} event on condition.
    * @param fragmentNFT The address of the FragmentNFT contract instance
    * @param id The ID of the pending Fragment
    */
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
     pendingFragments[fragmentNFT].add(id);
     emit FragmentPending(fragmentNFT, id);
+
+    _resolveAutomaticallyIfDSOwner(fragmentNFT, id);
+  }
+
+  /**
+   * @notice Resolves a pending fragment automatically if Dataset Owner proposed it
+   * @dev This function automatically accepts a proposed contribution to a Dataset
+   * only if the owner of the associated pending Fragment NFT is equal to the Dataset Owner.
+   * Emits a {FragmentResolved} event on condition.
+   * @param fragmentNFT The address of the FragmentNFT contract instance
+   * @param id The ID of the pending Fragment
+   */
+  function _resolveAutomaticallyIfDSOwner(address fragmentNFT, uint256 id) internal {
+    address datasetOwner = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).ownerOf(
+      IFragmentNFT(fragmentNFT).datasetId()
+    );
+    address fragmentOwner = IFragmentNFT(fragmentNFT).pendingFragmentOwners(id);
+
+    if (datasetOwner == fragmentOwner) {
+      VerifierManager vm = VerifierManager(
+        IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId())
+      );
+      pendingFragments[fragmentNFT].remove(id);
+      vm.resolve(id, true);
+      emit FragmentResolved(fragmentNFT, id, true);
+    }
   }
 
   /**
    * @notice Resolves a single contribution proposal
-   * @dev Only callable by the Dataset owner
+   * @dev Only callable by the Dataset owner.
+   * Emits a {FragmentResolved} event.
    * @param fragmentNFT The address of the FragmentNFT contract instance
    * @param id The ID of the pending Fragment associated with the contribution proposal
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
@@ -57,13 +86,15 @@ contract AcceptManuallyVerifier is IVerifier {
     VerifierManager vm = VerifierManager(
       IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId())
     );
+    pendingFragments[fragmentNFT].remove(id);
     vm.resolve(id, accept);
     emit FragmentResolved(fragmentNFT, id, accept);
   }
 
   /**
    * @notice Resolves a batch of contribution proposals
-   * @dev Only callable by the Dataset owner
+   * @dev Only callable by the Dataset owner.
+   * Emits {FragmentResolved} event(s).
    * @param fragmentNFT The address of the FragmentNFT contract instance
    * @param ids Array with the IDs of the pending Fragments in the batch
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
@@ -74,6 +105,7 @@ contract AcceptManuallyVerifier is IVerifier {
     );
     for (uint256 i; i < ids.length; i++) {
       uint256 id = ids[i];
+      pendingFragments[fragmentNFT].remove(id);
       vm.resolve(id, accept);
       emit FragmentResolved(fragmentNFT, id, accept);
     }

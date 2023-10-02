@@ -50,6 +50,14 @@ interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
   function lastFragmentPendingId() external view returns (uint256);
 
   /**
+   * @notice Retrieves the address of the pending `id` Fragment NFT owner
+   * @dev Pending Fragments represent proposed contributions that have not been resolved yet (accepted or rejected)
+   * @param id The ID of the pending Fragment NFT associated with the proposed contribution
+   * @return address The address of the contributor who made the proposal
+   */
+  function pendingFragmentOwners(uint256 id) external returns (address);
+
+  /**
    * @notice Accepts a specific proposed contribution by minting the respective pending Fragment NFT to contributor
    * @dev Emits a {FragmentAccepted} event
    * @param id The ID of the pending Fragment NFT associated with the proposed contribution to be accepted

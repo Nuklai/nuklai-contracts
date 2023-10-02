@@ -96,16 +96,6 @@ const setup = async () => {
     users.datasetOwner
   )) as unknown as VerifierManager;
 
-  const AcceptManuallyVerifier = await ethers.getContract<AcceptManuallyVerifier>(
-    'AcceptManuallyVerifier'
-  );
-
-  await AcceptManuallyVerifier.connect(users.datasetOwner).resolve(
-    fragmentAddress,
-    lastFragmentPendingId + 1n,
-    true
-  );
-
   return {
     datasetId,
     DatasetFragment,

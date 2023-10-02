@@ -40,7 +40,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
-  mapping(uint256 => string) public uuids;
+  mapping(uint256 id => string uuid) public uuids;
+  mapping(string uuid => uint256 id) public datasetIds;
   mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
   mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
@@ -97,6 +98,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
     ds = ++mintCounter;
     uuids[ds] = uuid;
+    datasetIds[uuid] = ds;
 
     emit DatasetUuidSet(uuid, ds);
   }
