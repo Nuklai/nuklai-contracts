@@ -65,6 +65,7 @@ const setupOnMint = async () => {
     'DatasetManagers',
     'DatasetVerifiers',
     'DatasetFactory',
+    'TestToken',
   ]);
 
   const contracts = {
@@ -882,6 +883,68 @@ export default async function suite(): Promise<void> {
           .withArgs(datasetId_, tag);
       });
 
+      it('Should data set owner to be exempt when adding a fragment - default AcceptManuallyVerifier', async function () {
+        const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+        const DistributionManager = await DistributionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+        const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
+          subscriptionManager: await SubscriptionManager.getAddress(),
+          distributionManager: await DistributionManager.getAddress(),
+          verifierManager: await VerifierManager.getAddress(),
+        });
+
+        const datasetVerifierManagerAddress = await DatasetNFT_.verifierManager(datasetId_);
+
+        const DatasetVerifierManager = await ethers.getContractAt(
+          'VerifierManager',
+          datasetVerifierManagerAddress,
+          users_.datasetOwner
+        );
+
+        const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        await DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
+
+        const tag = utils.encodeTag('dataset.schemas');
+
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            users_.datasetOwner.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.datasetOwner).proposeFragment(
+            datasetId_,
+            users_.datasetOwner.address,
+            tag,
+            proposeSignature
+          )
+        )
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          .withArgs(datasetId_, tag)
+          .to.emit(DatasetVerifierManager, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n)
+          .to.emit(DatasetVerifierManager, 'FragmentResolved')
+          .withArgs(lastFragmentPendingId + 1n, true)
+          .to.emit(DatasetFragment_, 'FragmentAccepted')
+          .withArgs(lastFragmentPendingId + 1n);
+      });
+
       it('Should proposeFragment() revert if no FragmentInstance for dataset is deployed', async () => {
         // Currently only one dataSet is supported from the protocol  with `datasetId_` erc721 id
         await expect(DatasetNFT_.ownerOf(datasetId_ + BigInt(1))).to.be.revertedWith(
@@ -1147,79 +1210,6 @@ export default async function suite(): Promise<void> {
             proposeSignature
           )
         ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
-      });
-
-      it('Should setFeeAndTagWeights() set the fee and tag weights', async () => {
-        const datasetAddress = await DatasetNFT_.getAddress();
-        const subscriptionAddress = await DatasetNFT_.subscriptionManager(datasetId_);
-        const distributionAddress = await DatasetNFT_.distributionManager(datasetId_);
-        const tokenAddress = await users_.datasetOwner.Token!.getAddress();
-
-        const tags = [
-          ZeroHash,
-          encodeTag('shcema.metadata'),
-          encodeTag('schema.rows'),
-          encodeTag('schema.columns'),
-        ];
-
-        const weights = [
-          parseUnits('0.1', 18),
-          parseUnits('0.2', 18),
-          parseUnits('0.3', 18),
-          parseUnits('0.4', 18),
-        ];
-
-        const fee = parseUnits('0.5', 18);
-
-        // Currently (see `setup()`) fee is 0.1 & tags = [ZeroHash] with weight 100%
-        const subscriptionManager = ERC20SubscriptionManagerFactory_.attach(
-          subscriptionAddress
-        ) as unknown as ERC20SubscriptionManager;
-        const distributionManager = DistributionManagerFactory_.attach(
-          distributionAddress
-        ) as unknown as DistributionManager;
-
-        // For 0.1 fee, 7 days and 3 consumers, subscription fee is :: 0.1 * 7 * 3 == 2.1
-        let expectedFee = parseUnits('2.1', 18);
-
-        let subscriptionFeeResult = await subscriptionManager.subscriptionFee(datasetId_, 7, 3);
-
-        expect(subscriptionFeeResult[0]).to.equal(tokenAddress);
-        expect(subscriptionFeeResult[1]).to.equal(expectedFee);
-
-        const tagWeightsResultPre = await distributionManager.getTagWeights(tags);
-
-        expect(tagWeightsResultPre.length).to.equal(4);
-        expect(tagWeightsResultPre[0]).to.equal(parseUnits('1', 18)); // Since only tag ZeroHash is set (see `setup()`)
-        expect(tagWeightsResultPre[1]).to.equal(0);
-        expect(tagWeightsResultPre[2]).to.equal(0);
-        expect(tagWeightsResultPre[3]).to.equal(0);
-
-        // ------ Post setFeeAndTagWeights
-
-        await DatasetNFT_.connect(users_.datasetOwner).setFeeAndTagWeights(
-          datasetId_,
-          tokenAddress,
-          fee,
-          tags,
-          weights
-        );
-
-        // For 0.5 fee, 7 days and 3 consumers , subscription fee is:: 0.5 * 7 * 3 == 10.5
-        expectedFee = parseUnits('10.5', 18);
-
-        subscriptionFeeResult = await subscriptionManager.subscriptionFee(datasetId_, 7, 3);
-
-        expect(subscriptionFeeResult[0]).to.equal(tokenAddress);
-        expect(subscriptionFeeResult[1]).to.equal(expectedFee);
-
-        const tagWeightsResultPost = await distributionManager.getTagWeights(tags);
-
-        expect(tagWeightsResultPost.length).to.equal(4);
-        expect(tagWeightsResultPost[0]).to.equal(weights[0]);
-        expect(tagWeightsResultPost[1]).to.equal(weights[1]);
-        expect(tagWeightsResultPost[2]).to.equal(weights[2]);
-        expect(tagWeightsResultPost[3]).to.equal(weights[3]);
       });
     });
   });

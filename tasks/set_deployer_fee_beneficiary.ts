@@ -12,7 +12,6 @@ task('set-deploy-fee-beneficiary', 'Sets the deployer fee beneficiary address')
   .addParam('contractAddress', 'Address of the DatasetNFT contract')
   .addParam('beneficiary', 'Address of the beneficiary wallet')
   .setAction(async (taskArgs: TaskArgs) => {
-    console.log('taskArgs.beneficiary :>> ', taskArgs.beneficiary);
     const wallet = new ethers.Wallet(taskArgs.pk, ethers.provider);
 
     const dataset = (await ethers.getContractAt(
@@ -24,7 +23,7 @@ task('set-deploy-fee-beneficiary', 'Sets the deployer fee beneficiary address')
     if (!taskArgs.beneficiary) throw new Error('No beneficiary set');
 
     console.log('Setting deployer fee beneficiary...');
-    await dataset.setDeployerFeeBeneficiary(taskArgs.beneficiary);
+    await (await dataset.setDeployerFeeBeneficiary(taskArgs.beneficiary)).wait();
 
     const beneficiary = await dataset.deployerFeeBeneficiary();
 

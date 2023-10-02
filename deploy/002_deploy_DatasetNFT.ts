@@ -5,10 +5,8 @@ import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
-  const { deploy, fixture } = deployments;
+  const { deploy } = deployments;
   const { dtAdmin } = await getNamedAccounts();
-
-  await fixture(['ProxyAdmin', 'FragmentNFT']);
 
   const proxyAdmin = await ethers.getContract('ProxyAdmin');
   const proxyAdminAddress = await proxyAdmin.getAddress();
@@ -50,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('FragmentNFT Implementation sucessfully set', fragmentImplementationAddress);
 
-  const proxyAdminSet = await dataset.setProxyAdminAddress(proxyAdminAddress);
+  const proxyAdminSet = await dataset.setFragmentProxyAdminAddress(proxyAdminAddress);
   await proxyAdminSet.wait();
 
   console.log('ProxyAdmin address sucessfully set', proxyAdminAddress);

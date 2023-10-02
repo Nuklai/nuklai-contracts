@@ -43,14 +43,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
-  address private proxyAdmin;
+  address private fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
   uint256 internal _mintCounter;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
-  mapping(uint256 => string) public uuids;
+  mapping(uint256 id => string uuid) public uuids;
+  mapping(string uuid => uint256 id) public datasetIds;
   mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
   mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
@@ -107,6 +108,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
     ds = ++_mintCounter;
     uuids[ds] = uuid;
+    datasetIds[uuid] = ds;
 
     emit DatasetUuidSet(uuid, ds);
   }
@@ -137,70 +139,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
       configurations[id] = config;
       emit ManagersConfigChange(id);
     }
-  }
-
-  /**
-   * @notice Sets the daily subscription fee for a single consumer of a specific Dataset
-   * @dev Only callable by the owner of the Dataset NFT token
-   * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
-   * @param feePerConsumerPerDay The fee amount to set
-   */
-  function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external onlyTokenOwner(id) {
-    ISubscriptionManager sm = ISubscriptionManager(proxies[id].subscriptionManager);
-    sm.setFee(token, feePerConsumerPerDay);
-  }
-
-  /**
-   * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner.
-   * Percentages are encoded such that 100% is represented as 1e18.
-   * @dev Only callable by the owner of the Dataset NFT token
-   * @param id The ID of the target Dataset NFT token
-   * @param percentage The percentage to set (must be less than or equal to 50%)
-   */
-  function setDatasetOwnerPercentage(uint256 id, uint256 percentage) external onlyTokenOwner(id) {
-    IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
-    dm.setDatasetOwnerPercentage(percentage);
-  }
-
-  /**
-   * @notice Sets the weights of the respective provided tags.
-   * The weights define how payments are distributed to the tags (contributions).
-   * Tags are encodings used as labels to categorize different types of contributions.
-   * @dev Only callable by the owner of the Dataset NFT token
-   * @param id The ID of the target Dataset NFT token
-   * @param tags The tags participating in the payment distributions
-   * @param weights The weights of the respective tags to set
-   */
-  function setTagWeights(uint256 id, bytes32[] calldata tags, uint256[] calldata weights) external onlyTokenOwner(id) {
-    IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
-    dm.setTagWeights(tags, weights);
-  }
-
-  /**
-   * @notice Sets the daily subscription fee per consumer of a specific Dataset, and the weights of the provided tags.
-   * This function allows Dataset owners to configure both the subscription fee
-   * and the distribution of payments among different tags in a single Tx.
-   * Tags are encodings used as labels to categorize different types of contributions.
-   * @dev Only callable by the owner of the Dataset NFT token
-   * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
-   * @param feePerConsumerPerDay The fee amount to set
-   * @param tags The tags participating in the payment distributions
-   * @param weights The weights of the respective tags to set
-   */
-  function setFeeAndTagWeights(
-    uint256 id,
-    address token,
-    uint256 feePerConsumerPerDay,
-    bytes32[] calldata tags,
-    uint256[] calldata weights
-  ) external onlyTokenOwner(id) {
-    ISubscriptionManager sm = ISubscriptionManager(proxies[id].subscriptionManager);
-    sm.setFee(token, feePerConsumerPerDay);
-
-    IDistributionManager dm = IDistributionManager(proxies[id].distributionManager);
-    dm.setTagWeights(tags, weights);
   }
 
   /**
@@ -245,15 +183,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
-   * @notice Sets the address of the ProxyAdmin contract
-   * @dev The ProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
+   * @notice Sets the address of the FragmentProxyAdmin contract
+   * @dev The FragmentProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
    * of FragmentNFT instances.
    * Only callable by DatasetNFT ADMIN
-   * @param proxyAdmin_ The address to set
+   * @param fragmentProxyAdmin_ The address to set
    */
-  function setProxyAdminAddress(address proxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(Address.isContract(proxyAdmin_), "invalid proxyAdmin address");
-    proxyAdmin = proxyAdmin_;
+  function setFragmentProxyAdminAddress(address fragmentProxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(Address.isContract(fragmentProxyAdmin_), "invalid proxyAdmin address");
+    fragmentProxyAdmin = fragmentProxyAdmin_;
   }
 
   /**
@@ -400,7 +338,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Deploys and initializes a TransparentUpgradeableProxy for the `implementation` contract
    * @dev The TransparentUpgradeableProxy is linked to the specified Dataset.
-   * The admin of the TransparentUpgradeableProxy is the proxyAdmin.
+   * The admin of the TransparentUpgradeableProxy is the fragmentProxyAdmin.
    * Only used for deploying FragmentNFT upgradeable instances.
    * @param implementation The address of the implementation contract
    * @param datasetId The ID of the target Dataset NFT token
@@ -416,7 +354,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
       address(this),
       datasetId
     );
-    return address(new TransparentUpgradeableProxy(implementation, proxyAdmin, intializePayload));
+    return address(new TransparentUpgradeableProxy(implementation, fragmentProxyAdmin, intializePayload));
   }
 
   /**
