@@ -19,7 +19,7 @@ import {
 } from 'ethers';
 import { v4 as uuidv4 } from 'uuid';
 import { signature, utils } from './utils';
-import { encodeTag } from './utils/utils';
+import { encodeTag, getUuidHash, getUint256FromBytes32 } from './utils/utils';
 import { constants } from '../utils';
 import { getEvent } from './utils/events';
 import { setupUsers } from './utils/users';
@@ -77,16 +77,11 @@ const setupOnMint = async () => {
 
   const datasetUUID = uuidv4();
 
-  const uuidSetTxReceipt = await (
-    await DatasetNFT.connect(users.dtAdmin).setUuidForDatasetId(datasetUUID)
-  ).wait();
-
-  const [uuid, datasetId] = getEvent('DatasetUuidSet', uuidSetTxReceipt?.logs!, DatasetNFT)!
-    .args as unknown as [string, bigint];
+  const uuidHash = getUuidHash(datasetUUID);
 
   const datasetAddress = await DatasetNFT.getAddress();
   const signedMessage = await users.dtAdmin.signMessage(
-    signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, datasetId)
+    signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
   const defaultVerifierAddress = await (
     await ethers.getContract('AcceptManuallyVerifier')
@@ -94,7 +89,8 @@ const setupOnMint = async () => {
   const feeAmount = parseUnits('0.1', 18);
   const dsOwnerPercentage = parseUnits('0.001', 18);
 
-  await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
+  const mintAndConfigureDatasetReceipt = await (await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
+    uuidHash,
     users.datasetOwner.address,
     signedMessage,
     defaultVerifierAddress,
@@ -103,8 +99,11 @@ const setupOnMint = async () => {
     dsOwnerPercentage,
     [ZeroHash],
     [parseUnits('1', 18)]
-  );
+  )).wait();
 
+  const [from, to, datasetId] = getEvent('Transfer', mintAndConfigureDatasetReceipt?.logs!, DatasetNFT)!
+    .args as unknown as [string, string, bigint];
+  
   const factories = {
     DistributionManagerFactory: await ethers.getContractFactory('DistributionManager'),
     ERC20SubscriptionManagerFactory: await ethers.getContractFactory('ERC20SubscriptionManager'),
@@ -121,7 +120,7 @@ const setupOnMint = async () => {
 
   return {
     datasetId,
-    datasetUUID: uuid,
+    datasetUuidHash: uuidHash,
     DatasetFragment,
     users,
     ...contracts,
@@ -284,101 +283,16 @@ export default async function suite(): Promise<void> {
       ).to.equal(0);
     });
 
-    it('Should first DT admin set UUID before data set owner mints the data set', async function () {
-      const datasetUUID = uuidv4();
-
-      const uuidSetTxReceipt = await (
-        await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
-      ).wait();
-
-      const [uuid, datasetId] = getEvent('DatasetUuidSet', uuidSetTxReceipt?.logs!, DatasetNFT_)!
-        .args as unknown as [string, bigint];
-
-      expect(await DatasetNFT_.uuids(datasetId)).to.equal(datasetUUID);
-      expect(datasetUUID).to.equal(uuid);
-
-      const datasetAddress = await DatasetNFT_.getAddress();
-      const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, datasetId)
-      );
-      const defaultVerifierAddress = await (
-        await ethers.getContract('AcceptManuallyVerifier')
-      ).getAddress();
-      const feeAmount = parseUnits('0.1', 18);
-      const dsOwnerPercentage = parseUnits('0.001', 18);
-
-      await expect(
-        DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
-          users_.datasetOwner.address,
-          signedMessage,
-          defaultVerifierAddress,
-          await users_.datasetOwner.Token!.getAddress(),
-          feeAmount,
-          dsOwnerPercentage,
-          [ZeroHash],
-          [parseUnits('1', 18)]
-        )
-      )
-        .to.emit(DatasetNFT_, 'ManagersConfigChange')
-        .withArgs(datasetId)
-        .to.emit(DatasetNFT_, 'Transfer')
-        .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), datasetId)
-        .to.emit(DatasetNFT_, 'Transfer')
-        .withArgs(await DatasetFactory_.getAddress(), users_.datasetOwner.address, datasetId);
-    });
-
-    it('Should revert when non admin account tries to setUuid for a dataset', async () => {
-      const uuId_test = uuidV4('0xff00cc');
-
-      await expect(
-        DatasetNFT_.connect(users_.datasetOwner).setUuidForDatasetId(uuId_test)
-      ).to.be.revertedWith(
-        `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${ZeroHash}`
-      );
-    });
-
-    it('Should revert if DT admin not set UUID before data set owner mints the data set', async function () {
-      const datasetAddress = await DatasetNFT_.getAddress();
-      const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, 1n)
-      );
-      const defaultVerifierAddress = await (
-        await ethers.getContract('AcceptManuallyVerifier')
-      ).getAddress();
-      const feeAmount = parseUnits('0.1', 18);
-      const dsOwnerPercentage = parseUnits('0.001', 18);
-
-      await expect(
-        DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
-          users_.datasetOwner.address,
-          signedMessage,
-          defaultVerifierAddress,
-          await users_.datasetOwner.Token!.getAddress(),
-          feeAmount,
-          dsOwnerPercentage,
-          [ZeroHash],
-          [parseUnits('1', 18)]
-        )
-      )
-        .to.be.revertedWithCustomError(DatasetNFT_, 'NOT_UUID_SET')
-        .withArgs(0);
-    });
-
     it('Should a data set owner mint dataset', async function () {
       const datasetUUID = uuidv4();
 
-      const uuidSetTxReceipt = await (
-        await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
-      ).wait();
+      const uuidHash = getUuidHash(datasetUUID);
 
-      const [uuid, datasetId] = getEvent('DatasetUuidSet', uuidSetTxReceipt?.logs!, DatasetNFT_)!
-        .args as unknown as [string, bigint];
-
-      expect(datasetUUID).to.equal(uuid);
+      const dt_Id = getUint256FromBytes32(uuidHash);
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, datasetId)
+        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
@@ -388,6 +302,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
           users_.datasetOwner.address,
           signedMessage,
           defaultVerifierAddress,
@@ -399,28 +314,21 @@ export default async function suite(): Promise<void> {
         )
       )
         .to.emit(DatasetNFT_, 'ManagersConfigChange')
-        .withArgs(datasetId)
+        .withArgs(dt_Id)
         .to.emit(DatasetNFT_, 'Transfer')
-        .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), datasetId)
+        .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), dt_Id)
         .to.emit(DatasetNFT_, 'Transfer')
-        .withArgs(await DatasetFactory_.getAddress(), users_.datasetOwner.address, datasetId);
+        .withArgs(await DatasetFactory_.getAddress(), users_.datasetOwner.address, dt_Id);
     });
 
     it('Should data set owner not mint a dataset twice', async function () {
       const datasetUUID = uuidv4();
 
-      const uuidSetTxReceipt = await (
-        await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
-      ).wait();
-
-      const [uuid, datasetId] = getEvent('DatasetUuidSet', uuidSetTxReceipt?.logs!, DatasetNFT_)!
-        .args as unknown as [string, bigint];
-
-      expect(datasetUUID).to.equal(uuid);
+      const uuidHash = getUuidHash(datasetUUID);
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, datasetId)
+        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
@@ -429,6 +337,7 @@ export default async function suite(): Promise<void> {
       const dsOwnerPercentage = parseUnits('0.001', 18);
 
       await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+        uuidHash,
         users_.datasetOwner.address,
         signedMessage,
         defaultVerifierAddress,
@@ -438,9 +347,11 @@ export default async function suite(): Promise<void> {
         [ZeroHash],
         [parseUnits('1', 18)]
       );
-
+      
+      // Same uuidHash used --> should revert since the same tokenId (uint256(uuidHash)) cannot be minted again
       await expect(
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
           users_.datasetOwner.address,
           signedMessage,
           defaultVerifierAddress,
@@ -458,28 +369,21 @@ export default async function suite(): Promise<void> {
 
       const datasetUUID = uuidv4();
 
-      await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID);
+      const uuidHash = getUuidHash(datasetUUID);
 
       await expect(
-        DatasetNFT_.connect(users_.datasetOwner).mint(users_.datasetOwner.address, signedMessage)
+        DatasetNFT_.connect(users_.datasetOwner).mint(uuidHash, users_.datasetOwner.address, signedMessage)
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
 
     it('Should revert mint dataset if DT admin signer role is not granted', async function () {
       const datasetUUID = uuidv4();
 
-      const uuidSetTxReceipt = await (
-        await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(datasetUUID)
-      ).wait();
-
-      const [uuid, datasetId] = getEvent('DatasetUuidSet', uuidSetTxReceipt?.logs!, DatasetNFT_)!
-        .args as unknown as [string, bigint];
-
-      expect(datasetUUID).to.equal(uuid);
+      const uuidHash = getUuidHash(datasetUUID);
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.user.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, datasetId)
+        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
@@ -489,6 +393,7 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
           users_.datasetOwner.address,
           signedMessage,
           defaultVerifierAddress,
@@ -564,7 +469,7 @@ export default async function suite(): Promise<void> {
       let AcceptAllVerifierFactory_: ContractFactory<any[], Contract>;
       let AcceptManuallyVerifierFactory_: ContractFactory<any[], Contract>;
       let datasetId_: bigint;
-      let datasetUUID_: string;
+      let datasetUuidHash_: string;
       let users_: Record<string, Signer>;
 
       before(async () => {
@@ -577,7 +482,7 @@ export default async function suite(): Promise<void> {
           AcceptAllVerifierFactory,
           AcceptManuallyVerifierFactory,
           datasetId,
-          datasetUUID,
+          datasetUuidHash,
           users,
         } = await setupOnMint();
 
@@ -589,7 +494,7 @@ export default async function suite(): Promise<void> {
         AcceptAllVerifierFactory_ = AcceptAllVerifierFactory;
         AcceptManuallyVerifierFactory_ = AcceptManuallyVerifierFactory;
         datasetId_ = datasetId;
-        datasetUUID_ = datasetUUID;
+        datasetUuidHash_ = datasetUuidHash;
         users_ = users;
       });
 
@@ -624,35 +529,23 @@ export default async function suite(): Promise<void> {
       });
 
       it('Should DT admin disable fragment instance creation', async () => {
-        const expected_2nd_DataSetId = datasetId_ + BigInt(1);
         const uuId_Dataset2nd = uuidv4();
 
-        expect(uuId_Dataset2nd).to.not.equal(datasetUUID_);
+        const uuidHash = getUuidHash(uuId_Dataset2nd);
 
-        expect(await DatasetNFT_.fragmentImplementation()).to.not.equal(ZeroAddress);
-
-        const tx = await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(uuId_Dataset2nd);
-        const txReceipt = await tx.wait();
-
-        expect(txReceipt?.logs.length).to.equal(1); // One event is emitted
-
-        const txEvent = txReceipt?.logs[0] as EventLog;
-
-        expect(txEvent).to.not.be.undefined;
-        expect(txEvent.fragment.name).to.equal('DatasetUuidSet');
-        expect(txEvent.args[0]).to.equal(uuId_Dataset2nd);
-        expect(txEvent.args[1]).to.equal(expected_2nd_DataSetId);
+        const expected_2nd_DataSetId = getUint256FromBytes32(uuidHash);
 
         // Generate Signature for minting the 2nd dataset NFT
         const signedMintMessage = await users_.dtAdmin.signMessage(
           signature.getDatasetMintMessage(
             network.config.chainId!,
             await DatasetNFT_.getAddress(),
-            expected_2nd_DataSetId
+            uuidHash
           )
         );
 
         await DatasetNFT_.connect(users_.dtAdmin).mint(
+          uuidHash,
           users_.datasetOwner.address,
           signedMintMessage
         );
@@ -680,30 +573,22 @@ export default async function suite(): Promise<void> {
 
       it('Should deployFragmentInstance() revert if caller is not token owner', async () => {
         const uuId_Dataset2nd = uuidv4();
-        const second_datasetId = datasetId_ + BigInt(1);
 
-        const tx = await DatasetNFT_.connect(users_.dtAdmin).setUuidForDatasetId(uuId_Dataset2nd);
-        const txReceipt = await tx.wait();
+        const uuidHash = getUuidHash(uuId_Dataset2nd);
 
-        expect(txReceipt?.logs.length).to.equal(1); // One event is emitted
-
-        const txEvent = txReceipt?.logs[0] as EventLog;
-
-        expect(txEvent).to.not.be.undefined;
-        expect(txEvent.fragment.name).to.equal('DatasetUuidSet');
-        expect(txEvent.args[0]).to.equal(uuId_Dataset2nd);
-        expect(txEvent.args[1]).to.equal(second_datasetId);
+        const second_datasetId = getUint256FromBytes32(uuidHash);
 
         // Generate Signature for minting the 2nd dataset NFT
         const signedMintMessage = await users_.dtAdmin.signMessage(
           signature.getDatasetMintMessage(
             network.config.chainId!,
             await DatasetNFT_.getAddress(),
-            second_datasetId
+            uuidHash
           )
         );
 
         await DatasetNFT_.connect(users_.dtAdmin).mint(
+          uuidHash,
           users_.datasetOwner.address,
           signedMintMessage
         );
@@ -880,7 +765,7 @@ export default async function suite(): Promise<void> {
           )
         )
           .to.emit(DatasetFragment_, 'FragmentPending')
-          .withArgs(datasetId_, tag);
+          .withArgs(lastFragmentPendingId + 1n, tag);
       });
 
       it('Should data set owner to be exempt when adding a fragment - default AcceptManuallyVerifier', async function () {
@@ -936,7 +821,7 @@ export default async function suite(): Promise<void> {
           )
         )
           .to.emit(DatasetFragment_, 'FragmentPending')
-          .withArgs(datasetId_, tag)
+          .withArgs(lastFragmentPendingId + 1n, tag)
           .to.emit(DatasetVerifierManager, 'FragmentPending')
           .withArgs(lastFragmentPendingId + 1n)
           .to.emit(DatasetVerifierManager, 'FragmentResolved')
@@ -1166,7 +1051,7 @@ export default async function suite(): Promise<void> {
           )
         )
           .to.emit(DatasetFragment_, 'FragmentPending')
-          .withArgs(datasetId_, tag);
+          .withArgs(lastFragmentPendingId + 1n, tag);
       });
 
       it('Should revert a propose if signature is wrong', async function () {
