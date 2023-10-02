@@ -4,6 +4,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/IDatasetNFT.sol";
 import "./verifier/VerifierManager.sol";
+import "./distribution/DistributionManager.sol";
+import "./subscription/ERC20SubscriptionManager.sol";
 
 /**
  * @title DatasetFactory contract
@@ -118,7 +120,8 @@ contract DatasetFactory is Ownable {
    * @param feePerConsumerPerDay The daily subscription fee for a single consumer
    */
   function _configureSubscriptionManager(uint256 id, address feeToken, uint256 feePerConsumerPerDay) internal {
-    datasetNFT.setFee(id, feeToken, feePerConsumerPerDay);
+    ERC20SubscriptionManager sm = ERC20SubscriptionManager(datasetNFT.subscriptionManager(id));
+    sm.setFee(feeToken, feePerConsumerPerDay);
   }
 
   /**
@@ -134,7 +137,8 @@ contract DatasetFactory is Ownable {
     bytes32[] calldata tags,
     uint256[] calldata weights
   ) internal {
-    datasetNFT.setDatasetOwnerPercentage(id, dsOwnerFeePercentage);
-    datasetNFT.setTagWeights(id, tags, weights);
+    DistributionManager dm = DistributionManager(datasetNFT.distributionManager(id));
+    dm.setDatasetOwnerPercentage(dsOwnerFeePercentage);
+    dm.setTagWeights(tags, weights);
   }
 }
