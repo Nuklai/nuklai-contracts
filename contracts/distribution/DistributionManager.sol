@@ -107,7 +107,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
       weightSum += weights[i];
       tagWeights.set(tags[i], weights[i]);
     }
-    if (weightSum > 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
+    if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
   }
 
   /**
