@@ -40,7 +40,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
-  mapping(uint256 => string) public uuids;
+  mapping(uint256 id => string uuid) public uuids;
   mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
   mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
 
