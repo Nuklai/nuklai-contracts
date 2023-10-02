@@ -190,10 +190,10 @@ export default async function suite(): Promise<void> {
     it('Should setDeployerFeeBeneficiary() revert if trying to set zeroAddress as the beneficiary', async () => {
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(ZeroAddress)
-      ).to.be.revertedWith('invalid zero address provided');
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
     });
 
-    it('Should setDeployerFeeModelPercentages() revert if models and percentages length missmatch', async () => {
+    it('Should setDeployerFeeModelPercentages() revert if models and percentages length mismatch', async () => {
       const percentages = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
       await expect(
@@ -205,7 +205,7 @@ export default async function suite(): Promise<void> {
           ],
           percentages
         )
-      ).to.be.revertedWith('array length missmatch');
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'ARRAY_LENGTH_MISMATCH');
     });
 
     it('Should revert when trying to set feePercentage for NO_FEE model', async () => {
@@ -220,7 +220,7 @@ export default async function suite(): Promise<void> {
           ],
           percentages
         )
-      ).to.be.revertedWith('model 0 always has no fee');
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'INVALID_ZERO_MODEL_FEE');
     });
 
     it('Should DT admin set fee model percentage for deployer', async function () {
@@ -252,6 +252,7 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should revert set deployer fee model percentage if goes over 100%', async function () {
+      const percentage100Percent = parseUnits('1', 18);
       const percentage = parseUnits('1.1', 18);
 
       await expect(
@@ -259,7 +260,9 @@ export default async function suite(): Promise<void> {
           [constants.DeployerFeeModel.DEPLOYER_STORAGE],
           [percentage]
         )
-      ).to.be.revertedWith('percentage can not be more than 100%');
+      )
+        .to.be.revertedWithCustomError(DatasetNFT_, 'PERCENTAGE_VALUE_INVALID')
+        .withArgs(percentage100Percent, percentage);
     });
 
     it('Should revert set deployer fee model percentage if not DT admin', async function () {
@@ -356,7 +359,9 @@ export default async function suite(): Promise<void> {
           [ZeroHash],
           [parseUnits('1', 18)]
         )
-      ).to.be.revertedWith('No uuid set for data set id');
+      )
+        .to.be.revertedWithCustomError(DatasetNFT_, 'NOT_UUID_SET')
+        .withArgs(0);
     });
 
     it('Should a data set owner mint dataset', async function () {
@@ -529,7 +534,9 @@ export default async function suite(): Promise<void> {
     it('Should revert on set fragment implementation if address is a wallet', async function () {
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setFragmentImplementation(users_.user.address)
-      ).to.be.revertedWith('invalid fragment implementation address');
+      )
+        .to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_IMPLEMENTATION_INVALID')
+        .withArgs(users_.user.address);
     });
 
     it('Should supportsInterface() return true if id provided is either IDatasetNFT, IERC721, IAccessControl or IERC165', async () => {
@@ -668,7 +675,7 @@ export default async function suite(): Promise<void> {
         // Should fail since it is currently disabled by admin
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).deployFragmentInstance(expected_2nd_DataSetId)
-        ).to.be.revertedWith('fragment creation disabled');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_CREATION_DISABLED');
       });
 
       it('Should deployFragmentInstance() revert if caller is not token owner', async () => {
@@ -743,15 +750,15 @@ export default async function suite(): Promise<void> {
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config1)
-        ).to.be.revertedWith('bad implementation address');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config2)
-        ).to.be.revertedWith('bad implementation address');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config3)
-        ).to.be.revertedWith('bad implementation address');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
       });
 
       it('Should not emit event if all managers provided are the same as currently set', async () => {
@@ -775,7 +782,7 @@ export default async function suite(): Promise<void> {
       it('Should data set owner not deploy fragment instance if already exists', async function () {
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).deployFragmentInstance(datasetId_)
-        ).to.be.revertedWith('fragment instance already deployed');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_INSTANCE_ALREADY_DEPLOYED');
       });
 
       it('Should data set owner set managers', async function () {
@@ -957,7 +964,7 @@ export default async function suite(): Promise<void> {
             tag,
             signatureMock
           )
-        ).to.be.revertedWith('No fragment instance deployed');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_INSTANCE_NOT_DEPLOYED');
       });
 
       it('Should proposeManyFragments() revert if no FragmentInstance for dataset is deployed', async () => {
@@ -979,7 +986,7 @@ export default async function suite(): Promise<void> {
             tags,
             signatureMock
           )
-        ).to.be.revertedWith('No fragment instance deployed');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_INSTANCE_NOT_DEPLOYED');
       });
 
       it('Should contributor propose multiple fragments - default AcceptManuallyVerifier', async function () {
@@ -1103,7 +1110,7 @@ export default async function suite(): Promise<void> {
             [tagSchemas],
             proposeManySignature
           )
-        ).to.be.revertedWith('invalid length of fragments items');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'ARRAY_LENGTH_MISMATCH');
       });
 
       it('Should contributor propose a fragment - default AcceptAllVerifier', async function () {

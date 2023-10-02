@@ -1,4 +1,4 @@
-import chai, { expect } from 'chai';
+import { expect } from 'chai';
 import { deployments, ethers } from 'hardhat';
 import { DatasetFactory, DatasetNFT, FragmentNFT } from '@typechained';
 import { ZeroAddress } from 'ethers';
@@ -71,7 +71,9 @@ export default async function suite(): Promise<void> {
           nonZeroAddress,
           nonZeroAddress
         )
-      ).to.be.revertedWith('incorrect dataset address');
+      )
+        .to.be.revertedWithCustomError(DatasetFactory_, 'ZERO_ADDRESS')
+        .withArgs('dataset');
     });
 
     it('configure() :: Should revert when provided subscriptionManager is zeroAddress', async () => {
@@ -84,7 +86,9 @@ export default async function suite(): Promise<void> {
           nonZeroAddress,
           nonZeroAddress
         )
-      ).to.be.revertedWith('incorect subscriptionManager address');
+      )
+        .to.be.revertedWithCustomError(DatasetFactory_, 'ZERO_ADDRESS')
+        .withArgs('subscriptionManager');
     });
 
     it('configure() :: Should revert when provided distributionManager is zeroAddress', async () => {
@@ -97,7 +101,9 @@ export default async function suite(): Promise<void> {
           ZeroAddress,
           nonZeroAddress
         )
-      ).to.be.revertedWith('incorect distributionManager address');
+      )
+        .to.be.revertedWithCustomError(DatasetFactory_, 'ZERO_ADDRESS')
+        .withArgs('distributionManager');
     });
 
     it('configure() :: Should revert when provided verifierManager  is zeroAddress', async () => {
@@ -110,7 +116,9 @@ export default async function suite(): Promise<void> {
           nonZeroAddress,
           ZeroAddress
         )
-      ).to.be.revertedWith('incorect verifierManager address');
+      )
+        .to.be.revertedWithCustomError(DatasetFactory_, 'ZERO_ADDRESS')
+        .withArgs('verifierManager');
     });
   });
 }

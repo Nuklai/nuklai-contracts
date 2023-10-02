@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "@openzeppelin/contracts/proxy/Clones.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
-import "./interfaces/IDistributionManager.sol";
-import "./interfaces/ISubscriptionManager.sol";
-import "./interfaces/IDatasetNFT.sol";
-import "./interfaces/IFragmentNFT.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
+import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
+import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
 
 /**
  * @title DatasetNFT contract
@@ -21,22 +21,32 @@ import "./interfaces/IFragmentNFT.sol";
  * @dev Extends IDatasetNFT, ERC721Upgradeable & AccessControlUpgradeable
  */
 contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable {
-  string private constant NAME = "Data Tunnel Dataset";
-  string private constant SYMBOL = "DTDS";
+  string private constant _NAME = "Data Tunnel Dataset";
+  string private constant _SYMBOL = "DTDS";
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
 
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
+  error NOT_UUID_SET(uint256 datasetId);
+  error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
+  error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
+  error FRAGMENT_CREATION_DISABLED();
+  error FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
+  error FRAGMENT_INSTANCE_NOT_DEPLOYED();
+  error FRAGMENT_PROXY_ADDRESS_INVALID();
+  error ZERO_ADDRESS();
+  error ARRAY_LENGTH_MISMATCH();
+  error INVALID_ZERO_MODEL_FEE();
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
-  address private fragmentProxyAdmin;
+  address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
-  uint256 internal mintCounter;
+  uint256 internal _mintCounter;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
@@ -62,8 +72,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
-    require(admin_ != address(0), "Wrong initialization input");
-    __ERC721_init(NAME, SYMBOL);
+    if (admin_ == address(0)) revert ZERO_ADDRESS();
+    __ERC721_init(_NAME, _SYMBOL);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
@@ -77,15 +87,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return uin256 ID of the minted token
    */
   function mint(address to, bytes calldata signature) external returns (uint256) {
-    require(!Strings.equal(uuids[mintCounter], ""), "No uuid set for data set id");
-    bytes32 msgHash = _mintMessageHash(mintCounter);
+    if (Strings.equal(uuids[_mintCounter], "")) revert NOT_UUID_SET(_mintCounter);
+    bytes32 msgHash = _mintMessageHash(_mintCounter);
     address signer = ECDSA.recover(msgHash, signature);
 
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    _mint(to, mintCounter);
+    _mint(to, _mintCounter);
 
-    return mintCounter;
+    return _mintCounter;
   }
 
   /**
@@ -96,7 +106,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return ds The ID of the token for which the UUID was set
    */
   function setUuidForDatasetId(string memory uuid) external onlyRole(DEFAULT_ADMIN_ROLE) returns (uint256 ds) {
-    ds = ++mintCounter;
+    ds = ++_mintCounter;
     uuids[ds] = uuid;
     datasetIds[uuid] = ds;
 
@@ -142,12 +152,12 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     DeployerFeeModel[] calldata models,
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(models.length == percentages.length, "array length missmatch");
+    if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
     for (uint256 i; i < models.length; i++) {
       DeployerFeeModel m = models[i];
-      require(uint8(m) != 0, "model 0 always has no fee");
+      if (uint8(m) == 0) revert INVALID_ZERO_MODEL_FEE();
       uint256 p = percentages[i];
-      require(p <= 1e18, "percentage can not be more than 100%");
+      if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
       deployerFeeModelPercentage[m] = p;
     }
   }
@@ -168,7 +178,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param deployerFeeBeneficiary_  The address to set as the beneficiary
    */
   function setDeployerFeeBeneficiary(address deployerFeeBeneficiary_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(deployerFeeBeneficiary_ != address(0), "invalid zero address provided");
+    if (deployerFeeBeneficiary_ == address(0)) revert ZERO_ADDRESS();
     deployerFeeBeneficiary = deployerFeeBeneficiary_;
   }
 
@@ -180,8 +190,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param fragmentProxyAdmin_ The address to set
    */
   function setFragmentProxyAdminAddress(address fragmentProxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(Address.isContract(fragmentProxyAdmin_), "invalid proxyAdmin address");
-    fragmentProxyAdmin = fragmentProxyAdmin_;
+    if (!Address.isContract(fragmentProxyAdmin_)) revert FRAGMENT_PROXY_ADDRESS_INVALID();
+    _fragmentProxyAdmin = fragmentProxyAdmin_;
   }
 
   /**
@@ -191,10 +201,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param fragmentImplementation_ The address of the FragmentNFT implementation contract
    */
   function setFragmentImplementation(address fragmentImplementation_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(
-      fragmentImplementation_ == address(0) || Address.isContract(fragmentImplementation_),
-      "invalid fragment implementation address"
-    );
+    if (fragmentImplementation_ != address(0) && !Address.isContract(fragmentImplementation_))
+      revert FRAGMENT_IMPLEMENTATION_INVALID(fragmentImplementation_);
     fragmentImplementation = fragmentImplementation_;
   }
 
@@ -206,8 +214,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return address The address of the deployed FragmentNFT instance
    */
   function deployFragmentInstance(uint256 id) external onlyTokenOwner(id) returns (address) {
-    require(fragmentImplementation != address(0), "fragment creation disabled");
-    require(address(fragments[id]) == address(0), "fragment instance already deployed");
+    if (fragmentImplementation == address(0)) revert FRAGMENT_CREATION_DISABLED();
+    if (address(fragments[id]) != address(0)) revert FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
     IFragmentNFT instance = IFragmentNFT(_deployTransparentProxyAndInitialize(fragmentImplementation, id));
     fragments[id] = instance;
     emit FragmentInstanceDeployment(id, address(instance));
@@ -223,7 +231,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    require(address(fragmentInstance) != address(0), "No fragment instance deployed");
+    if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.propose(to, tag, signature);
   }
 
@@ -241,7 +249,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     bytes calldata signature
   ) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
-    require(address(fragmentInstance) != address(0), "No fragment instance deployed");
+    if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.proposeMany(owners, tags, signature);
   }
 
@@ -322,7 +330,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return proxy The address of the deployed proxy
    */
   function _cloneAndInitialize(address implementation, uint256 datasetId) internal returns (address proxy) {
-    require(implementation != address(0), "bad implementation address");
+    if (implementation == address(0)) revert ZERO_ADDRESS();
     proxy = Clones.clone(implementation);
     IDatasetLinkInitializable(proxy).initialize(address(this), datasetId);
   }
@@ -340,13 +348,13 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     address implementation,
     uint256 datasetId
   ) internal returns (address proxy) {
-    require(implementation != address(0), "bad implementation address");
+    if (implementation == address(0)) revert ZERO_ADDRESS();
     bytes memory intializePayload = abi.encodeWithSelector(
       IDatasetLinkInitializable.initialize.selector,
       address(this),
       datasetId
     );
-    return address(new TransparentUpgradeableProxy(implementation, fragmentProxyAdmin, intializePayload));
+    return address(new TransparentUpgradeableProxy(implementation, _fragmentProxyAdmin, intializePayload));
   }
 
   /**

@@ -176,7 +176,9 @@ export default async function suite(): Promise<void> {
         DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
           percentage
         )
-      ).to.be.revertedWith("Can't be higher than 50%");
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'PERCENTAGE_VALUE_INVALID')
+        .withArgs(parseUnits('0.5', 18), percentage);
     });
 
     it('Should revert set percentage if sender is not the data set owner', async function () {
@@ -184,7 +186,9 @@ export default async function suite(): Promise<void> {
 
       await expect(
         DatasetDistributionManager_.connect(users_.user).setDatasetOwnerPercentage(percentage)
-      ).to.be.revertedWith('Only Dataset owner');
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should data set owner set data set tag weights', async function () {
@@ -217,7 +221,7 @@ export default async function suite(): Promise<void> {
     it('Should getTagWeights() revet if empty tags array is passed as input argument', async function () {
       await expect(
         DatasetDistributionManager_.connect(users_.user).getTagWeights([])
-      ).to.be.revertedWith('No tags provided');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'TAGS_NOT_PROVIDED');
     });
 
     it('Should revert set tag weights if weights sum is not equal to 100%', async function () {
@@ -229,7 +233,9 @@ export default async function suite(): Promise<void> {
           [datasetSchemasTag, datasetRowsTag],
           [parseUnits('0.4', 18), parseUnits('0.8', 18)]
         )
-      ).to.be.revertedWith('Invalid weights sum');
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'TAG_WEIGHTS_SUM_INVALID')
+        .withArgs(parseUnits('1', 18), parseUnits('0.4', 18) + parseUnits('0.8', 18));
     });
 
     it('Should data set owner claim revenue after locking period (two weeks)', async function () {
@@ -451,7 +457,10 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('No unclaimed payments available');
+      ).to.be.revertedWithCustomError(
+        DatasetDistributionManager_,
+        'NO_UNCLAIMED_PAYMENTS_AVAILABLE'
+      );
     });
 
     it("Should revert claim revenue if it's not the data set owner", async function () {
@@ -535,7 +544,9 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('Only Dataset owner');
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.contributor.address);
     });
 
     it('Should revert data set owner from claiming revenue if signature is wrong', async function () {
@@ -1382,7 +1393,10 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('No unclaimed payments available');
+      ).to.be.revertedWithCustomError(
+        DatasetDistributionManager_,
+        'NO_UNCLAIMED_PAYMENTS_AVAILABLE'
+      );
     });
 
     it('Should data set owner and contributor claim revenue, then new user subscribes (4 weeks) and data set owner and contributor claim revenue again', async function () {
@@ -1747,7 +1761,7 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
     });
 
     it('Should revert if contributor claims revenue before two weeks', async function () {
@@ -1827,7 +1841,7 @@ export default async function suite(): Promise<void> {
           validTill,
           fragmentOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
     });
 
     it('Should revert every time that data set owner claims revenue and signature for locking period is expired', async function () {
@@ -1910,7 +1924,7 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
 
       validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK;
@@ -1934,7 +1948,7 @@ export default async function suite(): Promise<void> {
           BigInt(validTill),
           claimDatasetOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
     });
 
     it('Should revert every time that fragment owner claims revenue and signature for locking period is expired', async function () {
@@ -2016,7 +2030,7 @@ export default async function suite(): Promise<void> {
           validTill,
           fragmentOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
 
       validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK;
@@ -2039,7 +2053,7 @@ export default async function suite(): Promise<void> {
           validTill,
           fragmentOwnerSignature
         )
-      ).to.be.revertedWith('signature overdue');
+      ).to.be.revertedWithCustomError(DatasetDistributionManager_, 'SIGNATURE_OVERDUE');
     });
 
     it('Should calculate contributor payout before claiming', async function () {

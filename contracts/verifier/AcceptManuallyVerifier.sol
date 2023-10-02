@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import "../interfaces/IVerifier.sol";
-import "./VerifierManager.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
+import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
+import {IVerifier} from "../interfaces/IVerifier.sol";
+import {VerifierManager} from "./VerifierManager.sol";
 
 /**
  * @title AcceptManuallyVerifier contract
@@ -14,16 +16,19 @@ import "./VerifierManager.sol";
 contract AcceptManuallyVerifier is IVerifier {
   using EnumerableSet for EnumerableSet.UintSet;
 
+  error NOT_DATASET_OWNER(address account);
+  error NOT_VERIFIER_MANAGER(address account);
+
   event FragmentPending(address fragmentNFT, uint256 id);
   event FragmentResolved(address fragmentNFT, uint256 id, bool accept);
 
-  mapping(address fragmentNFT => EnumerableSet.UintSet) internal pendingFragments;
+  mapping(address fragmentNFT => EnumerableSet.UintSet) internal _pendingFragments;
 
   modifier onlyVerifierManager(address fragmentNFT) {
     address verifierManager = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(verifierManager == msg.sender, "Not a VeriferManager");
+    if (verifierManager != msg.sender) revert NOT_VERIFIER_MANAGER(msg.sender);
     _;
   }
 
@@ -31,7 +36,7 @@ contract AcceptManuallyVerifier is IVerifier {
     address datasetOwner = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).ownerOf(
       IFragmentNFT(fragmentNFT).datasetId()
     );
-    require(datasetOwner == msg.sender, "Not a Dataset owner");
+    if (datasetOwner != msg.sender) revert NOT_DATASET_OWNER(msg.sender);
     _;
   }
 
@@ -44,7 +49,7 @@ contract AcceptManuallyVerifier is IVerifier {
    * @param id The ID of the pending Fragment
    */
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
-    pendingFragments[fragmentNFT].add(id);
+    _pendingFragments[fragmentNFT].add(id);
     emit FragmentPending(fragmentNFT, id);
 
     _resolveAutomaticallyIfDSOwner(fragmentNFT, id);
@@ -68,7 +73,7 @@ contract AcceptManuallyVerifier is IVerifier {
       VerifierManager vm = VerifierManager(
         IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId())
       );
-      pendingFragments[fragmentNFT].remove(id);
+      _pendingFragments[fragmentNFT].remove(id);
       vm.resolve(id, true);
       emit FragmentResolved(fragmentNFT, id, true);
     }
@@ -86,7 +91,7 @@ contract AcceptManuallyVerifier is IVerifier {
     VerifierManager vm = VerifierManager(
       IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId())
     );
-    pendingFragments[fragmentNFT].remove(id);
+    _pendingFragments[fragmentNFT].remove(id);
     vm.resolve(id, accept);
     emit FragmentResolved(fragmentNFT, id, accept);
   }
@@ -105,7 +110,7 @@ contract AcceptManuallyVerifier is IVerifier {
     );
     for (uint256 i; i < ids.length; i++) {
       uint256 id = ids[i];
-      pendingFragments[fragmentNFT].remove(id);
+      _pendingFragments[fragmentNFT].remove(id);
       vm.resolve(id, accept);
       emit FragmentResolved(fragmentNFT, id, accept);
     }

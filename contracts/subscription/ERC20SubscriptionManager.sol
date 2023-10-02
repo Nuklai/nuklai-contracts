@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "./GenericSingleDatasetSubscriptionManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
+import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSubscriptionManager.sol";
 
 /**
  * @title ERC20SubscriptionManager contract
@@ -24,18 +26,20 @@ import "./GenericSingleDatasetSubscriptionManager.sol";
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant TOKEN_NAME = "Data Tunnel Subscription";
-  string internal constant TOKEN_SYMBOL = "DTSUB";
+  string internal constant _NAME = "Data Tunnel Subscription";
+  string internal constant _SYMBOL = "DTSUB";
+
+  error NOT_DATASET_OWNER(address account);
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
 
   modifier onlyDatasetOwner() {
-    require(dataset.ownerOf(datasetId) == _msgSender(), "Only Dataset owner");
+    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
     _;
   }
 
-  constructor() ERC721(TOKEN_NAME, TOKEN_SYMBOL) {
+  constructor() ERC721(_NAME, _SYMBOL) {
     _disableInitializers();
   }
 
@@ -68,7 +72,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @return address The address of the ERC20 token used as payment, or address(0) for native currency
    * @return uint256 The calculated fee
    */
-  function calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
+  function _calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
     return (address(token), feePerConsumerPerDay * durationInDays * consumers);
   }
 
@@ -78,7 +82,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @param subscriber Who to charge
    * @param amount Amount to charge
    */
-  function charge(address subscriber, uint256 amount) internal override {
+  function _charge(address subscriber, uint256 amount) internal override {
     token.safeTransferFrom(subscriber, address(this), amount);
     address distributionManager = dataset.distributionManager(datasetId);
     token.approve(distributionManager, amount);
