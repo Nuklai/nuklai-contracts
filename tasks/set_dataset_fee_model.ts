@@ -14,7 +14,6 @@ task('set_dataset_fee_model', 'Sets the deployer fee model to a data set')
   .addParam('datasetId', 'Id of the data set')
   .addParam('model', 'Deployer fee model to be set')
   .setAction(async (taskArgs: TaskArgs) => {
-    console.log('taskArgs.beneficiary :>> ', taskArgs.beneficiary);
     const wallet = new ethers.Wallet(taskArgs.pk, ethers.provider);
 
     const dataset = (await ethers.getContractAt(

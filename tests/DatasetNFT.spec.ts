@@ -65,6 +65,7 @@ const setupOnMint = async () => {
     'DatasetManagers',
     'DatasetVerifiers',
     'DatasetFactory',
+    'TestToken',
   ]);
 
   const contracts = {

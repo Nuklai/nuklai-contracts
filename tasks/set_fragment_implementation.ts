@@ -23,7 +23,7 @@ task('set-fragment-implementation', 'Sets the fragment implementation for a data
     if (!taskArgs.fragment) throw new Error('No fragment implementation address set');
 
     console.log('Setting deployer fee beneficiary...');
-    await dataset.setFragmentImplementation(taskArgs.fragment);
+    await (await dataset.setFragmentImplementation(taskArgs.fragment)).wait();
 
     const fragment = await dataset.fragmentImplementation();
 
