@@ -48,7 +48,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('FragmentNFT Implementation sucessfully set', fragmentImplementationAddress);
 
-  const proxyAdminSet = await dataset.setProxyAdminAddress(proxyAdminAddress);
+  const proxyAdminSet = await dataset.setFragmentProxyAdminAddress(proxyAdminAddress);
   await proxyAdminSet.wait();
 
   console.log('ProxyAdmin address sucessfully set', proxyAdminAddress);

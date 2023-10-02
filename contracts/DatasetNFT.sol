@@ -33,7 +33,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   event FragmentInstanceDeployment(uint256 id, address instance);
   event DatasetUuidSet(string uuid, uint256 ds);
 
-  address private proxyAdmin;
+  address private fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
   uint256 internal mintCounter;
@@ -173,15 +173,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
-   * @notice Sets the address of the ProxyAdmin contract
-   * @dev The ProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
+   * @notice Sets the address of the FragmentProxyAdmin contract
+   * @dev The FragmentProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
    * of FragmentNFT instances.
    * Only callable by DatasetNFT ADMIN
-   * @param proxyAdmin_ The address to set
+   * @param fragmentProxyAdmin_ The address to set
    */
-  function setProxyAdminAddress(address proxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
-    require(Address.isContract(proxyAdmin_), "invalid proxyAdmin address");
-    proxyAdmin = proxyAdmin_;
+  function setFragmentProxyAdminAddress(address fragmentProxyAdmin_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    require(Address.isContract(fragmentProxyAdmin_), "invalid proxyAdmin address");
+    fragmentProxyAdmin = fragmentProxyAdmin_;
   }
 
   /**
@@ -330,7 +330,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Deploys and initializes a TransparentUpgradeableProxy for the `implementation` contract
    * @dev The TransparentUpgradeableProxy is linked to the specified Dataset.
-   * The admin of the TransparentUpgradeableProxy is the proxyAdmin.
+   * The admin of the TransparentUpgradeableProxy is the fragmentProxyAdmin.
    * Only used for deploying FragmentNFT upgradeable instances.
    * @param implementation The address of the implementation contract
    * @param datasetId The ID of the target Dataset NFT token
@@ -346,7 +346,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
       address(this),
       datasetId
     );
-    return address(new TransparentUpgradeableProxy(implementation, proxyAdmin, intializePayload));
+    return address(new TransparentUpgradeableProxy(implementation, fragmentProxyAdmin, intializePayload));
   }
 
   /**
