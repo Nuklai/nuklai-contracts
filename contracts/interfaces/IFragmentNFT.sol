@@ -13,6 +13,11 @@ import "./IDatasetNFT.sol";
  */
 interface IFragmentNFT is IDatasetLinkInitializable, IERC721Upgradeable {
   /**
+   * @notice Retrieves the address of the owner by pending fragment id
+   */
+  function pendingFragmentOwners(uint256 id) external returns (address);
+
+  /**
    * @notice Retrieves the instance of the DatasetNFT set in the
    * respective instance of the FragmentNFT implementation contract
    */
