@@ -41,6 +41,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   error NOT_DATASET_NFT(address account);
   error NOT_PENDING_FRAGMENT(uint256 id);
   error ARRAY_LENGTH_MISMATCH();
+  error TARGET_NOT_EMPTY();
 
   /**
    * @dev A Snapshot contains:
@@ -479,7 +480,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @param to The target map where key-value pairs are copied to
    */
   function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
-    require(to.length() == 0, "target should be empty");
+    if (to.length() != 0) revert TARGET_NOT_EMPTY();
     uint256 length = from.length();
     for (uint256 i; i < length; i++) {
       (bytes32 k, uint256 v) = from.at(i);
