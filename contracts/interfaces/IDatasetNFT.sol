@@ -60,51 +60,6 @@ interface IDatasetNFT is IERC721Upgradeable {
   function deployFragmentInstance(uint256 id) external returns (address);
 
   /**
-   * @notice Sets the daily subscription fee for a single consumer of a specific Dataset
-   * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
-   * @param feePerConsumerPerDay The fee amount to set
-   */
-  function setFee(uint256 id, address token, uint256 feePerConsumerPerDay) external;
-
-  /**
-   * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner.
-   * Percentages are encoded such that 100% is represented as 1e18.
-   * @param id The ID of the target Dataset NFT token
-   * @param percentage The percentage to set (must be less than or equal to 50%)
-   */
-  function setDatasetOwnerPercentage(uint256 id, uint256 percentage) external;
-
-  /**
-   * @notice Sets the weights of the respective provided tags.
-   * The weights define how payments are distributed to the tags (contributions).
-   * Tags are encodings used as labels to categorize different types of contributions.
-   * @param id The ID of the target Dataset NFT token
-   * @param tags The tags participating in the payment distributions
-   * @param weights The weights of the respective tags to set
-   */
-  function setTagWeights(uint256 id, bytes32[] calldata tags, uint256[] calldata weights) external;
-
-  /**
-   * @notice Sets the daily subscription fee per consumer of a specific Dataset, and the weights of the provided tags.
-   * This function enables the configuration of both the subscription fee
-   * and the distribution of payments among different tags in a single Tx.
-   * Tags are encodings used as labels to categorize different types of contributions.
-   * @param id The ID of the target Dataset NFT token
-   * @param token The address of the ERC20 token used for the subscription payments, or address(0) for native currency
-   * @param feePerConsumerPerDay The fee amount to set
-   * @param tags The tags participating in the payment distributions
-   * @param weights The weights of the respective tags to set
-   */
-  function setFeeAndTagWeights(
-    uint256 id,
-    address token,
-    uint256 feePerConsumerPerDay,
-    bytes32[] calldata tags,
-    uint256[] calldata weights
-  ) external;
-
-  /**
    * @notice Proposes a specific type of contribution for a particular Dataset
    * @param datasetId The ID of the target Dataset NFT token
    * @param to The address of the contributor
