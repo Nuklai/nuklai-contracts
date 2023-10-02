@@ -44,6 +44,28 @@ contract AcceptManuallyVerifier is IVerifier {
   function propose(address fragmentNFT, uint256 id, bytes32 /*tag*/) external onlyVerifierManager(fragmentNFT) {
     pendingFragments[fragmentNFT].add(id);
     emit FragmentPending(fragmentNFT, id);
+
+    _resolveAutomaticallyIfDSOwner(fragmentNFT, id);
+  }
+
+  /**
+   * @notice Resolves automatically fragment propose from Dataset Owner
+   * @dev Only will be resolved if dataset owner is equal to fragment owner
+   * @param fragmentNFT The address of the FragmentNFT contract instance
+   * @param id The ID of the pending Fragment
+   */
+  function _resolveAutomaticallyIfDSOwner(address fragmentNFT, uint256 id) internal {
+    address datasetOwner = IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).ownerOf(
+      IFragmentNFT(fragmentNFT).datasetId()
+    );
+    address fragmentOwner = IFragmentNFT(fragmentNFT).pendingFragmentOwners(id);
+
+    if (datasetOwner == fragmentOwner) {
+      VerifierManager vm = VerifierManager(
+        IDatasetNFT(IFragmentNFT(fragmentNFT).dataset()).verifierManager(IFragmentNFT(fragmentNFT).datasetId())
+      );
+      vm.resolve(id, true);
+    }
   }
 
   /**
