@@ -30,6 +30,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   string internal constant _SYMBOL = "DTSUB";
 
   error NOT_DATASET_OWNER(address account);
+  error NOT_APPROVED_TOKEN(address token);
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
@@ -56,11 +57,14 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
 
   /**
    * @notice Sets the daily subscription fee for a single consumer
-   * @dev Only callable by the Dataset owner
+   * @dev Only callable by the Dataset owner.
+   * `token_` must be approved by DatasetNFT ADMIN (see `DatasetNFT.sol`).
+   * `address(0)` (indicating natice currency) is approved by default.
    * @param token_ The address of the ERC20 token to be used for subscription payments, or address(0) for native currency
    * @param feePerConsumerPerDay_ The fee to set
    */
   function setFee(address token_, uint256 feePerConsumerPerDay_) external onlyDatasetOwner {
+    if (!dataset.isApprovedToken(token_)) revert NOT_APPROVED_TOKEN(token_);
     token = IERC20(token_);
     feePerConsumerPerDay = feePerConsumerPerDay_;
   }
