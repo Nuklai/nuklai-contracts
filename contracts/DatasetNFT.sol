@@ -77,17 +77,17 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Mints a Dataset NFT token to `to`
    * @dev Emits a {Transfer} event
-   * @param uuidHash The hash of the off-chain generated UUID for the Dataset
+   * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
    */
-  function mint(bytes32 uuidHash, address to, bytes calldata signature) external returns (uint256) {
-    bytes32 msgHash = _mintMessageHash(uuidHash);
+  function mint(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
+    bytes32 msgHash = _mintMessageHash(uuidHashed);
     address signer = ECDSA.recover(msgHash, signature);
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    uint256 id = uint256(uuidHash);
+    uint256 id = uint256(uuidHashed);
 
     _mint(to, id);
 
@@ -341,10 +341,10 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Returns an Ethereum Signed Message hash for minting a Dataset NFT token
    * @dev See `ECDSA.sol`
-   * @param uuidHash The hash of the off-chain generated UUID for the Dataset
+   * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @return bytes32 The generated Ethereum signed message hash
    */
-  function _mintMessageHash(bytes32 uuidHash) private view returns (bytes32) {
-    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHash));
+  function _mintMessageHash(bytes32 uuidHashed) private view returns (bytes32) {
+    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed));
   }
 }
