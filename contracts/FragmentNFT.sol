@@ -110,15 +110,16 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    */
   function snapshot() external onlyDistributionManager returns (uint256) {
     _snapshots.push();
-    return _snapshots.length - 1;
+    return _currentSnapshotId();
   }
 
   /**
    * @notice Retrieves the index of the current (last created) snapshot
+   * @dev Snapshots are created each time a subscription payment event occurs
    * @return uint256 The index of the current snapshot
    */
   function currentSnapshotId() external view returns (uint256) {
-    return _snapshots.length - 1;
+    return _currentSnapshotId();
   }
 
   /**
@@ -356,7 +357,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @param add A boolean flag indicating whether to increase (`add`) or decrease (`false`) the tag counts
    */
   function _updateAccountSnapshot(address account, uint256 firstTokenId, uint256 batchSize, bool add) private {
-    uint256 currentSnapshot = _currentSnapshot();
+    uint256 currentSnapshot = _currentSnapshotId();
     EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = _snapshots[currentSnapshot].accountTagCount[
       account
     ];
@@ -383,7 +384,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * or decrease (`false`) i.e burning operation, the tag counts
    */
   function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
-    uint256 currentSnapshot = _currentSnapshot();
+    uint256 currentSnapshot = _currentSnapshotId();
     EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[currentSnapshot].totalTagCount;
     uint256 lastSnapshot = _lastUint256ArrayElement(_accountSnapshotIds[address(this)]);
     if (lastSnapshot < currentSnapshot) {
@@ -413,7 +414,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
       // we need to return the last available
       // if there is no snapshot at all - return current,
       // otherwise return the last one
-      return (bound == 0) ? _currentSnapshot() : snapshotIds[bound - 1];
+      return (bound == 0) ? _currentSnapshotId() : snapshotIds[bound - 1];
     } else {
       // found snapshot id which is greater or equal to the targetSnapshotId
       // if it is equal to target, we need to return it,
@@ -438,7 +439,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @notice Private function that retrieves the index of the current (last created) snapshot
    * @return uint256 The index of the current snapshot
    */
-  function _currentSnapshot() private view returns (uint256) {
+  function _currentSnapshotId() private view returns (uint256) {
     return _snapshots.length - 1;
   }
 

@@ -20,6 +20,9 @@ const config: HardhatUserConfig = {
       optimizer: {
         enabled: true,
         runs: 200,
+        details: {
+          yul: true, // this resolves the issue when running coverage `Stack too deep when compiling inline assembly: Variable headStart is 1 slot(s) too deep inside the stack`
+        },
       },
     },
     overrides: {

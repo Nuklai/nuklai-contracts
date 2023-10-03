@@ -25,19 +25,12 @@ interface IDatasetNFT is IERC721Upgradeable {
 
   /**
    * @notice Mints a Dataset NFT token to `to`
+   * @param uuidHash The hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
-   * @return uin256 ID of the minted token
+   * @return uint256 ID of the minted token
    */
-  function mint(address to, bytes calldata signature) external returns (uint256);
-
-  /**
-   * @notice Sets a universally unique identifier (UUID) for the next Dataset NFT to be minted
-   * @dev Emits a {DatasetUuidSet} event
-   * @param uuid Unique identifier to set
-   * @return uint256 The ID of the token for which the UUID was set
-   */
-  function setUuidForDatasetId(string memory uuid) external returns (uint256);
+  function mint(bytes32 uuidHash, address to, bytes calldata signature) external returns (uint256);
 
   /**
    * @notice Sets and configures the Manager contracts for a specific Dataset NFT

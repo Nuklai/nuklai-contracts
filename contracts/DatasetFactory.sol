@@ -54,6 +54,7 @@ contract DatasetFactory is Ownable {
    * @notice Mints a Dataset NFT token, configures its associated Managers, and transfers it to `to`.
    * @dev Percentages are encoded such that 100% is represented as 1e18.
    * The sum of weights should be 100%, and 100% is encoded as 1e18.
+   * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @param to The address of the beneficiary (Dataset owner)
    * @param mintSignature Signature from a DT service confirming creation of Dataset
    * @param defaultVerifier The address of the Verifier contract to set as the Default Verifier
@@ -64,6 +65,7 @@ contract DatasetFactory is Ownable {
    * @param weights The weights of the respective tags to set
    */
   function mintAndConfigureDataset(
+    bytes32 uuidHashed,
     address to,
     bytes calldata mintSignature,
     address defaultVerifier,
@@ -73,7 +75,7 @@ contract DatasetFactory is Ownable {
     bytes32[] calldata tags,
     uint256[] calldata weights
   ) external {
-    uint256 id = datasetNFT.mint(address(this), mintSignature);
+    uint256 id = datasetNFT.mint(uuidHashed, address(this), mintSignature);
 
     _deployProxies(id);
     _configureVerifierManager(id, defaultVerifier);
