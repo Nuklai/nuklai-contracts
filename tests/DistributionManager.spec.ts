@@ -945,6 +945,9 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
 
+      // Set new token as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).approveTokenForPayments(await newFeeToken.getAddress());
+
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),
         parseUnits('86.4', 18)
@@ -1064,6 +1067,9 @@ export default async function suite(): Promise<void> {
       await newFeeToken
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
+
+      // Set newFeeToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).approveTokenForPayments(await newFeeToken.getAddress());
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),

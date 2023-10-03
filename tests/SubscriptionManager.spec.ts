@@ -185,6 +185,9 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('0.0000001', 18);
 
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).approveTokenForPayments(DeployedToken.address);
+
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,
         feeAmount
@@ -201,6 +204,9 @@ export default async function suite(): Promise<void> {
       });
 
       const feeAmount = parseUnits('0.0000001', 18); //feePerDayPerConsumer
+
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).approveTokenForPayments(DeployedToken.address);
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,
@@ -227,6 +233,9 @@ export default async function suite(): Promise<void> {
       });
 
       const feeAmount = parseUnits('0.0000001', 18);
+
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).approveTokenForPayments(DeployedToken.address);
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,

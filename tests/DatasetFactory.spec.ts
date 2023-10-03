@@ -7,6 +7,7 @@ import { Signer } from './utils/users';
 
 async function setup() {
   await deployments.fixture([
+    'TestToken',
     'ProxyAdmin',
     'FragmentNFT',
     'DatasetNFT',
