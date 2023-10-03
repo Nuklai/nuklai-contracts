@@ -67,7 +67,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @notice Initializes the contract
    * @dev Sets the name & symbol of the token collection,
    * grants `DEFAULT_ADMIN_ROLE` role to `admin_`, and
-   * sets address(0) (indicating native currency) as approved 
+   * sets address(0) (indicating native currency) as approved
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
@@ -149,7 +149,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * Address(0) cannot be revoked as it indicates native currency
    * Emits a {TokenApprovalRevoked} event on condition.
    * @param token The address of the token to revoke approval for
-   * @return bool True if the token (which was not address(0)) was revoked, indicating it was previously approved; false otherwise 
+   * @return bool True if the token (which was not address(0)) was revoked, indicating it was previously approved; false otherwise
    */
   function revokeTokenApproval(address token) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) {
     if (isApprovedToken[token] && token != address(0)) {
