@@ -1,11 +1,11 @@
-import { DatasetNFT } from "../typechain-types"
+import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
-import { task } from "hardhat/config";
+import { task } from 'hardhat/config';
 
 interface TaskArgs {
-    pk: string;
-    contractAddress: Addressable;
-    tokenAddress: Addressable;
+  pk: string;
+  contractAddress: Addressable;
+  tokenAddress: Addressable;
 }
 
 task('approve_payment_token', 'Approves a specific token for subscription fee payments')
