@@ -24,6 +24,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   string private constant _SYMBOL = "DTDS";
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
+  bytes32 public constant APPROVED_TOKEN_ROLE = keccak256("APPROVED_TOKEN_ROLE");
 
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
@@ -46,7 +47,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
-  mapping(address token => bool isApproved) public isApprovedToken;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
@@ -65,14 +65,12 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   /**
    * @notice Initializes the contract
-   * @dev Sets the name & symbol of the token collection,
-   * grants `DEFAULT_ADMIN_ROLE` role to `admin_`, and
-   * sets address(0) (indicating native currency) as approved
+   * @dev Sets the name & symbol of the token collection, and
+   * grants `DEFAULT_ADMIN_ROLE` role to `admin_`.
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
     if (admin_ == address(0)) revert ZERO_ADDRESS();
-    isApprovedToken[address(0)] = true;
     __ERC721_init(_NAME, _SYMBOL);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
@@ -130,13 +128,13 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Approves a specific token for payments (subscription fees) within the protocol
    * @dev Only callable by DatasetNFT ADMIN.
-   * Emits a {TokenApproved} event on condition.
-   * @param token The address of the token to approve
-   * @return bool True if the token was approved, indicating it was not already approved; false otherwise
+   * Emits a {RoleGranted} and a {TokenApproved} event on condition.
+   * @param token The address of the token to approve, or address(0) for native currency approval
+   * @return bool True if the token was approved (indicating it was not already approved), false otherwise
    */
   function approveTokenForPayments(address token) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) {
-    if (!isApprovedToken[token]) {
-      isApprovedToken[token] = true;
+    if (!hasRole(APPROVED_TOKEN_ROLE, token)) {
+      grantRole(APPROVED_TOKEN_ROLE, token);
       emit TokenApproved(token);
       return true;
     }
@@ -146,14 +144,13 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Revokes approval for a specific token previously approved for payments (subscription fees)
    * @dev Only callable by DatasetNFT ADMIN.
-   * Address(0) cannot be revoked as it indicates native currency
-   * Emits a {TokenApprovalRevoked} event on condition.
+   * Emits a {RoleRevoked} and a {TokenApprovalRevoked} event on condition.
    * @param token The address of the token to revoke approval for
-   * @return bool True if the token (which was not address(0)) was revoked, indicating it was previously approved; false otherwise
+   * @return bool True if the token was revoked (indicating it was previously approved), false otherwise
    */
   function revokeTokenApproval(address token) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) {
-    if (isApprovedToken[token] && token != address(0)) {
-      delete isApprovedToken[token];
+    if (hasRole(APPROVED_TOKEN_ROLE, token)) {
+      revokeRole(APPROVED_TOKEN_ROLE, token);
       emit TokenApprovalRevoked(token);
       return true;
     }
@@ -279,6 +276,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function isSigner(address account) external view returns (bool) {
     return hasRole(SIGNER_ROLE, account);
+  }
+
+  /**
+   * @notice Checks whether the given token address is approved for payments (subscription fees)
+   * @param token The address of the token to check (address(0) for native currency)
+   * @return bool True if `token` is approved, false if it is not
+   */
+  function isApprovedToken(address token) external view returns (bool) {
+    return hasRole(APPROVED_TOKEN_ROLE, token);
   }
 
   /**
