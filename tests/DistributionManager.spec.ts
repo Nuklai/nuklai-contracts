@@ -13,7 +13,7 @@ import { deployments, ethers, network } from 'hardhat';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature, utils } from './utils';
-import { DeployerFeeModel as models, APPROVED_TOKEN_ROLE} from '../utils/constants';
+import { DeployerFeeModel as models, APPROVED_TOKEN_ROLE } from '../utils/constants';
 import { time } from '@nomicfoundation/hardhat-network-helpers';
 import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
@@ -633,10 +633,7 @@ export default async function suite(): Promise<void> {
       const percentageForFeeModels = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
-        [
-          models.DATASET_OWNER_STORAGE,
-          models.DEPLOYER_STORAGE,
-        ],
+        [models.DATASET_OWNER_STORAGE, models.DEPLOYER_STORAGE],
         percentageForFeeModels
       );
 

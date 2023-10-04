@@ -1,6 +1,6 @@
 import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
-import {APPROVED_TOKEN_ROLE} from '../utils/constants';
+import { APPROVED_TOKEN_ROLE } from '../utils/constants';
 import { task } from 'hardhat/config';
 
 interface TaskArgs {

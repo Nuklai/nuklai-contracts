@@ -61,7 +61,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('DatasetNFT granted role to', dtAdmin);
 
-  const testTokenApproved = await dataset.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+  const testTokenApproved = await dataset.grantRole(
+    constants.APPROVED_TOKEN_ROLE,
+    testTokenAddress
+  );
   await testTokenApproved.wait();
 
   console.log('Test token approved for payments', testTokenAddress);
