@@ -68,7 +68,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    * @notice Calculates the subscription fee for a given duration (in days) and number of consumers
    * @param durationInDays The duration of the subscription in days
    * @param consumers Number of consumers for the subscription (including owner)
-   * @return address The payment token, zero address for native coin
+   * @return address The payment token, or address(0) for native coin
    * @return uint256 The amount to pay
    */
   function _calculateFee(uint256 durationInDays, uint256 consumers) internal view virtual returns (address, uint256);
