@@ -123,8 +123,8 @@ interface IDatasetNFT is IERC721Upgradeable {
 
   /**
    * @notice Checks whether the given token address is approved for payments (subscription fees)
-   * @param token The address of the token to check
-   * @return bool True if `token` is approved, false if not
+   * @param token The address of the token to check (address(0) for native currency)
+   * @return bool True if `token` is approved, false if it is not
    */
   function isApprovedToken(address token) external view returns (bool);
 }
