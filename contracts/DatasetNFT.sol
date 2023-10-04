@@ -41,8 +41,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
-  event TokenApproved(address indexed token);
-  event TokenApprovalRevoked(address indexed token);
 
   address private _fragmentProxyAdmin;
   address public fragmentImplementation;
@@ -123,38 +121,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
       configurations[id] = config;
       emit ManagersConfigChange(id);
     }
-  }
-
-  /**
-   * @notice Approves a specific token for payments (subscription fees) within the protocol
-   * @dev Only callable by DatasetNFT ADMIN.
-   * Emits a {RoleGranted} and a {TokenApproved} event on condition.
-   * @param token The address of the token to approve, or address(0) for native currency approval
-   * @return bool True if the token was approved (indicating it was not already approved), false otherwise
-   */
-  function approveTokenForPayments(address token) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) {
-    if (!hasRole(APPROVED_TOKEN_ROLE, token)) {
-      grantRole(APPROVED_TOKEN_ROLE, token);
-      emit TokenApproved(token);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * @notice Revokes approval for a specific token previously approved for payments (subscription fees)
-   * @dev Only callable by DatasetNFT ADMIN.
-   * Emits a {RoleRevoked} and a {TokenApprovalRevoked} event on condition.
-   * @param token The address of the token to revoke approval for
-   * @return bool True if the token was revoked (indicating it was previously approved), false otherwise
-   */
-  function revokeTokenApproval(address token) external onlyRole(DEFAULT_ADMIN_ROLE) returns (bool) {
-    if (hasRole(APPROVED_TOKEN_ROLE, token)) {
-      revokeRole(APPROVED_TOKEN_ROLE, token);
-      emit TokenApprovalRevoked(token);
-      return true;
-    }
-    return false;
   }
 
   /**
