@@ -1,5 +1,6 @@
 import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
+import {APPROVED_TOKEN_ROLE} from '../utils/constants';
 import { task } from 'hardhat/config';
 
 interface TaskArgs {
@@ -24,7 +25,7 @@ task('revoke_payment_token', 'Revokes approval for a specific token')
     )) as unknown as DatasetNFT;
 
     console.log('Revoking approval for token', taskArgs.tokenAddress);
-    await (await dataset.revokeTokenApproval(taskArgs.tokenAddress)).wait();
+    await (await dataset.revokeRole(APPROVED_TOKEN_ROLE, taskArgs.tokenAddress)).wait();
 
     console.log('Token', taskArgs.tokenAddress, 'successfully revoked');
   });

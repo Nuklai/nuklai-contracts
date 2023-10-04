@@ -1,5 +1,6 @@
 import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
+import {APPROVED_TOKEN_ROLE} from '../utils/constants';
 import { task } from 'hardhat/config';
 
 interface TaskArgs {
@@ -24,7 +25,7 @@ task('approve_payment_token', 'Approves a specific token for subscription fee pa
     )) as unknown as DatasetNFT;
 
     console.log('Approving token', taskArgs.tokenAddress);
-    await (await dataset.approveTokenForPayments(taskArgs.tokenAddress)).wait();
+    await (await dataset.grantRole(APPROVED_TOKEN_ROLE, taskArgs.tokenAddress)).wait();
 
     console.log('Token', taskArgs.tokenAddress, 'successfully approved');
   });
