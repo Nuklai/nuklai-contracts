@@ -1,6 +1,7 @@
 import { BytesLike, solidityPackedKeccak256 } from 'ethers';
 
 export const SIGNER_ROLE: BytesLike = solidityPackedKeccak256(['string'], ['SIGNER_ROLE']);
+export const APPROVED_TOKEN_ROLE: BytesLike = solidityPackedKeccak256(['string'], ['APPROVED_TOKEN_ROLE']);
 
 export enum DeployerFeeModel {
   NO_FEE, // No Fee wii
