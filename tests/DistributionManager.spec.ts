@@ -13,7 +13,7 @@ import { deployments, ethers, network } from 'hardhat';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature, utils } from './utils';
-import * as models from '../utils';
+import { DeployerFeeModel as models, APPROVED_TOKEN_ROLE } from '../utils/constants';
 import { time } from '@nomicfoundation/hardhat-network-helpers';
 import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
@@ -633,16 +633,13 @@ export default async function suite(): Promise<void> {
       const percentageForFeeModels = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
-        [
-          models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE,
-          models.constants.DeployerFeeModel.DEPLOYER_STORAGE,
-        ],
+        [models.DATASET_OWNER_STORAGE, models.DEPLOYER_STORAGE],
         percentageForFeeModels
       );
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModel(
         datasetId_,
-        models.constants.DeployerFeeModel.DATASET_OWNER_STORAGE
+        models.DATASET_OWNER_STORAGE
       );
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
@@ -945,6 +942,12 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
 
+      // Set new token as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+        APPROVED_TOKEN_ROLE,
+        await newFeeToken.getAddress()
+      );
+
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),
         parseUnits('86.4', 18)
@@ -1064,6 +1067,12 @@ export default async function suite(): Promise<void> {
       await newFeeToken
         .connect(users_.secondSubscriber)
         .mint(users_.secondSubscriber.address, ethers.parseUnits('100000000', 18));
+
+      // Set newFeeToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+        APPROVED_TOKEN_ROLE,
+        await newFeeToken.getAddress()
+      );
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         await newFeeToken.getAddress(),

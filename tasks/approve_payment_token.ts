@@ -1,18 +1,21 @@
 import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
+import { APPROVED_TOKEN_ROLE } from '../utils/constants';
 import { task } from 'hardhat/config';
 
 interface TaskArgs {
   pk: string;
   contractAddress: Addressable;
-  beneficiary: Addressable;
+  tokenAddress: Addressable;
 }
 
-task('set-deploy-fee-beneficiary', 'Sets the deployer fee beneficiary address')
+task('approve_payment_token', 'Approves a specific token for subscription fee payments')
   .addParam('pk', 'Signer private key with ADMIN_ROLE')
   .addParam('contractAddress', 'Address of the DatasetNFT contract')
-  .addParam('beneficiary', 'Address of the beneficiary wallet')
+  .addParam('tokenAddress', 'Address of the token to approve')
   .setAction(async (taskArgs: TaskArgs) => {
+    if (!taskArgs.contractAddress || !taskArgs.tokenAddress) throw new Error('No address provided');
+
     const wallet = new ethers.Wallet(taskArgs.pk, ethers.provider);
 
     const dataset = (await ethers.getContractAt(
@@ -21,12 +24,8 @@ task('set-deploy-fee-beneficiary', 'Sets the deployer fee beneficiary address')
       wallet
     )) as unknown as DatasetNFT;
 
-    if (!taskArgs.beneficiary) throw new Error('No beneficiary set');
+    console.log('Approving token', taskArgs.tokenAddress);
+    await (await dataset.grantRole(APPROVED_TOKEN_ROLE, taskArgs.tokenAddress)).wait();
 
-    console.log('Setting deployer fee beneficiary...');
-    await (await dataset.setDeployerFeeBeneficiary(taskArgs.beneficiary)).wait();
-
-    const beneficiary = await dataset.deployerFeeBeneficiary();
-
-    console.log('beneficiary was set successfully', beneficiary);
+    console.log('Token', taskArgs.tokenAddress, 'successfully approved');
   });

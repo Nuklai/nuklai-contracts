@@ -24,6 +24,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   string private constant _SYMBOL = "DTDS";
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
+  bytes32 public constant APPROVED_TOKEN_ROLE = keccak256("APPROVED_TOKEN_ROLE");
 
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
@@ -62,8 +63,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
 
   /**
    * @notice Initializes the contract
-   * @dev Sets the name & symbol of the token collection and
-   * grants `DEFAULT_ADMIN_ROLE` role to `admin_`
+   * @dev Sets the name & symbol of the token collection, and
+   * grants `DEFAULT_ADMIN_ROLE` role to `admin_`.
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
    */
   function initialize(address admin_) external initializer {
@@ -241,6 +242,15 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function isSigner(address account) external view returns (bool) {
     return hasRole(SIGNER_ROLE, account);
+  }
+
+  /**
+   * @notice Checks whether the given token address is approved for payments (subscription fees)
+   * @param token The address of the token to check (address(0) for native currency)
+   * @return bool True if `token` is approved, false if it is not
+   */
+  function isApprovedToken(address token) external view returns (bool) {
+    return hasRole(APPROVED_TOKEN_ROLE, token);
   }
 
   /**

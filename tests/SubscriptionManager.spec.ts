@@ -12,6 +12,7 @@ import { ZeroHash, parseUnits } from 'ethers';
 import { deployments, ethers, network } from 'hardhat';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature } from './utils';
+import { APPROVED_TOKEN_ROLE } from '../utils/constants';
 import { getUuidHash, getUint256FromBytes32 } from './utils/utils';
 import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
@@ -185,6 +186,12 @@ export default async function suite(): Promise<void> {
 
       const feeAmount = parseUnits('0.0000001', 18);
 
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+        APPROVED_TOKEN_ROLE,
+        DeployedToken.address
+      );
+
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,
         feeAmount
@@ -201,6 +208,12 @@ export default async function suite(): Promise<void> {
       });
 
       const feeAmount = parseUnits('0.0000001', 18); //feePerDayPerConsumer
+
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+        APPROVED_TOKEN_ROLE,
+        DeployedToken.address
+      );
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,
@@ -227,6 +240,12 @@ export default async function suite(): Promise<void> {
       });
 
       const feeAmount = parseUnits('0.0000001', 18);
+
+      // Set DeployedToken as approved for payments
+      await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+        APPROVED_TOKEN_ROLE,
+        DeployedToken.address
+      );
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
         DeployedToken.address,

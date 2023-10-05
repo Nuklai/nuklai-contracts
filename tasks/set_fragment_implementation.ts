@@ -1,5 +1,6 @@
-import { DatasetNFT } from '@typechained';
+import { DatasetNFT } from '../typechain-types';
 import { Addressable } from 'ethers';
+import { task } from 'hardhat/config';
 
 interface TaskArgs {
   pk: string;

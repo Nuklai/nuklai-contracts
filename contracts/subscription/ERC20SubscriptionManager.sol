@@ -10,7 +10,7 @@ import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSub
 /**
  * @title ERC20SubscriptionManager contract
  * @author Data Tunnel
- * @notice This implementation contract handles Dataset subscription operations using ERC20 tokens or native currency as payments.
+ * @notice This implementation contract handles Dataset subscription operations using ERC20 tokens as payments.
  *
  * It calculates subscription fees based on a 3rd degree polynomial formula f(x, y, z) where:
  *
@@ -30,6 +30,8 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   string internal constant _SYMBOL = "DTSUB";
 
   error NOT_DATASET_OWNER(address account);
+  error NOT_APPROVED_TOKEN(address token);
+  error UNSUPPORTED_NATIVE_CURRENCY();
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
@@ -56,11 +58,15 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
 
   /**
    * @notice Sets the daily subscription fee for a single consumer
-   * @dev Only callable by the Dataset owner
-   * @param token_ The address of the ERC20 token to be used for subscription payments, or address(0) for native currency
+   * @dev Only callable by the Dataset owner.
+   * `token_` must be approved by DatasetNFT ADMIN (see `DatasetNFT.sol`).
+   * `address(0)` (indicating natice currency) is not supported by this SubscriptionManager implementation.
+   * @param token_ The address of the ERC20 token to be used for subscription payments
    * @param feePerConsumerPerDay_ The fee to set
    */
   function setFee(address token_, uint256 feePerConsumerPerDay_) external onlyDatasetOwner {
+    if (token_ == address(0)) revert UNSUPPORTED_NATIVE_CURRENCY();
+    if (!dataset.isApprovedToken(token_)) revert NOT_APPROVED_TOKEN(token_);
     token = IERC20(token_);
     feePerConsumerPerDay = feePerConsumerPerDay_;
   }
@@ -69,7 +75,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @notice Calculates subscription fee for a given duration (in days) and number of consumers
    * @param durationInDays The duration of the subscription in days
    * @param consumers Number of consumers for the subscription (including owner)
-   * @return address The address of the ERC20 token used as payment, or address(0) for native currency
+   * @return address The address of the ERC20 token used as payment
    * @return uint256 The calculated fee
    */
   function _calculateFee(uint256 durationInDays, uint256 consumers) internal view override returns (address, uint256) {
