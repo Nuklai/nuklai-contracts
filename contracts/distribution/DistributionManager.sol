@@ -101,13 +101,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param weights The weights of the respective tags to set
    */
   function setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) external onlyDatasetOwner {
-    EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights.push();
-    uint256 weightSum;
-    for (uint256 i; i < weights.length; i++) {
-      weightSum += weights[i];
-      tagWeights.set(tags[i], weights[i]);
-    }
-    if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
+    _setTagWeights(tags, weights);
   }
 
   /**
@@ -137,8 +131,51 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function setDatasetOwnerPercentage(uint256 percentage) external onlyDatasetOwner {
+    _setDatasetOwnerPercentage(percentage);
+  }
+
+  /**
+   * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner
+   * and sets the weights of the respective provided tags. Percentages are encoded such that 100% is represented as 1e18.
+   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @param percentage The percentage to set (must be less than or equal to 50%)
+   * @param tags The tags participating in the payment distributions
+   * @param weights The weights of the respective tags to set
+   */
+  function setDSOwnerPercentageAndTagWeights(
+    uint256 percentage,
+    bytes32[] calldata tags,
+    uint256[] calldata weights
+  ) external onlyDatasetOwner {
+    _setDatasetOwnerPercentage(percentage);
+    _setTagWeights(tags, weights);
+  }
+
+  /**
+   * @notice Internal function that sets the percentage of each subcription payment that should be sent to the Dataset Owner.
+   * Percentages are encoded such that 100% is represented as 1e18.
+   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @param percentage The percentage to set (must be less than or equal to 50%)
+   */
+  function _setDatasetOwnerPercentage(uint256 percentage) internal {
     if (percentage > 5e17) revert PERCENTAGE_VALUE_INVALID(5e17, percentage);
     datasetOwnerPercentage = percentage;
+  }
+
+  /**
+   * @notice Internal function that sets the weights of the respective provided tags.
+   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @param tags The tags participating in the payment distributions
+   * @param weights The weights of the respective tags to set
+   */
+  function _setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) internal {
+    EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights.push();
+    uint256 weightSum;
+    for (uint256 i; i < weights.length; i++) {
+      weightSum += weights[i];
+      tagWeights.set(tags[i], weights[i]);
+    }
+    if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
   }
 
   /**
