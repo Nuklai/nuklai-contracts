@@ -14,7 +14,8 @@
     "pr:lint:check:contracts": "prettier --check **.sol",
     "pr:lint:check:tests": "prettier --check **/tests/**.ts",
     "test": "yarn build && yarn typechain && cross-env TEST=true mocha 'tests/**/*.spec.ts'",
-    "typechain": "yarn hardhat typechain"
+    "typechain": "yarn hardhat typechain",
+    "deploy-contracts:fuji": "yarn hardhat --network fuji deploy --tags ProxyAdmin,FragmentNFT,DatasetNFT,DatasetManagers,DatasetVerifiers,DatasetFactory"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.9.3",
