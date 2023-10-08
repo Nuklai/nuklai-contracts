@@ -19,6 +19,7 @@ import {
   IERC721_Interface_Id,
   IERC721Metadata_Interface_Id,
 } from './utils/selectors';
+import { APPROVED_TOKEN_ROLE } from './../utils/constants';
 
 const setup = async () => {
   await deployments.fixture([
@@ -50,6 +51,11 @@ const setup = async () => {
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
+
+  const testToken = await ethers.getContract('TestToken');
+  const testTokenAddress = await testToken.getAddress();
+
+  await contracts.DatasetNFT.grantRole(APPROVED_TOKEN_ROLE, testTokenAddress);
 
   const defaultVerifierAddress = await contracts.AcceptManuallyVerifier.getAddress();
 

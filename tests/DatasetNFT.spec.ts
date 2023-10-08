@@ -83,6 +83,12 @@ const setupOnMint = async () => {
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
+
+  const testToken = await ethers.getContract('TestToken');
+  const testTokenAddress = await testToken.getAddress();
+
+  await DatasetNFT.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
   const defaultVerifierAddress = await (
     await ethers.getContract('AcceptManuallyVerifier')
   ).getAddress();
@@ -299,6 +305,12 @@ export default async function suite(): Promise<void> {
       const signedMessage = await users_.dtAdmin.signMessage(
         signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
+
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
       ).getAddress();
@@ -335,6 +347,12 @@ export default async function suite(): Promise<void> {
       const signedMessage = await users_.dtAdmin.signMessage(
         signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
+
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
       ).getAddress();
