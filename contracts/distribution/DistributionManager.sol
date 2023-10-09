@@ -135,9 +135,9 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   /**
-   * @notice Sets the percentage of each subcription payment that should be sent to the Dataset Owner
-   * and sets the weights of the respective provided tags. Percentages are encoded such that 100% is represented as 1e18.
-   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @notice Sets both the percentage of each subcription payment that should be sent to the Dataset Owner
+   * and the weights of the respective provided tags. Percentages are encoded such that 100% is represented as 1e18.
+   * @dev Only callable by the Dataset owner
    * @param percentage The percentage to set (must be less than or equal to 50%)
    * @param tags The tags participating in the payment distributions
    * @param weights The weights of the respective tags to set
@@ -154,7 +154,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   /**
    * @notice Internal function that sets the percentage of each subcription payment that should be sent to the Dataset Owner.
    * Percentages are encoded such that 100% is represented as 1e18.
-   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @dev Called by `setDatasetOwnerPercentage()` and `setDSOwnerPercentageAndTagWeights()`
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function _setDatasetOwnerPercentage(uint256 percentage) internal {
@@ -164,7 +164,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
   /**
    * @notice Internal function that sets the weights of the respective provided tags.
-   * @dev only callable by `setDatasetOwnerPercentage` and `setDSOwnerPercentageAndTagWeights`
+   * @dev Called by `setTagWeights()` and `setDSOwnerPercentageAndTagWeights`
    * @param tags The tags participating in the payment distributions
    * @param weights The weights of the respective tags to set
    */
