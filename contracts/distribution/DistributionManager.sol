@@ -311,13 +311,15 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     _firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
 
     address collectToken;
+    uint256 pendingFeeToken;
     for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
       collectToken = payments[i].token;
+      pendingFeeToken = pendingOwnerFee[collectToken];
 
-      if (pendingOwnerFee[collectToken] == 0) continue;
-
-      _sendPayout(collectToken, pendingOwnerFee[collectToken], owner);
+      if (pendingFeeToken == 0) continue;
       delete pendingOwnerFee[collectToken];
+
+      _sendPayout(collectToken, pendingFeeToken, owner);
     }
   }
 
