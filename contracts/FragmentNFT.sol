@@ -470,7 +470,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   ) private view returns (bytes32) {
     return
       ECDSA.toEthSignedMessageHash(
-        abi.encodePacked(block.chainid, address(dataset), datasetId, fromId, toId, owners, tags_)
+        abi.encodePacked(block.chainid, address(dataset), datasetId, fromId, owners, toId, tags_)
       );
   }
 
