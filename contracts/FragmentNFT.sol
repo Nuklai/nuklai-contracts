@@ -99,8 +99,6 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     _snapshots.push();
   }
 
-  ///@dev TODO:s handle metadata URI stuff
-
   /**
    * @notice Creates a new snapshot and returns its index
    * @dev Snapshots are created each time a subscription payment event occurs

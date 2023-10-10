@@ -73,8 +73,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
-  //TODO handle metadata URI stuff
-
   /**
    * @notice Mints a Dataset NFT token to `to`
    * @dev Emits a {Transfer} event
