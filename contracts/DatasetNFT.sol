@@ -102,7 +102,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param tokenId The ID of the target Dataset NFT token
    * @return string The requested URI
    */
-  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+  function tokenURI(uint256 tokenId) public view override(ERC721Upgradeable, IDatasetNFT) returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
     string memory contractURI_ = string.concat(_contractURI(), "/");
     return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";

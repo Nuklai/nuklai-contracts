@@ -128,7 +128,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @return string The base URI of DatasetNFT
    */
   function _baseURI() internal view override returns (string memory) {
-    return dataset.baseURI();
+    return dataset.tokenURI(datasetId);
   }
 
   /**
@@ -139,9 +139,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "fragments";
-    string memory base = _baseURI();
+    string memory base = string.concat(_baseURI(), "/");
 
-    return bytes(base).length > 0 ? string.concat(base, suffix) : "";
+    return bytes(_baseURI()).length > 0 ? string.concat(base, suffix) : "";
   }
 
   /**

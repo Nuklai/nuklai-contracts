@@ -188,7 +188,11 @@ export default async function suite(): Promise<void> {
     it('Should FragmentNFT contract URI be set if base URI is set', async () => {
       await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
 
-      expect(await DatasetFragment_.contractURI()).to.equal(BASE_URI + FRAGMENT_NFT_SUFFIX);
+      const datasetTokenURI = await DatasetNFT_.tokenURI(datasetId_);
+
+      expect(await DatasetFragment_.contractURI()).to.equal(
+        datasetTokenURI + '/' + FRAGMENT_NFT_SUFFIX
+      );
     });
 
     it('Should FragmentNFT contract URI be empty if base URI is not set', async () => {
@@ -205,8 +209,10 @@ export default async function suite(): Promise<void> {
         true
       );
 
+      const datasetTokenURI = await DatasetNFT_.tokenURI(datasetId_);
+
       expect(await DatasetFragment_.tokenURI(fragmentIds_[0])).to.equal(
-        BASE_URI + FRAGMENT_NFT_SUFFIX + '/' + fragmentIds_[0]
+        datasetTokenURI + '/' + FRAGMENT_NFT_SUFFIX + '/' + fragmentIds_[0]
       );
     });
 
