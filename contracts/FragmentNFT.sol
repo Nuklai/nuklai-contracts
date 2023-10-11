@@ -331,6 +331,26 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   }
 
   /**
+   * @notice Removes multiple contributions which are either:
+   *  - already incorporated
+   *  - or pending to be accepted - rejected
+   * @dev Either removes an already accepted contribution by burning the associated Fragment NFT,
+   * or rejects a specific proposed contribution by removing the associated pending Fragment NFT.
+   * Only callable by the Dataset owner.
+   * Emits a {FragmentRemoved} event.
+   * @param ids Array of the IDs of the Fragment NFTs (pending or already minted) associated with the contributions to be removed
+   */
+  function removeMany(uint256[] calldata ids) external onlyDatasetOwner {
+    for (uint256 i; i < ids.length; i++) {
+      uint256 id = ids[i];
+      delete pendingFragmentOwners[id]; // in case we are deleting pending one
+      if (_exists(id)) _burn(id);
+      delete tags[id];
+      emit FragmentRemoved(id);
+    }
+  }
+
+  /**
    * @notice Checks whether the interface ID provided is supported by this Contract
    * @dev For more information, see `EIP-165`
    * @param interfaceId The interface ID to check

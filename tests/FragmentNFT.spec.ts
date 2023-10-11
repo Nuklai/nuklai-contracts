@@ -466,6 +466,24 @@ export default async function suite(): Promise<void> {
       expect(await DatasetFragment_.tags(fragmentIds_[0])).to.equal(ZeroHash);
     });
 
+    it('Should data set owner remove many fragments', async function () {
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        await DatasetFragment_.getAddress(),
+        fragmentIds_[0],
+        true
+      );
+
+      await expect(DatasetFragment_.connect(users_.datasetOwner).removeMany(fragmentIds_))
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[0])
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[1])
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[2]);
+
+      expect(await DatasetFragment_.tags(fragmentIds_[0])).to.equal(ZeroHash);
+    });
+
     it('Should revert if user tries to remove a fragment', async function () {
       await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
         await DatasetFragment_.getAddress(),
