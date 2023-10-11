@@ -102,20 +102,41 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     _snapshots.push();
   }
 
+  /**
+   * @notice Retrieves the contract URI for FragmentNFT
+   * @return string The URI of the contract
+   */
   function contractURI() public view returns (string memory) {
     return _contractURI();
   }
 
+  /**
+   * @notice Retrieves the Uniform Resource Identifier (URI) for the `tokenId` Fragment NFT token
+   * @dev If DatasetNFT `baseURI` is set, it returns the concatenation of `contractURI` and `tokenId`.
+   * If DatasetNFT `baseURI` is not set, it returns an empty string.
+   * @param tokenId The ID of the target Fragment NFT token
+   * @return string The requested URI
+   */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
     string memory contractURI_ = string.concat(_contractURI(), "/");
     return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
   }
 
+  /**
+   * @notice Returns the DatasetNFT `baseURI`
+   * @return string The base URI of DatasetNFT
+   */
   function _baseURI() internal view override returns (string memory) {
     return dataset.baseURI();
   }
 
+  /**
+   * @notice Returns the contract URI for FragmentNFT
+   * @dev If DatasetNFT `baseURI` is set, it returns the concatenation of `baseURI` and `suffix`.
+   * If DatasetNFT `baseURI` is not set, it returns an empty string.
+   * @return string The contract URI 
+   */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "fragments";
     string memory base = _baseURI();
