@@ -20,6 +20,7 @@ import {
   IERC721Metadata_Interface_Id,
 } from './utils/selectors';
 import { APPROVED_TOKEN_ROLE } from './../utils/constants';
+import { BASE_URI, FRAGMENT_NFT_SUFFIX } from './utils/constants';
 
 const setup = async () => {
   await deployments.fixture([
@@ -182,6 +183,49 @@ export default async function suite(): Promise<void> {
 
     afterEach(async () => {
       await ethers.provider.send('evm_revert', [snap]);
+    });
+
+    it('Should FragmentNFT contract URI be set if base URI is set', async () => {
+      await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+      expect(await DatasetFragment_.contractURI()).to.equal(BASE_URI + FRAGMENT_NFT_SUFFIX);
+    });
+
+    it('Should FragmentNFT contract URI be empty if base URI is not set', async () => {
+      expect(await DatasetFragment_.contractURI()).to.equal('');
+    });
+
+    it('Should retrieve token URI if fragment exists', async () => {
+      await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        fragmentAddress,
+        fragmentIds_[0],
+        true
+      );
+
+      expect(await DatasetFragment_.tokenURI(fragmentIds_[0])).to.equal(
+        BASE_URI + FRAGMENT_NFT_SUFFIX + '/' + fragmentIds_[0]
+      );
+    });
+
+    it('Should token URI be empty if baseURI is not set', async () => {
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        fragmentAddress,
+        fragmentIds_[0],
+        true
+      );
+
+      expect(await DatasetFragment_.tokenURI(fragmentIds_[0])).to.equal('');
+    });
+
+    it('Should revert retrieving token URI if dataset id does not exists', async () => {
+      const wrongFragmentId = 2312312312321;
+      await expect(DatasetFragment_.tokenURI(wrongFragmentId))
+        .to.be.revertedWithCustomError(DatasetFragment_, 'TOKEN_ID_NOT_EXISTS')
+        .withArgs(wrongFragmentId);
     });
 
     it('Should data set owner set verifiers for single tag', async function () {
