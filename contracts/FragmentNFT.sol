@@ -6,6 +6,7 @@ import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC72
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
@@ -24,6 +25,7 @@ import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
 contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Arrays for uint256[];
+  using Strings for uint256;
 
   string private constant _NAME = "Data Tunnel Fragment";
   string private constant _SYMBOL = "DTF";
@@ -33,6 +35,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   event FragmentRejected(uint256 id);
   event FragmentRemoved(uint256 id);
 
+  error TOKEN_ID_NOT_EXISTS(uint256 tokenId);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
   error BAD_SNAPSHOT_ID(uint256 currentId, uint256 targetId);
   error NOT_DATASET_OWNER(address account);
@@ -97,6 +100,27 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     _snapshots.push();
+  }
+
+  function contractURI() public view returns (string memory) {
+    return _contractURI();
+  }
+
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
+    string memory contractURI_ = string.concat(_contractURI(), "/");
+    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+  }
+
+  function _baseURI() internal view override returns (string memory) {
+    return dataset.baseURI();
+  }
+
+  function _contractURI() internal view returns (string memory) {
+    string memory suffix = "fragments";
+    string memory base = _baseURI();
+
+    return bytes(base).length > 0 ? string.concat(base, suffix) : "";
   }
 
   /**

@@ -23,6 +23,8 @@ interface IDatasetNFT is IERC721Upgradeable {
     address verifierManager;
   }
 
+  function baseURI() external view returns (string memory);
+
   /**
    * @notice Mints a Dataset NFT token to `to`
    * @param uuidHash The hash of the off-chain generated UUID for the Dataset

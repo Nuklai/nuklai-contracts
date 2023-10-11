@@ -8,6 +8,7 @@ import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transpa
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
@@ -20,12 +21,15 @@ import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
  * @dev Extends IDatasetNFT, ERC721Upgradeable & AccessControlUpgradeable
  */
 contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable {
+  using Strings for uint256;
+
   string private constant _NAME = "Data Tunnel Dataset";
   string private constant _SYMBOL = "DTDS";
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
   bytes32 public constant APPROVED_TOKEN_ROLE = keccak256("APPROVED_TOKEN_ROLE");
 
+  error TOKEN_ID_NOT_EXISTS(uint256 tokenId);
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
   error NOT_UUID_SET(uint256 datasetId);
@@ -42,6 +46,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
 
+  string public baseURI;
   address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
@@ -71,6 +76,31 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     if (admin_ == address(0)) revert ZERO_ADDRESS();
     __ERC721_init(_NAME, _SYMBOL);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
+  }
+
+  function setBaseURI(string calldata baseURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    baseURI = baseURI_;
+  }
+
+  function contractURI() public view returns (string memory) {
+    return _contractURI();
+  }
+
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
+    string memory contractURI_ = string.concat(_contractURI(), "/");
+    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+  }
+
+  function _baseURI() internal view override returns (string memory) {
+    return baseURI;
+  }
+
+  function _contractURI() internal view returns (string memory) {
+    string memory suffix = "datasets";
+    string memory base = _baseURI();
+
+    return bytes(base).length > 0 ? string.concat(base, suffix) : "";
   }
 
   /**
