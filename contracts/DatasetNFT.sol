@@ -32,7 +32,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   error TOKEN_ID_NOT_EXISTS(uint256 tokenId);
   error NOT_OWNER(uint256 id, address account);
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
-  error NOT_UUID_SET(uint256 datasetId);
   error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
   error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
   error FRAGMENT_CREATION_DISABLED();
@@ -78,24 +77,51 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
+  /**
+   * @notice Sets the `baseURI` for computing `contractURI` and `tokenURI`
+   * @dev The base URI is used to compute the contract URI, which, in turn, is used to generate token URIs.
+   * Only callable by DatasetNFT ADMIN 
+   * @param baseURI_ The Uniform Resource Identifier (URI) to set as the baseURI
+   */
   function setBaseURI(string calldata baseURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
     baseURI = baseURI_;
   }
 
+  /**
+   * @notice Retrieves the contract URI for DatasetNFT
+   * @return string The URI of the contract
+   */
   function contractURI() public view returns (string memory) {
     return _contractURI();
   }
 
+  /**
+   * @notice Retrieves the Uniform Resource Identifier (URI) for the `tokenId` Dataset NFT token
+   * @dev If `baseURI` is set, it returns the concatenation of `contractURI` and `tokenId`.
+   * If `baseURI` is not set, it returns an empty string.
+   * @param tokenId The ID of the target Dataset NFT token
+   * @return string The requested URI
+   */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
     string memory contractURI_ = string.concat(_contractURI(), "/");
     return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
   }
 
+  /**
+   * @notice Returns the `baseURI` used for generating token URIs
+   * @return string The base URI
+   */
   function _baseURI() internal view override returns (string memory) {
     return baseURI;
   }
 
+  /**
+   * @notice Returns the contract URI for DatasetNFT
+   * @dev If `baseURI` is set, it returns the concatenation of `baseURI` and `suffix`.
+   * If `baseURI` is not set, it returns an empty string.
+   * @return string The contract URI
+   */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "datasets";
     string memory base = _baseURI();
