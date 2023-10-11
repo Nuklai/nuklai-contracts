@@ -135,7 +135,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @notice Returns the contract URI for FragmentNFT
    * @dev If DatasetNFT `baseURI` is set, it returns the concatenation of `baseURI` and `suffix`.
    * If DatasetNFT `baseURI` is not set, it returns an empty string.
-   * @return string The contract URI 
+   * @return string The contract URI
    */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "fragments";

@@ -80,7 +80,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   /**
    * @notice Sets the `baseURI` for computing `contractURI` and `tokenURI`
    * @dev The base URI is used to compute the contract URI, which, in turn, is used to generate token URIs.
-   * Only callable by DatasetNFT ADMIN 
+   * Only callable by DatasetNFT ADMIN
    * @param baseURI_ The Uniform Resource Identifier (URI) to set as the baseURI
    */
   function setBaseURI(string calldata baseURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
