@@ -24,6 +24,21 @@ interface IDatasetNFT is IERC721Upgradeable {
   }
 
   /**
+   * @notice Returns the `baseURI` used for generating token URIs
+   * @return string The base URI
+   */
+  function baseURI() external view returns (string memory);
+
+  /**
+   * @notice Retrieves the Uniform Resource Identifier (URI) for the `tokenId` Dataset NFT token
+   * @dev If `baseURI` is set, it returns the concatenation of `contractURI` and `tokenId`.
+   * If `baseURI` is not set, it returns an empty string.
+   * @param tokenId The ID of the target Dataset NFT token
+   * @return string The requested URI
+   */
+  function tokenURI(uint256 tokenId) external view returns (string memory);
+
+  /**
    * @notice Mints a Dataset NFT token to `to`
    * @param uuidHash The hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner

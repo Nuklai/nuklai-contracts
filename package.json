@@ -9,6 +9,7 @@
     "contract-size": "hardhat size-contracts",
     "coverage": "cross-env HARDHAT_DEPLOY_FIXTURE=true TEST=true npx hardhat coverage --testfiles \"tests/*.spec.ts\"",
     "deploy": "hardhat deploy",
+    "deploy-contracts:fuji": "yarn hardhat --network fuji deploy --tags ProxyAdmin,FragmentNFT,DatasetNFT,DatasetManagers,DatasetVerifiers,DatasetFactory",
     "lint": "sort-package-json && cross-env prettier --write . && cross-env solhint --fix 'contracts/**/*.sol'",
     "lint:check": "cross-env solhint 'contracts/**/*.sol' && cross-env prettier --check .",
     "pr:lint:check:contracts": "prettier --check **.sol",

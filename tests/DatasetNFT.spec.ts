@@ -31,6 +31,7 @@ import {
   IAccessControl_Interface_Id,
   IERC721Metadata_Interface_Id,
 } from './utils/selectors';
+import { BASE_URI, DATASET_NFT_SUFFIX } from './utils/constants';
 
 async function setup() {
   await deployments.fixture([
@@ -83,6 +84,12 @@ const setupOnMint = async () => {
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
+
+  const testToken = await ethers.getContract('TestToken');
+  const testTokenAddress = await testToken.getAddress();
+
+  await DatasetNFT.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
   const defaultVerifierAddress = await (
     await ethers.getContract('AcceptManuallyVerifier')
   ).getAddress();
@@ -299,6 +306,12 @@ export default async function suite(): Promise<void> {
       const signedMessage = await users_.dtAdmin.signMessage(
         signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
+
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
       ).getAddress();
@@ -335,6 +348,12 @@ export default async function suite(): Promise<void> {
       const signedMessage = await users_.dtAdmin.signMessage(
         signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
       );
+
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
       ).getAddress();
@@ -524,6 +543,45 @@ export default async function suite(): Promise<void> {
         ).to.be.revertedWith(
           `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${ZeroHash}`
         );
+      });
+
+      it('Should DT admin set base URI for handle metadata', async () => {
+        await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+        expect(await DatasetNFT_.baseURI()).to.equal(BASE_URI);
+      });
+
+      it('Should base URI be empty if not set', async () => {
+        expect(await DatasetNFT_.baseURI()).to.equal('');
+      });
+
+      it('Should DatasetNFT contract URI be set if base URI is set', async () => {
+        await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+        expect(await DatasetNFT_.contractURI()).to.equal(BASE_URI + DATASET_NFT_SUFFIX);
+      });
+
+      it('Should DatasetNFT contract URI be empty if base URI is not set', async () => {
+        expect(await DatasetNFT_.contractURI()).to.equal('');
+      });
+
+      it('Should retrieve token URI if dataset id exists', async () => {
+        await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+        expect(await DatasetNFT_.tokenURI(datasetId_)).to.equal(
+          BASE_URI + DATASET_NFT_SUFFIX + '/' + datasetId_
+        );
+      });
+
+      it('Should token URI be empty if baseURI is not set', async () => {
+        expect(await DatasetNFT_.tokenURI(datasetId_)).to.equal('');
+      });
+
+      it('Should revert retrieving token URI if dataset id does not exists', async () => {
+        const wrongDatasetId = 2312312312321;
+        await expect(DatasetNFT_.tokenURI(wrongDatasetId))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'TOKEN_ID_NOT_EXISTS')
+          .withArgs(wrongDatasetId);
       });
 
       it('Should DT admin set deployer fee model for a data set', async function () {

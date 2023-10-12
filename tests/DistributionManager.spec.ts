@@ -46,6 +46,12 @@ const setup = async () => {
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
+
+  const testToken = await ethers.getContract('TestToken');
+  const testTokenAddress = await testToken.getAddress();
+
+  await contracts.DatasetNFT.grantRole(APPROVED_TOKEN_ROLE, testTokenAddress);
+
   const defaultVerifierAddress = await (
     await ethers.getContract('AcceptManuallyVerifier')
   ).getAddress();
@@ -240,6 +246,19 @@ export default async function suite(): Promise<void> {
       )
         .to.be.revertedWithCustomError(DatasetDistributionManager_, 'TAG_WEIGHTS_SUM_INVALID')
         .withArgs(parseUnits('1', 18), parseUnits('0.4', 18) + parseUnits('0.8', 18));
+    });
+
+    it('Should data set owner set data set tag weights and data set owner percentage in one function', async function () {
+      const percentage = parseUnits('0.01', 18);
+      const tags = [ZeroHash];
+      const weights = [parseUnits('1', 18)];
+
+      await DatasetDistributionManager_.connect(
+        users_.datasetOwner
+      ).setDSOwnerPercentageAndTagWeights(percentage, tags, weights);
+
+      expect(await DatasetDistributionManager_.datasetOwnerPercentage()).equal(percentage);
+      expect((await DatasetDistributionManager_.getTagWeights(tags))[0]).equal(weights[0]);
     });
 
     it('Should data set owner claim revenue after locking period (two weeks)', async function () {

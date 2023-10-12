@@ -14,9 +14,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const fragmentImplementation = await ethers.getContract('FragmentNFT');
   const fragmentImplementationAddress = await fragmentImplementation.getAddress();
 
-  const testToken = await ethers.getContract('TestToken');
-  const testTokenAddress = await testToken.getAddress();
-
   console.log('ProxyAdmin: ', proxyAdminAddress);
   console.log('DT admin: ', dtAdmin);
 
@@ -49,25 +46,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   );
   await fragmentImplementationSet.wait();
 
-  console.log('FragmentNFT Implementation sucessfully set', fragmentImplementationAddress);
+  console.log('FragmentNFT Implementation successfully set', fragmentImplementationAddress);
 
   const proxyAdminSet = await dataset.setFragmentProxyAdminAddress(proxyAdminAddress);
   await proxyAdminSet.wait();
 
-  console.log('ProxyAdmin address sucessfully set', proxyAdminAddress);
+  console.log('ProxyAdmin address successfully set', proxyAdminAddress);
 
   const grantedRole = await dataset.grantRole(constants.SIGNER_ROLE, dtAdmin);
   await grantedRole.wait();
 
   console.log('DatasetNFT granted role to', dtAdmin);
-
-  const testTokenApproved = await dataset.grantRole(
-    constants.APPROVED_TOKEN_ROLE,
-    testTokenAddress
-  );
-  await testTokenApproved.wait();
-
-  console.log('Test token approved for payments', testTokenAddress);
 
   if (process.env.TEST !== 'true') await hre.run('etherscan-verify');
 };

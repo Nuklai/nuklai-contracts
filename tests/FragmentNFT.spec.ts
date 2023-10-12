@@ -19,6 +19,8 @@ import {
   IERC721_Interface_Id,
   IERC721Metadata_Interface_Id,
 } from './utils/selectors';
+import { APPROVED_TOKEN_ROLE } from './../utils/constants';
+import { BASE_URI, FRAGMENT_NFT_SUFFIX } from './utils/constants';
 
 const setup = async () => {
   await deployments.fixture([
@@ -50,6 +52,11 @@ const setup = async () => {
   const signedMessage = await users.dtAdmin.signMessage(
     signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash)
   );
+
+  const testToken = await ethers.getContract('TestToken');
+  const testTokenAddress = await testToken.getAddress();
+
+  await contracts.DatasetNFT.grantRole(APPROVED_TOKEN_ROLE, testTokenAddress);
 
   const defaultVerifierAddress = await contracts.AcceptManuallyVerifier.getAddress();
 
@@ -176,6 +183,55 @@ export default async function suite(): Promise<void> {
 
     afterEach(async () => {
       await ethers.provider.send('evm_revert', [snap]);
+    });
+
+    it('Should FragmentNFT contract URI be set if base URI is set', async () => {
+      await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+      const datasetTokenURI = await DatasetNFT_.tokenURI(datasetId_);
+
+      expect(await DatasetFragment_.contractURI()).to.equal(
+        datasetTokenURI + '/' + FRAGMENT_NFT_SUFFIX
+      );
+    });
+
+    it('Should FragmentNFT contract URI be empty if base URI is not set', async () => {
+      expect(await DatasetFragment_.contractURI()).to.equal('');
+    });
+
+    it('Should retrieve token URI if fragment exists', async () => {
+      await DatasetNFT_.connect(users_.dtAdmin).setBaseURI(BASE_URI);
+
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        fragmentAddress,
+        fragmentIds_[0],
+        true
+      );
+
+      const datasetTokenURI = await DatasetNFT_.tokenURI(datasetId_);
+
+      expect(await DatasetFragment_.tokenURI(fragmentIds_[0])).to.equal(
+        datasetTokenURI + '/' + FRAGMENT_NFT_SUFFIX + '/' + fragmentIds_[0]
+      );
+    });
+
+    it('Should token URI be empty if baseURI is not set', async () => {
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        fragmentAddress,
+        fragmentIds_[0],
+        true
+      );
+
+      expect(await DatasetFragment_.tokenURI(fragmentIds_[0])).to.equal('');
+    });
+
+    it('Should revert retrieving token URI if dataset id does not exists', async () => {
+      const wrongFragmentId = 2312312312321;
+      await expect(DatasetFragment_.tokenURI(wrongFragmentId))
+        .to.be.revertedWithCustomError(DatasetFragment_, 'TOKEN_ID_NOT_EXISTS')
+        .withArgs(wrongFragmentId);
     });
 
     it('Should data set owner set verifiers for single tag', async function () {
@@ -412,6 +468,24 @@ export default async function suite(): Promise<void> {
       await expect(DatasetFragment_.connect(users_.datasetOwner).remove(fragmentIds_[0]))
         .to.emit(DatasetFragment_, 'FragmentRemoved')
         .withArgs(fragmentIds_[0]);
+
+      expect(await DatasetFragment_.tags(fragmentIds_[0])).to.equal(ZeroHash);
+    });
+
+    it('Should data set owner remove many fragments', async function () {
+      await AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+        await DatasetFragment_.getAddress(),
+        fragmentIds_[0],
+        true
+      );
+
+      await expect(DatasetFragment_.connect(users_.datasetOwner).removeMany(fragmentIds_))
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[0])
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[1])
+        .to.emit(DatasetFragment_, 'FragmentRemoved')
+        .withArgs(fragmentIds_[2]);
 
       expect(await DatasetFragment_.tags(fragmentIds_[0])).to.equal(ZeroHash);
     });
