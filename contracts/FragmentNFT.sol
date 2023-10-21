@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {EnumerableMap} from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import {Arrays} from "@openzeppelin/contracts/utils/Arrays.sol";
@@ -10,6 +11,7 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
+import {ERC2771ContextExternalForwarderSourceUpgradeable} from "./utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title FragmentNFT contract
@@ -20,9 +22,8 @@ import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
  * is associated with a specific tag, indicating the contribution type.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends IFragmentNFT, ERC721Upgradeable
  */
-contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
+contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalForwarderSourceUpgradeable {
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Arrays for uint256[];
   using Strings for uint256;
@@ -65,22 +66,26 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
   mapping(address account => uint256[]) internal _accountSnapshotIds; // ids of snapshots which contains account data
 
   modifier onlyDatasetOwner() {
-    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
+    address msgSender = _msgSender();
+    if (dataset.ownerOf(datasetId) != msgSender) revert NOT_DATASET_OWNER(msgSender);
     _;
   }
 
   modifier onlyVerifierManager() {
-    if (dataset.verifierManager(datasetId) != _msgSender()) revert NOT_VERIFIER_MANAGER(_msgSender());
+    address msgSender = _msgSender();
+    if (dataset.verifierManager(datasetId) != msgSender) revert NOT_VERIFIER_MANAGER(msgSender);
     _;
   }
 
   modifier onlyDistributionManager() {
-    if (dataset.distributionManager(datasetId) != _msgSender()) revert NOT_DISTRIBUTION_MANAGER(_msgSender());
+    address msgSender = _msgSender();
+    if (dataset.distributionManager(datasetId) != msgSender) revert NOT_DISTRIBUTION_MANAGER(msgSender);
     _;
   }
 
   modifier onlyDatasetNFT() {
-    if (address(dataset) != _msgSender()) revert NOT_DATASET_NFT(_msgSender());
+    //Use msg.sender here instead of _msgSender() because this call should not go through trustedForwarder
+    if (address(dataset) != msg.sender) revert NOT_DATASET_NFT(msg.sender);
     _;
   }
 
@@ -97,6 +102,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ERC721_init(_NAME, _SYMBOL);
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     _snapshots.push();
@@ -562,4 +568,13 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
     if (arr.length == 0) arr.push();
     return arr[arr.length - 1];
   }
+
+  function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable) returns (address sender) {
+    return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
+  }
+  
+  function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable) returns (bytes calldata) {
+    return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();
+  }
+
 }

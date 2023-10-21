@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -11,6 +12,7 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
+import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title DistributionManager contract
@@ -19,9 +21,8 @@ import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
  * provides configuration options for fee distribution percentages among parties.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable
  */
-contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable {
+contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable {
   using SafeERC20 for IERC20;
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Address for address payable;
@@ -71,7 +72,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   modifier onlySubscriptionManager() {
-    if (dataset.subscriptionManager(datasetId) != _msgSender()) revert NOT_SUBSCRIPTION_MANAGER(_msgSender());
+    //Use msg.sender here instead of _msgSender() because this call should not go through trustedForwarder
+    if (dataset.subscriptionManager(datasetId) != msg.sender) revert NOT_SUBSCRIPTION_MANAGER(msg.sender);
     _;
   }
 
@@ -86,6 +88,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ReentrancyGuard_init();
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
