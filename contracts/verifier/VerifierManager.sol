@@ -6,8 +6,9 @@ import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "../interfaces/IVerifierManager.sol";
 import {IVerifier} from "../interfaces/IVerifier.sol";
-import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
-
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title VerifierManager contract

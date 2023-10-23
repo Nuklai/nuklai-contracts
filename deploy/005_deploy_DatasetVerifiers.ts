@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployedAcceptManuallyVerifier = await deploy('AcceptManuallyVerifier', {
     from: dtAdmin,
-    args: [datasetAddress]
+    args: [datasetAddress],
   });
 
   console.log(

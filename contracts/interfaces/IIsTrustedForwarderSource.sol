@@ -2,5 +2,5 @@
 pragma solidity ^0.8.0;
 
 interface IIsTrustedForwarderSource {
-    function isTrustedForwarder(address forwarder) external view returns(bool);
+  function isTrustedForwarder(address forwarder) external view returns (bool);
 }

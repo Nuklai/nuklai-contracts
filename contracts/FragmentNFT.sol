@@ -11,7 +11,9 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
-import {ERC2771ContextExternalForwarderSourceUpgradeable} from "./utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "./utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title FragmentNFT contract
@@ -569,12 +571,23 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     return arr[arr.length - 1];
   }
 
-  function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable) returns (address sender) {
+  function _msgSender()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (address sender)
+  {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
   }
-  
-  function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable) returns (bytes calldata) {
+
+  function _msgData()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (bytes calldata)
+  {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();
   }
-
 }

@@ -21,7 +21,12 @@ import {ERC2771ContextMutableForwarderUpgradeable} from "./utils/ERC2771ContextM
  * @notice This contract mints ERC721 tokens, each representing a unique Dataset integrated into the Data Tunnel Protocol.
  * It enables the configuration of Datasets, including their monetization, and maintains a record of these configurations.
  */
-contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable, ERC2771ContextMutableForwarderUpgradeable {
+contract DatasetNFT is
+  IDatasetNFT,
+  ERC721Upgradeable,
+  AccessControlUpgradeable,
+  ERC2771ContextMutableForwarderUpgradeable
+{
   using Strings for uint256;
 
   string private constant _NAME = "Data Tunnel Dataset";
@@ -419,11 +424,23 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable,
     return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed));
   }
 
-  function _msgSender() internal view virtual override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable) returns (address sender) {
+  function _msgSender()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable)
+    returns (address sender)
+  {
     return ERC2771ContextMutableForwarderUpgradeable._msgSender();
   }
 
-  function _msgData() internal view virtual override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable) returns (bytes calldata) {
+  function _msgData()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable)
+    returns (bytes calldata)
+  {
     return ERC2771ContextMutableForwarderUpgradeable._msgData();
   }
 }

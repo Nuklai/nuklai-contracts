@@ -12,7 +12,9 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
-import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title DistributionManager contract
@@ -22,7 +24,11 @@ import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
  */
-contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable {
+contract DistributionManager is
+  IDistributionManager,
+  ReentrancyGuardUpgradeable,
+  ERC2771ContextExternalForwarderSourceUpgradeable
+{
   using SafeERC20 for IERC20;
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Address for address payable;

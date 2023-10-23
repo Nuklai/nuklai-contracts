@@ -7,7 +7,9 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ISubscriptionManager} from "../interfaces/ISubscriptionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
-import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract
@@ -16,7 +18,12 @@ import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771
  * Derived contracts mint ERC721 tokens that represent subscriptions to the managed Dataset, thus, subscriptions
  * have unique IDs which are the respective minted ERC721 tokens' IDs.
  */
-abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, ERC721Enumerable, ERC2771ContextExternalForwarderSourceUpgradeable {
+abstract contract GenericSingleDatasetSubscriptionManager is
+  ISubscriptionManager,
+  Initializable,
+  ERC721Enumerable,
+  ERC2771ContextExternalForwarderSourceUpgradeable
+{
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -72,6 +79,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
   }
+
   /**
    * @notice Initialization function
    * @param dataset_ The address of the DatasetNFT contract
@@ -437,11 +445,23 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
     if (datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
   }
 
-  function _msgSender() internal view virtual override(Context, ERC2771ContextExternalForwarderSourceUpgradeable) returns (address sender) {
+  function _msgSender()
+    internal
+    view
+    virtual
+    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (address sender)
+  {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
   }
-  
-  function _msgData() internal view virtual override(Context, ERC2771ContextExternalForwarderSourceUpgradeable) returns (bytes calldata) {
+
+  function _msgData()
+    internal
+    view
+    virtual
+    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (bytes calldata)
+  {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();
-  }  
+  }
 }

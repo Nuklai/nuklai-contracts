@@ -6,9 +6,10 @@ import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
 import {IVerifier} from "../interfaces/IVerifier.sol";
 import {VerifierManager} from "./VerifierManager.sol";
-import {ERC2771ContextExternalForwarderSourceUpgradeable} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 import {IIsTrustedForwarderSource} from "../interfaces/IIsTrustedForwarderSource.sol";
-
 
 /**
  * @title AcceptManuallyVerifier contract
@@ -29,24 +30,20 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
   mapping(address fragmentNFT => EnumerableSet.UintSet) internal _pendingFragments;
 
   modifier onlyVerifierManager(address fragmentNFT) {
-    address verifierManager = dataset.verifierManager(
-      IFragmentNFT(fragmentNFT).datasetId()
-    );
+    address verifierManager = dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId());
     //We can use msg.sender here instead of _msgSender() because VerifierManager is always a smart-contract
     if (verifierManager != msg.sender) revert NOT_VERIFIER_MANAGER(msg.sender);
     _;
   }
 
   modifier onlyDatasetOwner(address fragmentNFT) {
-    address datasetOwner = dataset.ownerOf(
-      IFragmentNFT(fragmentNFT).datasetId()
-    );
+    address datasetOwner = dataset.ownerOf(IFragmentNFT(fragmentNFT).datasetId());
     address msgSender = _msgSender();
     if (datasetOwner != msgSender) revert NOT_DATASET_OWNER(msgSender);
     _;
   }
 
-  constructor(address _dataset){
+  constructor(address _dataset) {
     dataset = IDatasetNFT(_dataset);
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(_dataset);
   }
@@ -75,15 +72,11 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
    * @param id The ID of the pending Fragment
    */
   function _resolveAutomaticallyIfDSOwner(address fragmentNFT, uint256 id) internal {
-    address datasetOwner = dataset.ownerOf(
-      IFragmentNFT(fragmentNFT).datasetId()
-    );
+    address datasetOwner = dataset.ownerOf(IFragmentNFT(fragmentNFT).datasetId());
     address fragmentOwner = IFragmentNFT(fragmentNFT).pendingFragmentOwners(id);
 
     if (datasetOwner == fragmentOwner) {
-      VerifierManager vm = VerifierManager(
-        dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId())
-      );
+      VerifierManager vm = VerifierManager(dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId()));
       _pendingFragments[fragmentNFT].remove(id);
       vm.resolve(id, true);
       emit FragmentResolved(fragmentNFT, id, true);
@@ -99,9 +92,7 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(address fragmentNFT, uint256 id, bool accept) external onlyDatasetOwner(fragmentNFT) {
-    VerifierManager vm = VerifierManager(
-      dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId())
-    );
+    VerifierManager vm = VerifierManager(dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId()));
     _pendingFragments[fragmentNFT].remove(id);
     vm.resolve(id, accept);
     emit FragmentResolved(fragmentNFT, id, accept);
@@ -116,9 +107,7 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolveMany(address fragmentNFT, uint256[] memory ids, bool accept) external onlyDatasetOwner(fragmentNFT) {
-    VerifierManager vm = VerifierManager(
-      dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId())
-    );
+    VerifierManager vm = VerifierManager(dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId()));
     for (uint256 i; i < ids.length; i++) {
       uint256 id = ids[i];
       _pendingFragments[fragmentNFT].remove(id);
