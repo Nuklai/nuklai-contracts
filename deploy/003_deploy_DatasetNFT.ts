@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { DatasetNFT } from '@typechained';
+import { ZeroAddress } from 'ethers';
 import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
@@ -27,7 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       execute: {
         init: {
           methodName: 'initialize',
-          args: [dtAdmin],
+          args: [dtAdmin, ZeroAddress],
         },
       },
     },
