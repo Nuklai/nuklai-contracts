@@ -804,7 +804,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -860,7 +860,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         await DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -966,7 +966,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1031,7 +1031,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1146,7 +1146,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
