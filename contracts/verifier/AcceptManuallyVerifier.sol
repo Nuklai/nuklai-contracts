@@ -9,7 +9,6 @@ import {VerifierManager} from "./VerifierManager.sol";
 import {
   ERC2771ContextExternalForwarderSourceUpgradeable
 } from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
-import {IIsTrustedForwarderSource} from "../interfaces/IIsTrustedForwarderSource.sol";
 
 /**
  * @title AcceptManuallyVerifier contract
