@@ -42,6 +42,10 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
     _;
   }
 
+  /**
+   * @dev This contract is non-upgradable and constructor 
+   * needs the initializer modifier to work correctly with ERC-2771 standard upgradability. 
+   */
   constructor(address _dataset) initializer {
     dataset = IDatasetNFT(_dataset);
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(_dataset);
