@@ -12,10 +12,10 @@ import {IIsTrustedForwarderSource} from "../interfaces/IIsTrustedForwarderSource
  * @dev Context variant with ERC2771 support.
  * @dev difference from OZ:
  * - trusted forwarder is readed from IIsTrustedForwarderSource
- * - TrustedFrowarderSourceChanged event
+ * - TrustedForwarderSourceChanged event
  */
 abstract contract ERC2771ContextExternalForwarderSourceUpgradeable is Initializable, ContextUpgradeable {
-  event TrustedFrowarderSourceChanged(address newTrustedForwarder);
+  event TrustedForwarderSourceChanged(address newTrustedForwarder);
 
   IIsTrustedForwarderSource private _trustedForwarderSource;
 
@@ -37,7 +37,7 @@ abstract contract ERC2771ContextExternalForwarderSourceUpgradeable is Initializa
    */
   function _setTrustedForwarderSource(address trustedForwarderSource_) internal {
     _trustedForwarderSource = IIsTrustedForwarderSource(trustedForwarderSource_);
-    emit TrustedFrowarderSourceChanged(trustedForwarderSource_);
+    emit TrustedForwarderSourceChanged(trustedForwarderSource_);
   }
 
   function isTrustedForwarder(address forwarder) public view virtual returns (bool) {

@@ -13,14 +13,14 @@ import {IIsTrustedForwarderSource} from "../interfaces/IIsTrustedForwarderSource
  * @dev difference from OZ:
  * - trusted forwarder is mutable
  * - support of IIsTrustedForwarderSource interface
- * - TrustedFrowarderChanged event
+ * - TrustedForwarderChanged event
  */
 abstract contract ERC2771ContextMutableForwarderUpgradeable is
   IIsTrustedForwarderSource,
   Initializable,
   ContextUpgradeable
 {
-  event TrustedFrowarderChanged(address newTrustedForwarder);
+  event TrustedForwarderChanged(address newTrustedForwarder);
 
   address private _trustedForwarder;
 
@@ -40,7 +40,7 @@ abstract contract ERC2771ContextMutableForwarderUpgradeable is
    */
   function _setTrustedForwarder(address trustedForwarder_) internal {
     _trustedForwarder = trustedForwarder_;
-    emit TrustedFrowarderChanged(trustedForwarder_);
+    emit TrustedForwarderChanged(trustedForwarder_);
   }
 
   function isTrustedForwarder(address forwarder) public view virtual returns (bool) {
