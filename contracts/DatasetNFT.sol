@@ -250,6 +250,12 @@ contract DatasetNFT is
     fragmentImplementation = fragmentImplementation_;
   }
 
+  /**
+   * @notice Sets the address of the trusted Forwarder contract
+   * @dev Forwarder contract will be in charge to verify signature for ERC-2771 standard.
+   * Only callable by DatasetNFT ADMIN
+   * @param trustedForwarder_ The address to set as trusted forwarder
+   */
   function setTrustedForwarder(address trustedForwarder_) external onlyRole(DEFAULT_ADMIN_ROLE) {
     _setTrustedForwarder(trustedForwarder_);
   }
