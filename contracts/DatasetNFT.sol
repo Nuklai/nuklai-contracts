@@ -280,8 +280,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function proposeManyFragments(
     uint256 datasetId,
-    address[] memory owners,
-    bytes32[] memory tags,
+    address[] calldata owners,
+    bytes32[] calldata tags,
     bytes calldata signature
   ) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
