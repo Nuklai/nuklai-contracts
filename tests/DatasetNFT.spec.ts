@@ -897,6 +897,31 @@ export default async function suite(): Promise<void> {
           .withArgs(lastFragmentPendingId + 1n);
       });
 
+      it('Should proposeFragment() revert if contributor is address zero', async () => {
+        const tag = utils.encodeTag('dataset.metadata');
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            ZeroAddress,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId_,
+            ZeroAddress,
+            tag,
+            proposeSignature
+          )
+        ).to.be.revertedWithCustomError(DatasetFragment_, 'ZERO_ADDRESS');
+      });
+
       it('Should proposeFragment() revert if no FragmentInstance for dataset is deployed', async () => {
         // Currently only one dataSet is supported from the protocol  with `datasetId_` erc721 id
         await expect(DatasetNFT_.ownerOf(datasetId_ + BigInt(1))).to.be.revertedWith(
@@ -1004,6 +1029,37 @@ export default async function suite(): Promise<void> {
           .withArgs(lastFragmentPendingId + 2n, tagRows)
           .to.emit(DatasetFragment_, 'FragmentPending')
           .withArgs(lastFragmentPendingId + 3n, tagData);
+      });
+
+      it('Should proposeManyFragments() revert if one of the contributors is address zero', async () => {
+        const tagSchemas = utils.encodeTag('dataset.schemas');
+        const tagRows = utils.encodeTag('dataset.rows');
+        const tagData = utils.encodeTag('dataset.data');
+
+        const tags = [tagSchemas, tagRows, tagData];
+
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeManySignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeBatchMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            lastFragmentPendingId + BigInt(tags.length),
+            [users_.contributor.address, ZeroAddress, users_.contributor.address],
+            tags
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+            datasetId_,
+            [users_.contributor.address, ZeroAddress, users_.contributor.address],
+            tags,
+            proposeManySignature
+          )
+        ).to.be.revertedWithCustomError(DatasetFragment_, 'ZERO_ADDRESS');
       });
 
       it('Should revert contributor propose multiple fragments if proposes length is not correct', async function () {
