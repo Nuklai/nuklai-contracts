@@ -274,8 +274,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
    * @param signature Signature from a DT service confirming the proposal request
    */
   function proposeMany(
-    address[] memory owners,
-    bytes32[] memory tags_,
+    address[] calldata owners,
+    bytes32[] calldata tags_,
     bytes calldata signature
   ) external onlyDatasetNFT {
     if (tags_.length != owners.length) revert ARRAY_LENGTH_MISMATCH();
