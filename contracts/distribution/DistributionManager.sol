@@ -158,7 +158,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function _setDatasetOwnerPercentage(uint256 percentage) internal {
-    if (percentage > 5e17) revert PERCENTAGE_VALUE_INVALID(5e17, percentage);
+    if (percentage > 0.5e18) revert PERCENTAGE_VALUE_INVALID(0.5e18, percentage);
     datasetOwnerPercentage = percentage;
   }
 
