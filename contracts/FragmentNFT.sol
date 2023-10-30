@@ -288,7 +288,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable {
 
     for (uint256 i; i < owners.length; i++) {
       address owner = owners[i];
-      if (owner == address(0)) revert ZERO_ADDRESS();
+      if (owner == address(0)) continue;
 
       uint256 id = ++_mintCounter;
       bytes32 tag = tags_[i];

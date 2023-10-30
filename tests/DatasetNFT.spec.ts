@@ -1031,7 +1031,7 @@ export default async function suite(): Promise<void> {
           .withArgs(lastFragmentPendingId + 3n, tagData);
       });
 
-      it('Should proposeManyFragments() revert if one of the contributors is address zero', async () => {
+      it('Should proposeManyFragments() skip contributor if it is the zero address and continue', async () => {
         const tagSchemas = utils.encodeTag('dataset.schemas');
         const tagRows = utils.encodeTag('dataset.rows');
         const tagData = utils.encodeTag('dataset.data');
@@ -1059,7 +1059,12 @@ export default async function suite(): Promise<void> {
             tags,
             proposeManySignature
           )
-        ).to.be.revertedWithCustomError(DatasetFragment_, 'ZERO_ADDRESS');
+        )
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tagSchemas)
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          // tagData fragment id should be lastFragmentPendingId + 3n, but it's lastFragmentPendingId + 2n
+          .withArgs(lastFragmentPendingId + 2n, tagData);
       });
 
       it('Should revert contributor propose multiple fragments if proposes length is not correct', async function () {
