@@ -23,6 +23,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
   error VERIFIER_WRONG_SENDER(address account);
   error VERIFIER_NOT_SET(address account);
   error ARRAY_LENGTH_MISMATCH();
+  error ZERO_ADDRESS();
 
   event FragmentPending(uint256 id);
   event FragmentResolved(uint256 id, bool accept);
@@ -68,6 +69,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
    * @param defaultVerifier_ The address of the verifier contract to set as the default verifier
    */
   function setDefaultVerifier(address defaultVerifier_) external onlyDatasetOwner {
+    if (defaultVerifier_ == address(0)) revert ZERO_ADDRESS();
     defaultVerifier = defaultVerifier_;
   }
 

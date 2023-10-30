@@ -324,37 +324,10 @@ export default async function suite(): Promise<void> {
       ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ARRAY_LENGTH_MISMATCH');
     });
 
-    it('Should revert fragment propose if verifier is not set', async function () {
-      await DatasetVerifierManager_.connect(users_.datasetOwner).setDefaultVerifier(ZeroAddress);
-
-      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
-      const DatasetFragment = await ethers.getContractAt('FragmentNFT', fragmentAddress);
-
-      const datasetAddress = await DatasetNFT_.getAddress();
-
-      const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
-
-      const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
-        signature.getDatasetFragmentProposeMessage(
-          network.config.chainId!,
-          datasetAddress,
-          datasetId_,
-          lastFragmentPendingId + 1n,
-          users_.contributor.address,
-          ZeroHash
-        )
-      );
-
+    it('Should revert set default tag verifier if it is zero address', async function () {
       await expect(
-        DatasetNFT_.connect(users_.contributor).proposeFragment(
-          datasetId_,
-          users_.contributor.address,
-          ZeroHash,
-          proposeSignatureSchemas
-        )
-      )
-        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_NOT_SET')
-        .withArgs(ZeroAddress);
+        DatasetVerifierManager_.connect(users_.datasetOwner).setDefaultVerifier(ZeroAddress)
+      ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ZERO_ADDRESS');
     });
 
     it('Should data set owner accept fragment propose', async function () {
