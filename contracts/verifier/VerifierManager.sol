@@ -24,8 +24,8 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
   error VERIFIER_NOT_SET(address account);
   error ARRAY_LENGTH_MISMATCH();
 
-  event FragmentPending(uint256 id);
-  event FragmentResolved(uint256 id, bool accept);
+  event FragmentPending(uint256 indexed id);
+  event FragmentResolved(uint256 indexed id, bool accept);
 
   IDatasetNFT public dataset;
   uint256 public datasetId;
