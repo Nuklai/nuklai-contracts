@@ -21,7 +21,6 @@ import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSub
  *
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends GenericSingleDatasetSubscriptionManager
  */
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
@@ -29,17 +28,11 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   string internal constant _NAME = "Data Tunnel Subscription";
   string internal constant _SYMBOL = "DTSUB";
 
-  error NOT_DATASET_OWNER(address account);
   error NOT_APPROVED_TOKEN(address token);
   error UNSUPPORTED_NATIVE_CURRENCY();
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
-
-  modifier onlyDatasetOwner() {
-    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
-    _;
-  }
 
   constructor() ERC721(_NAME, _SYMBOL) {
     _disableInitializers();
@@ -53,7 +46,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @param datasetId_ The ID of the Dataset NFT token
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
-    __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
+    __GenericSubscriptionManager_init(dataset_, datasetId_);
   }
 
   /**

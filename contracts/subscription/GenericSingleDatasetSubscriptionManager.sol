@@ -2,10 +2,14 @@
 pragma solidity ^0.8.0;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ISubscriptionManager} from "../interfaces/ISubscriptionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract
@@ -13,9 +17,13 @@ import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
  * @notice Abstract contract serving as the foundation for managing single Dataset subscriptions and related operations.
  * Derived contracts mint ERC721 tokens that represent subscriptions to the managed Dataset, thus, subscriptions
  * have unique IDs which are the respective minted ERC721 tokens' IDs.
- * @dev Extends ISubscriptionManager, Initializable, ERC721Enumerable
  */
-abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManager, Initializable, ERC721Enumerable {
+abstract contract GenericSingleDatasetSubscriptionManager is
+  ISubscriptionManager,
+  Initializable,
+  ERC721Enumerable,
+  ERC2771ContextExternalForwarderSourceUpgradeable
+{
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
 
@@ -29,6 +37,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   error CONSUMER_ZERO();
   error MAX_CONSUMERS_ADDITION_REACHED(uint256 total, uint256 current);
   error NOT_SUBSCRIPTION_OWNER(address account);
+  error NOT_DATASET_OWNER(address account);
   error SUBSCRIPTION_DURATION_INVALID(uint256 minimum, uint256 maximum, uint256 current);
   error SUBSCRIPTION_ENDED(uint256 validTill, uint256 currentTimestamp);
   error SUBSCRIPTION_REMAINING_DURATION(uint256 maximum, uint256 current);
@@ -50,8 +59,25 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
   mapping(address consumer => EnumerableSet.UintSet subscriptions) internal _consumerSubscriptions;
 
   modifier onlySubscriptionOwner(uint256 subscription) {
-    if (ownerOf(subscription) != _msgSender()) revert NOT_SUBSCRIPTION_OWNER(_msgSender());
+    address msgSender = _msgSender();
+    if (ownerOf(subscription) != msgSender) revert NOT_SUBSCRIPTION_OWNER(msgSender);
     _;
+  }
+
+  modifier onlyDatasetOwner() {
+    address msgSender = _msgSender();
+    if (dataset.ownerOf(datasetId) != msgSender) revert NOT_DATASET_OWNER(msgSender);
+    _;
+  }
+
+  /**
+   * @notice Initialization function
+   * @param dataset_ The address of the DatasetNFT contract
+   * @param datasetId_ The ID of the Dataset NFT token
+   */
+  function __GenericSubscriptionManager_init(address dataset_, uint256 datasetId_) internal onlyInitializing {
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
+    __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
   }
 
   /**
@@ -417,5 +443,25 @@ abstract contract GenericSingleDatasetSubscriptionManager is ISubscriptionManage
    */
   function _requireCorrectDataset(uint256 _datasetId) internal view {
     if (datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
+  }
+
+  function _msgSender()
+    internal
+    view
+    virtual
+    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (address sender)
+  {
+    return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
+  }
+
+  function _msgData()
+    internal
+    view
+    virtual
+    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    returns (bytes calldata)
+  {
+    return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();
   }
 }

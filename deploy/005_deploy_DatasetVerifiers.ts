@@ -2,13 +2,17 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre;
+  const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy } = deployments;
 
   const { dtAdmin } = await getNamedAccounts();
 
+  const dataset = await ethers.getContract('DatasetNFT');
+  const datasetAddress = await dataset.getAddress();
+
   const deployedAcceptManuallyVerifier = await deploy('AcceptManuallyVerifier', {
     from: dtAdmin,
+    args: [datasetAddress],
   });
 
   console.log(

@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "../interfaces/IVerifierManager.sol";
 import {IVerifier} from "../interfaces/IVerifier.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title VerifierManager contract
@@ -14,9 +16,8 @@ import {IVerifier} from "../interfaces/IVerifier.sol";
  * handling approval or rejection operations based on the configured verifiers.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends IVerifierManager, ContextUpgradeable
  */
-contract VerifierManager is IVerifierManager, ContextUpgradeable {
+contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSourceUpgradeable {
   error NOT_DATASET_OWNER(address account);
   error NOT_FRAGMENT_NFT(address account);
   error VERIFIER_WRONG_SENDER(address account);
@@ -33,12 +34,14 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   mapping(uint256 id => bytes32 tag) internal _pendingFragmentTags;
 
   modifier onlyDatasetOwner() {
-    if (dataset.ownerOf(datasetId) != _msgSender()) revert NOT_DATASET_OWNER(_msgSender());
+    address msgSender = _msgSender();
+    if (dataset.ownerOf(datasetId) != msgSender) revert NOT_DATASET_OWNER(msgSender);
     _;
   }
 
   modifier onlyFragmentNFT() {
-    if (dataset.fragmentNFT(datasetId) != _msgSender()) revert NOT_FRAGMENT_NFT(_msgSender());
+    //Use msg.sender here instead of _msgSender() because this call should not go through trustedForwarder
+    if (dataset.fragmentNFT(datasetId) != msg.sender) revert NOT_FRAGMENT_NFT(msg.sender);
     _;
   }
 
@@ -52,6 +55,7 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
    * @param datasetId_ The ID of the target Dataset NFT token
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
   }
@@ -117,7 +121,9 @@ contract VerifierManager is IVerifierManager, ContextUpgradeable {
   function resolve(uint256 id, bool accept) external {
     bytes32 tag = _pendingFragmentTags[id];
     address verifier = _verifierForTag(tag);
-    if (verifier != _msgSender()) revert VERIFIER_WRONG_SENDER(_msgSender());
+    // Here we use _msgSender() because we allow verifier to be EOA (for example - offchain service)
+    address msgSender = _msgSender();
+    if (verifier != msgSender) revert VERIFIER_WRONG_SENDER(msgSender);
     IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
     delete _pendingFragmentTags[id];
     if (accept) {
