@@ -124,10 +124,13 @@ contract DistributionManager is
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights[_versionedTagWeights.length - 1];
     uint256 tagsLength = tags.length;
     weights = new uint256[](tagsLength);
-    for (uint256 i; i < tagsLength; i++) {
+    for (uint256 i; i < tagsLength; ) {
       bytes32 tag = tags[i];
       (, uint256 weight) = tagWeights.tryGet(tag);
       weights[i] = weight;
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -178,9 +181,12 @@ contract DistributionManager is
   function _setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) internal {
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights.push();
     uint256 weightSum;
-    for (uint256 i; i < weights.length; i++) {
+    for (uint256 i; i < weights.length; ) {
       weightSum += weights[i];
       tagWeights.set(tags[i], weights[i]);
+      unchecked {
+        i++;
+      }
     }
     if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
   }
@@ -309,7 +315,7 @@ contract DistributionManager is
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < payments.length; ) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
@@ -318,6 +324,9 @@ contract DistributionManager is
         collectAmount = 0;
       }
       collectAmount += _calculatePayout(p, _msgSender());
+      unchecked {
+        i++;
+      }
     }
 
     // send collected and not sent yet
@@ -335,10 +344,13 @@ contract DistributionManager is
 
     if (firstUnclaimedPayout >= payments.length) return 0;
 
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < payments.length; ) {
       Payment storage p = payments[i];
       if (token == p.token) {
         collectAmount += _calculatePayout(p, account);
+      }
+      unchecked {
+        i++;
       }
     }
   }
@@ -356,7 +368,7 @@ contract DistributionManager is
 
     address collectToken;
     uint256 pendingFeeToken;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < payments.length; ) {
       collectToken = payments[i].token;
       pendingFeeToken = pendingOwnerFee[collectToken];
 
@@ -364,6 +376,10 @@ contract DistributionManager is
       delete pendingOwnerFee[collectToken];
 
       _sendPayout(collectToken, pendingFeeToken, owner);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -381,7 +397,7 @@ contract DistributionManager is
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < payments.length; ) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
@@ -390,6 +406,9 @@ contract DistributionManager is
         collectAmount = 0;
       }
       collectAmount += _calculatePayout(p, beneficiary);
+      unchecked {
+        i++;
+      }
     }
     // send collected and not sent yet
     _sendPayout(collectToken, collectAmount, beneficiary);
@@ -414,10 +433,13 @@ contract DistributionManager is
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights[p.tagWeightsVersion];
     bytes32[] memory tags = tagWeights.keys();
     uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
-    for (uint256 i; i < tags.length; i++) {
+    for (uint256 i; i < tags.length; ) {
       bytes32 tag = tags[i];
       if (percentages[i] > 0) {
         payout += (paymentAmount * tagWeights.get(tag) * percentages[i]) / 1e36;
+      }
+      unchecked {
+        i++;
       }
     }
   }
