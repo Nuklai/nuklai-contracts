@@ -82,7 +82,12 @@ const setupOnMint = async () => {
 
   const datasetAddress = await DatasetNFT.getAddress();
   const signedMessage = await users.dtAdmin.signMessage(
-    signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash, users.datasetOwner.address)
+    signature.getDatasetMintMessage(
+      network.config.chainId!,
+      datasetAddress,
+      uuidHash,
+      users.datasetOwner.address
+    )
   );
 
   const testToken = await ethers.getContract('TestToken');
@@ -304,7 +309,12 @@ export default async function suite(): Promise<void> {
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash, users_.datasetOwner.address)
+        signature.getDatasetMintMessage(
+          network.config.chainId!,
+          datasetAddress,
+          uuidHash,
+          users_.datasetOwner.address
+        )
       );
 
       const testToken = await ethers.getContract('TestToken');
@@ -346,7 +356,12 @@ export default async function suite(): Promise<void> {
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.dtAdmin.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash, users_.datasetOwner.address)
+        signature.getDatasetMintMessage(
+          network.config.chainId!,
+          datasetAddress,
+          uuidHash,
+          users_.datasetOwner.address
+        )
       );
 
       const testToken = await ethers.getContract('TestToken');
@@ -411,7 +426,12 @@ export default async function suite(): Promise<void> {
 
       const datasetAddress = await DatasetNFT_.getAddress();
       const signedMessage = await users_.user.signMessage(
-        signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash, users_.datasetOwner.address)
+        signature.getDatasetMintMessage(
+          network.config.chainId!,
+          datasetAddress,
+          uuidHash,
+          users_.datasetOwner.address
+        )
       );
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')

@@ -44,7 +44,12 @@ const setup = async () => {
 
   const datasetAddress = await contracts.DatasetNFT.getAddress();
   const signedMessage = await users.dtAdmin.signMessage(
-    signature.getDatasetMintMessage(network.config.chainId!, datasetAddress, uuidHash, users.datasetOwner.address)
+    signature.getDatasetMintMessage(
+      network.config.chainId!,
+      datasetAddress,
+      uuidHash,
+      users.datasetOwner.address
+    )
   );
 
   const testToken = await ethers.getContract('TestToken');
