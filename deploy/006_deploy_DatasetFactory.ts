@@ -1,13 +1,13 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
-import { DatasetFactory } from '@typechained';
+import { DatasetFactory, DatasetNFT } from '@typechained';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
   const { deploy } = deployments;
   const { dtAdmin } = await getNamedAccounts();
 
-  const dataset = await ethers.getContract('DatasetNFT');
+  const dataset:DatasetNFT = await ethers.getContract('DatasetNFT');
   const datasetAddress = await dataset.getAddress();
 
   console.log('DT admin: ', dtAdmin);
@@ -35,6 +35,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     await verifierManager.getAddress()
   );
   await datasetConfigured.wait();
+
+  const datasetSetDatasetFactoryResult = await dataset.setDatasetFactory(deployedDatasetFactory.address);
+  await datasetSetDatasetFactoryResult.wait();
 
   if (process.env.TEST !== 'true') await hre.run('etherscan-verify');
 };

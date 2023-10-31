@@ -75,7 +75,7 @@ contract DatasetFactory is Ownable {
     bytes32[] calldata tags,
     uint256[] calldata weights
   ) external {
-    uint256 id = datasetNFT.mint(uuidHashed, address(this), mintSignature);
+    uint256 id = datasetNFT.mintByFactory(uuidHashed, to, mintSignature);
 
     _deployProxies(id);
     _configureVerifierManager(id, defaultVerifier);
