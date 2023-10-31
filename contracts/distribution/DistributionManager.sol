@@ -303,13 +303,14 @@ contract DistributionManager is
 
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[_msgSender()];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
+    uint256 totalPayments = payments.length;
+    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
 
-    _firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern to prevent reentrancy
+    _firstUnclaimedContribution[_msgSender()] = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
@@ -332,10 +333,11 @@ contract DistributionManager is
    */
   function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[account];
+    uint256 totalPayments = payments.length;
 
-    if (firstUnclaimedPayout >= payments.length) return 0;
+    if (firstUnclaimedPayout >= totalPayments) return 0;
 
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (token == p.token) {
         collectAmount += _calculatePayout(p, account);
@@ -350,13 +352,15 @@ contract DistributionManager is
    * @param owner the adress of the Dataset owner
    */
   function _claimOwnerPayouts(address owner) internal {
-    if (_firstUnclaimed >= payments.length) return; // Nothing to claim
+    uint256 totalPayments = payments.length;
+    if (_firstUnclaimed >= totalPayments) return; // Nothing to claim
+
     uint256 firstUnclaimedPayout = _firstUnclaimed;
-    _firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
+    _firstUnclaimed = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken;
     uint256 pendingFeeToken;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       collectToken = payments[i].token;
       pendingFeeToken = pendingOwnerFee[collectToken];
 
@@ -376,12 +380,13 @@ contract DistributionManager is
   function _claimPayouts(address beneficiary) internal {
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[beneficiary];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-    _firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern to prevent reentrancy
+    uint256 totalPayments = payments.length;
+    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
+    _firstUnclaimedContribution[beneficiary] = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
