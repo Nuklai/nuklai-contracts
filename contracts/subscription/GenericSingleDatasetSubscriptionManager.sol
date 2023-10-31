@@ -27,9 +27,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
 
-  event SubscriptionPaid(uint256 id, uint256 validSince, uint256 validTill, uint256 paidConsumers);
-  event ConsumerAdded(uint256 id, address consumer);
-  event ConsumerRemoved(uint256 id, address consumer);
+  event SubscriptionPaid(uint256 indexed id, uint256 validSince, uint256 validTill, uint256 paidConsumers);
+  event ConsumerAdded(uint256 indexed id, address indexed consumer);
+  event ConsumerRemoved(uint256 indexed id, address indexed consumer);
 
   error UNSUPPORTED_DATASET(uint256 id);
   error CONSUMER_NOT_FOUND(uint256 subscription, address consumer);
