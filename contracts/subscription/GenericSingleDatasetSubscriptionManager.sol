@@ -116,7 +116,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function isSubscriptionPaidFor(uint256 ds, address consumer) external view returns (bool) {
     _requireCorrectDataset(ds);
     EnumerableSet.UintSet storage subscrs = _consumerSubscriptions[consumer];
-    for (uint256 i; i < subscrs.length(); i++) {
+    uint256 totalSubscribers = subscrs.length();
+    for (uint256 i; i < totalSubscribers; i++) {
       uint256 sid = subscrs.at(i);
       if (_subscriptions[sid].validTill > block.timestamp) return true;
     }
