@@ -1,4 +1,4 @@
-export const IDatasetNFT_Interface_Id = '0x6b04b237';
+export const IDatasetNFT_Interface_Id = '0x4a5af28c';
 export const IERC721_Interface_Id = '0x80ac58cd';
 export const IERC165_Interface_Id = '0x01ffc9a7';
 export const IAccessControl_Interface_Id = '0x7965db0b';
