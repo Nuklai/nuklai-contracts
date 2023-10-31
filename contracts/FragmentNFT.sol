@@ -127,8 +127,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
-    string memory contractURI_ = string.concat(_contractURI(), "/");
-    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+    string memory contractURI_ = _contractURI();
+    return bytes(contractURI_).length > 0 ? string.concat(string.concat(contractURI_, "/"), tokenId.toString()) : "";
   }
 
   /**
@@ -147,9 +147,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "fragments";
-    string memory base = string.concat(_baseURI(), "/");
-
-    return bytes(_baseURI()).length > 0 ? string.concat(base, suffix) : "";
+    string memory base = _baseURI();
+    return bytes(base).length > 0 ? string.concat(string.concat(base, "/"), suffix) : "";
   }
 
   /**
