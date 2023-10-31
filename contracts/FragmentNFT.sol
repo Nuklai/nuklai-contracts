@@ -189,8 +189,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     uint256 length = tagCount.length();
     counts = new uint256[](length);
 
-    for (uint256 i; i < length; i++) {
+    for (uint256 i; i < length; ) {
       counts[i] = tagCount.get(tags_[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -213,8 +216,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       .accountTagCount[account];
     tags_ = tagCount.keys();
     counts = new uint256[](tagCount.length());
-    for (uint256 i; i < tagCount.length(); i++) {
+    for (uint256 i; i < tagCount.length(); ) {
       counts[i] = tagCount.get(tags_[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -239,7 +245,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = _snapshots[latestAccountSnapshot].accountTagCount[account];
     percentages = new uint256[](tags_.length);
 
-    for (uint256 i; i < tags_.length; i++) {
+    for (uint256 i; i < tags_.length; ) {
       bytes32 tag = tags_[i];
       (, uint256 totalCount) = totalTagCount.tryGet(tag);
       if (totalCount != 0) {
@@ -247,6 +253,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
         percentages[i] = (1e18 * accountCount) / totalCount;
       }
       // else:  percentages[i] = 0, but we skip it because percentages are initialized with zeroes
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -291,7 +300,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    for (uint256 i; i < owners.length; i++) {
+    for (uint256 i; i < owners.length; ) {
       uint256 id = ++_mintCounter;
       bytes32 tag = tags_[i];
       pendingFragmentOwners[id] = owners[i];
@@ -302,6 +311,10 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       // during this call OR at any following transaction.
       // DO NOT implement any state changes after this point!
       IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -370,12 +383,16 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param ids Array of the IDs of the Fragment NFTs (pending or already minted) associated with the contributions to be removed
    */
   function removeMany(uint256[] calldata ids) external onlyDatasetOwner {
-    for (uint256 i; i < ids.length; i++) {
+    for (uint256 i; i < ids.length; ) {
       uint256 id = ids[i];
       delete pendingFragmentOwners[id]; // in case we are deleting pending one
       if (_exists(id)) _burn(id);
       delete tags[id];
       emit FragmentRemoved(id);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -437,11 +454,15 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       _copy(_snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
       _accountSnapshotIds[account].push(currentSnapshot);
     }
-    for (uint256 i; i < batchSize; i++) {
+    for (uint256 i; i < batchSize; ) {
       uint256 id = firstTokenId + i;
       bytes32 tag = tags[id];
       (, uint256 currentCount) = currentAccountTagCount.tryGet(tag);
       currentAccountTagCount.set(tag, add ? (currentCount + 1) : (currentCount - 1));
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -554,9 +575,12 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
     if (to.length() != 0) revert TARGET_NOT_EMPTY();
     uint256 length = from.length();
-    for (uint256 i; i < length; i++) {
+    for (uint256 i; i < length; ) {
       (bytes32 k, uint256 v) = from.at(i);
       to.set(k, v);
+      unchecked {
+        i++;
+      }
     }
   }
 
