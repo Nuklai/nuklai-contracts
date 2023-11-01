@@ -116,9 +116,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function isSubscriptionPaidFor(uint256 ds, address consumer) external view returns (bool) {
     _requireCorrectDataset(ds);
     EnumerableSet.UintSet storage subscrs = _consumerSubscriptions[consumer];
-    for (uint256 i; i < subscrs.length(); i++) {
+    for (uint256 i; i < subscrs.length(); ) {
       uint256 sid = subscrs.at(i);
       if (_subscriptions[sid].validTill > block.timestamp) return true;
+      unchecked {
+        i++;
+      }
     }
     return false;
   }
@@ -371,12 +374,15 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     SubscriptionDetails storage sd = _subscriptions[subscription];
     if (sd.consumers.length() + consumers.length > sd.paidConsumers)
       revert MAX_CONSUMERS_ADDITION_REACHED(sd.paidConsumers, sd.consumers.length() + consumers.length);
-    for (uint256 i; i < consumers.length; i++) {
+    for (uint256 i; i < consumers.length; ) {
       address consumer = consumers[i];
       bool added = sd.consumers.add(consumer);
       if (added) {
         _consumerSubscriptions[consumer].add(subscription);
         emit ConsumerAdded(subscription, consumer);
+      }
+      unchecked {
+        i++;
       }
     }
   }
@@ -391,12 +397,15 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function _removeConsumers(uint256 subscription, address[] calldata consumers) internal {
     _requireMinted(subscription);
     SubscriptionDetails storage sd = _subscriptions[subscription];
-    for (uint256 i; i < consumers.length; i++) {
+    for (uint256 i; i < consumers.length; ) {
       address consumer = consumers[i];
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
         _consumerSubscriptions[consumer].remove(subscription);
         emit ConsumerRemoved(subscription, consumer);
+      }
+      unchecked {
+        i++;
       }
     }
   }
@@ -417,7 +426,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     _requireMinted(subscription);
     SubscriptionDetails storage sd = _subscriptions[subscription];
     if (oldConsumers.length != newConsumers.length) revert ARRAY_LENGTH_MISMATCH();
-    for (uint256 i; i < oldConsumers.length; i++) {
+    for (uint256 i; i < oldConsumers.length; ) {
       address consumer = oldConsumers[i];
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
@@ -432,6 +441,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       if (added) {
         _consumerSubscriptions[consumer].add(subscription);
         emit ConsumerAdded(subscription, consumer);
+      }
+      unchecked {
+        i++;
       }
     }
   }
