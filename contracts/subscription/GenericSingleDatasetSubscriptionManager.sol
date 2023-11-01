@@ -51,6 +51,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     EnumerableSet.AddressSet consumers;
   }
 
+  uint256 public constant MAX_SUBSCRIPTION_DURATION_IN_DAYS = 365;
+  uint256 public constant MAX_SUBSCRIPTION_EXTENSION_IN_DAYS = 30;
   IDatasetNFT public dataset;
   uint256 public datasetId;
   uint256 internal _mintCounter;
@@ -137,7 +139,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     uint256 consumers
   ) external view returns (address token, uint256 amount) {
     _requireCorrectDataset(ds);
-    if (durationInDays == 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
+    if (durationInDays == 0 || durationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
+      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, durationInDays);
     if (consumers == 0) revert CONSUMER_ZERO();
     return _calculateFee(durationInDays, consumers);
   }
@@ -295,7 +298,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
     if (balanceOf(_msgSender()) != 0) revert CONSUMER_ALREADY_SUBSCRIBED(_msgSender());
-    if (durationInDays == 0 || durationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, durationInDays);
+    if (durationInDays == 0 || durationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
+      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, durationInDays);
 
     if (consumers == 0) revert CONSUMER_ZERO();
 
@@ -323,7 +327,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > 365) revert SUBSCRIPTION_DURATION_INVALID(1, 365, extraDurationInDays);
+    if (extraDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
+      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, extraDurationInDays);
 
     SubscriptionDetails storage sd = _subscriptions[subscription];
     uint256 newDurationInDays;
@@ -333,8 +338,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     if (sd.validTill > block.timestamp) {
       // Subscription is still valid but remaining duration must be <= 30 days to extend it
       if (extraDurationInDays > 0)
-        if ((sd.validTill - block.timestamp) > 30 * 1 days)
-          revert SUBSCRIPTION_REMAINING_DURATION(30 * 1 days, (sd.validTill - block.timestamp));
+        if ((sd.validTill - block.timestamp) > MAX_SUBSCRIPTION_EXTENSION_IN_DAYS * 1 days)
+          revert SUBSCRIPTION_REMAINING_DURATION(
+            MAX_SUBSCRIPTION_EXTENSION_IN_DAYS * 1 days,
+            (sd.validTill - block.timestamp)
+          );
 
       // (sd.validTill - sd.validSince) was enforced during subscription to be an integral multiple of a day in seconds
       uint256 currentDurationInDays = (sd.validTill - sd.validSince) / 1 days;
