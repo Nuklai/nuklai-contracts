@@ -490,7 +490,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       // we need to return the last available
       // if there is no snapshot at all - return current,
       // otherwise return the last one
-      return (bound == 0) ? _currentSnapshotId() : snapshotIds[bound - 1];
+      unchecked {
+        return (bound == 0) ? _currentSnapshotId() : snapshotIds[bound - 1];
+      }
     } else {
       // found snapshot id which is greater or equal to the targetSnapshotId
       // if it is equal to target, we need to return it,
@@ -505,7 +507,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
           return 0; // return empty snapshot
         } else {
           // return last snapshot before the one we've found
-          return snapshotIds[bound - 1];
+          unchecked {
+            return snapshotIds[bound - 1];
+          }
         }
       }
     }
@@ -573,7 +577,10 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function _lastUint256ArrayElement(uint256[] storage arr) private returns (uint256) {
     if (arr.length == 0) arr.push();
-    return arr[arr.length - 1];
+
+    unchecked {
+      return arr[arr.length - 1];
+    }
   }
 
   function _msgSender()
