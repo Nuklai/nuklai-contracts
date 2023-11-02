@@ -20,4 +20,13 @@ interface IVerifierManager is IDatasetLinkInitializable {
    * @param defaultVerifier The address of the verifier contract to set as the default verifier
    */
   function setDefaultVerifier(address defaultVerifier) external;
+
+  /**
+   * @notice Resolves a single contribution proposal
+   * @dev Only callable by the configured Verifier for the associated tag.
+   * Emits a {FragmentResolved} event.
+   * @param id The ID of the pending Fragment associated with the contribution proposal
+   * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
+   */
+  function resolve(uint256 id, bool accept) external;
 }
