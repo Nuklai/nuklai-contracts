@@ -48,6 +48,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   error NOT_PENDING_FRAGMENT(uint256 id);
   error ARRAY_LENGTH_MISMATCH();
   error TARGET_NOT_EMPTY();
+  error ZERO_ADDRESS();
 
   /**
    * @dev A Snapshot contains:
@@ -127,8 +128,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
-    string memory contractURI_ = string.concat(_contractURI(), "/");
-    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+    string memory contractURI_ = _contractURI();
+    return bytes(contractURI_).length > 0 ? string.concat(string.concat(contractURI_, "/"), tokenId.toString()) : "";
   }
 
   /**
@@ -147,9 +148,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function _contractURI() internal view returns (string memory) {
     string memory suffix = "fragments";
-    string memory base = string.concat(_baseURI(), "/");
-
-    return bytes(_baseURI()).length > 0 ? string.concat(base, suffix) : "";
+    string memory base = _baseURI();
+    return bytes(base).length > 0 ? string.concat(string.concat(base, "/"), suffix) : "";
   }
 
   /**
@@ -259,6 +259,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param signature Signature from a DT service confirming the proposal request
    */
   function propose(address to, bytes32 tag, bytes calldata signature) external onlyDatasetNFT {
+    if (to == address(0)) revert ZERO_ADDRESS();
+
     uint256 id = ++_mintCounter;
     bytes32 msgHash = _proposeMessageHash(id, to, tag);
     address signer = ECDSA.recover(msgHash, signature);
@@ -292,9 +294,12 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     for (uint256 i; i < owners.length; i++) {
+      address owner = owners[i];
+      if (owner == address(0)) continue;
+
       uint256 id = ++_mintCounter;
       bytes32 tag = tags_[i];
-      pendingFragmentOwners[id] = owners[i];
+      pendingFragmentOwners[id] = owner;
       tags[id] = tag;
       emit FragmentPending(id, tag);
 
@@ -485,7 +490,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       // we need to return the last available
       // if there is no snapshot at all - return current,
       // otherwise return the last one
-      return (bound == 0) ? _currentSnapshotId() : snapshotIds[bound - 1];
+      unchecked {
+        return (bound == 0) ? _currentSnapshotId() : snapshotIds[bound - 1];
+      }
     } else {
       // found snapshot id which is greater or equal to the targetSnapshotId
       // if it is equal to target, we need to return it,
@@ -500,7 +507,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
           return 0; // return empty snapshot
         } else {
           // return last snapshot before the one we've found
-          return snapshotIds[bound - 1];
+          unchecked {
+            return snapshotIds[bound - 1];
+          }
         }
       }
     }
@@ -568,7 +577,10 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function _lastUint256ArrayElement(uint256[] storage arr) private returns (uint256) {
     if (arr.length == 0) arr.push();
-    return arr[arr.length - 1];
+
+    unchecked {
+      return arr[arr.length - 1];
+    }
   }
 
   function _msgSender()
