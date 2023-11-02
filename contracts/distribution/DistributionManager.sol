@@ -45,6 +45,7 @@ contract DistributionManager is
   error DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
   error SIGNATURE_OVERDUE();
   error NO_UNCLAIMED_PAYMENTS_AVAILABLE();
+  error UNSUPPORTED_MSG_VALUE();
 
   /**
    * @dev A Payment contains:
@@ -197,9 +198,10 @@ contract DistributionManager is
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     if (_versionedTagWeights.length == 0) revert TAG_WEIGHTS_NOT_INITIALIZED();
-    if (address(token) == address(0)) {
-      if (amount != msg.value) revert MSG_VALUE_MISMATCH(msg.value, amount);
+    if (address(token) == address(0) && amount != msg.value) {
+      revert MSG_VALUE_MISMATCH(msg.value, amount);
     } else {
+      if (msg.value > 0) revert UNSUPPORTED_MSG_VALUE();
       IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
     }
     uint256 snapshotId = fragmentNFT.snapshot();
