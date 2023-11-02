@@ -47,6 +47,7 @@ contract DatasetNFT is
   error ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
   error INVALID_ZERO_MODEL_FEE();
+  error BENEFICIARY_ZERO_ADDRESS();
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
@@ -196,6 +197,7 @@ contract DatasetNFT is
     DeployerFeeModel[] calldata models,
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (deployerFeeBeneficiary == address(0)) revert BENEFICIARY_ZERO_ADDRESS();
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
     for (uint256 i; i < models.length; i++) {
       DeployerFeeModel m = models[i];
