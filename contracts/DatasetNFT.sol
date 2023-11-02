@@ -197,12 +197,17 @@ contract DatasetNFT is
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
-    for (uint256 i; i < models.length; i++) {
+
+    uint256 totalModels = models.length;
+    for (uint256 i; i < totalModels; ) {
       DeployerFeeModel m = models[i];
       if (uint8(m) == 0) revert INVALID_ZERO_MODEL_FEE();
       uint256 p = percentages[i];
       if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
       deployerFeeModelPercentage[m] = p;
+      unchecked {
+        i++;
+      }
     }
   }
 
