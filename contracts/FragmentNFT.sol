@@ -48,6 +48,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   error NOT_PENDING_FRAGMENT(uint256 id);
   error ARRAY_LENGTH_MISMATCH();
   error TARGET_NOT_EMPTY();
+  error ZERO_ADDRESS();
 
   /**
    * @dev A Snapshot contains:
@@ -259,6 +260,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param signature Signature from a DT service confirming the proposal request
    */
   function propose(address to, bytes32 tag, bytes calldata signature) external onlyDatasetNFT {
+    if (to == address(0)) revert ZERO_ADDRESS();
+
     uint256 id = ++_mintCounter;
     bytes32 msgHash = _proposeMessageHash(id, to, tag);
     address signer = ECDSA.recover(msgHash, signature);
@@ -292,9 +295,12 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     for (uint256 i; i < owners.length; i++) {
+      address owner = owners[i];
+      if (owner == address(0)) continue;
+
       uint256 id = ++_mintCounter;
       bytes32 tag = tags_[i];
-      pendingFragmentOwners[id] = owners[i];
+      pendingFragmentOwners[id] = owner;
       tags[id] = tag;
       emit FragmentPending(id, tag);
 
