@@ -26,6 +26,8 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
 
   event FragmentPending(uint256 id);
   event FragmentResolved(uint256 id, bool accept);
+  event FragmentTagDefaultVerifierSet(address verifier);
+  event FragmentTagVerifierSet(address indexed verifier, bytes32 tag);
 
   IDatasetNFT public dataset;
   uint256 public datasetId;
@@ -69,6 +71,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
    */
   function setDefaultVerifier(address defaultVerifier_) external onlyDatasetOwner {
     defaultVerifier = defaultVerifier_;
+    emit FragmentTagDefaultVerifierSet(defaultVerifier_);
   }
 
   /**
@@ -80,6 +83,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
    */
   function setTagVerifier(bytes32 tag, address verifier) external onlyDatasetOwner {
     verifiers[tag] = verifier;
+    emit FragmentTagVerifierSet(verifier, tag);
   }
 
   /**
@@ -94,6 +98,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
     uint256 totalTags = tags.length;
     for (uint256 i; i < totalTags; ) {
       verifiers[tags[i]] = verifiers_[i];
+      emit FragmentTagVerifierSet(verifiers_[i], tags[i]);
       unchecked {
         i++;
       }
