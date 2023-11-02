@@ -241,10 +241,14 @@ export default async function suite(): Promise<void> {
 
       expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(ZeroAddress);
 
-      await DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifier(
-        schemaRowsTag,
-        acceptManuallyVerifierAddress
-      );
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifier(
+          schemaRowsTag,
+          acceptManuallyVerifierAddress
+        )
+      )
+        .to.emit(DatasetVerifierManager_, 'FragmentTagVerifierSet')
+        .withArgs(acceptManuallyVerifierAddress, schemaRowsTag);
 
       expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
         acceptManuallyVerifierAddress
@@ -260,10 +264,16 @@ export default async function suite(): Promise<void> {
       expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(ZeroAddress);
       expect(await DatasetVerifierManager_.verifiers(schemaColsTag)).to.be.equal(ZeroAddress);
 
-      await DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifiers(
-        [schemaRowsTag, schemaColsTag],
-        [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
-      );
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).setTagVerifiers(
+          [schemaRowsTag, schemaColsTag],
+          [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
+        )
+      )
+        .to.emit(DatasetVerifierManager_, 'FragmentTagVerifierSet')
+        .withArgs(acceptManuallyVerifierAddress, schemaRowsTag)
+        .to.emit(DatasetVerifierManager_, 'FragmentTagVerifierSet')
+        .withArgs(acceptManuallyVerifierAddress, schemaColsTag);
 
       expect(await DatasetVerifierManager_.verifiers(schemaRowsTag)).to.be.equal(
         acceptManuallyVerifierAddress
@@ -322,6 +332,18 @@ export default async function suite(): Promise<void> {
           [acceptManuallyVerifierAddress]
         )
       ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ARRAY_LENGTH_MISMATCH');
+    });
+
+    it('Should data set owner set a default tag verifier', async function () {
+      const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
+
+      await expect(DatasetVerifierManager_.setDefaultVerifier(acceptManuallyVerifierAddress))
+        .to.emit(DatasetVerifierManager_, 'FragmentTagDefaultVerifierSet')
+        .withArgs(acceptManuallyVerifierAddress);
+
+      const defaultVerifier = await DatasetVerifierManager_.defaultVerifier();
+
+      expect(defaultVerifier).to.equal(acceptManuallyVerifierAddress);
     });
 
     it('Should revert fragment propose if verifier is not set', async function () {
