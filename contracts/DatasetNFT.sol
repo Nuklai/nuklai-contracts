@@ -166,17 +166,20 @@ contract DatasetNFT is
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+    ManagersConfig memory currentConfig = configurations[id];
+    ManagersConfig storage currentProxie = proxies[id];
+
     bool changed;
-    if (configurations[id].subscriptionManager != config.subscriptionManager) {
-      proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+    if (currentConfig.subscriptionManager != config.subscriptionManager) {
+      currentProxie.subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
       changed = true;
     }
-    if (configurations[id].distributionManager != config.distributionManager) {
-      proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+    if (currentConfig.distributionManager != config.distributionManager) {
+      currentProxie.distributionManager = _cloneAndInitialize(config.distributionManager, id);
       changed = true;
     }
-    if (configurations[id].verifierManager != config.verifierManager) {
-      proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+    if (currentConfig.verifierManager != config.verifierManager) {
+      currentProxie.verifierManager = _cloneAndInitialize(config.verifierManager, id);
       changed = true;
     }
     if (changed) {
