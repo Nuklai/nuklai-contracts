@@ -30,6 +30,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
 
   error NOT_APPROVED_TOKEN(address token);
   error UNSUPPORTED_NATIVE_CURRENCY();
+  error UNSUPPORTED_MSG_VALUE();
 
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
@@ -82,6 +83,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @param amount Amount to charge
    */
   function _charge(address subscriber, uint256 amount) internal override {
+    if (msg.value > 0) revert UNSUPPORTED_MSG_VALUE();
     token.safeTransferFrom(subscriber, address(this), amount);
     address distributionManager = dataset.distributionManager(datasetId);
     token.approve(distributionManager, amount);

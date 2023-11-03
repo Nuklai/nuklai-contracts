@@ -165,7 +165,7 @@ contract DistributionManager is
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function _setDatasetOwnerPercentage(uint256 percentage) internal {
-    if (percentage > 5e17) revert PERCENTAGE_VALUE_INVALID(5e17, percentage);
+    if (percentage > 0.5e18) revert PERCENTAGE_VALUE_INVALID(0.5e18, percentage);
     datasetOwnerPercentage = percentage;
   }
 
@@ -313,10 +313,11 @@ contract DistributionManager is
    */
   function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[account];
+    uint256 totalPayments = payments.length;
 
-    if (firstUnclaimedPayout >= payments.length) return 0;
+    if (firstUnclaimedPayout >= totalPayments) return 0;
 
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (token == p.token) {
         collectAmount += _calculatePayout(p, account);
@@ -330,13 +331,15 @@ contract DistributionManager is
    * Emits {PayoutSent} event(s).
    */
   function _claimOwnerPayouts() internal {
-    if (_firstUnclaimed >= payments.length) return; // Nothing to claim
+    uint256 totalPayments = payments.length;
+    if (_firstUnclaimed >= totalPayments) return; // Nothing to claim
+
     uint256 firstUnclaimedPayout = _firstUnclaimed;
-    _firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
+    _firstUnclaimed = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken;
     uint256 pendingFeeToken;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       collectToken = payments[i].token;
       pendingFeeToken = pendingOwnerFee[collectToken];
 
@@ -356,12 +359,13 @@ contract DistributionManager is
     address beneficiary = _msgSender();
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[beneficiary];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-    _firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern to prevent reentrancy
+    uint256 totalPayments = payments.length;
+    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
+    _firstUnclaimedContribution[beneficiary] = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
