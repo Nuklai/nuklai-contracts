@@ -96,9 +96,14 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
    */
   function setTagVerifiers(bytes32[] calldata tags, address[] calldata verifiers_) external onlyDatasetOwner {
     if (tags.length != verifiers_.length) revert ARRAY_LENGTH_MISMATCH();
-    for (uint256 i; i < tags.length; i++) {
+
+    uint256 totalTags = tags.length;
+    for (uint256 i; i < totalTags; ) {
       verifiers[tags[i]] = verifiers_[i];
       emit FragmentTagVerifierSet(verifiers_[i], tags[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
