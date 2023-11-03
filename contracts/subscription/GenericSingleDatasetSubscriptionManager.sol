@@ -156,7 +156,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     uint256 durationInDays_ = (sd.validTill - sd.validSince) / 1 days;
     (, uint256 currentFee) = _calculateFee(durationInDays_, sd.paidConsumers);
     (, uint256 newFee) = _calculateFee(durationInDays_, sd.paidConsumers + extraConsumers);
-    return (newFee > currentFee) ? (newFee - currentFee) : 0;
+    unchecked {
+      return (newFee > currentFee) ? (newFee - currentFee) : 0;
+    }
   }
 
   /**
@@ -332,9 +334,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is
 
     if (sd.validTill > block.timestamp) {
       // Subscription is still valid but remaining duration must be <= 30 days to extend it
-      if (extraDurationInDays > 0)
-        if ((sd.validTill - block.timestamp) > 30 * 1 days)
-          revert SUBSCRIPTION_REMAINING_DURATION(30 * 1 days, (sd.validTill - block.timestamp));
+      if (extraDurationInDays > 0) {
+        unchecked {
+          uint256 remainingDuration = sd.validTill - block.timestamp;
+          if (remainingDuration > 30 * 1 days) revert SUBSCRIPTION_REMAINING_DURATION(30 * 1 days, remainingDuration);
+        }
+      }
 
       // (sd.validTill - sd.validSince) was enforced during subscription to be an integral multiple of a day in seconds
       uint256 currentDurationInDays = (sd.validTill - sd.validSince) / 1 days;
@@ -351,7 +356,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);
     if (newFee <= currentFee) revert NOTHING_TO_PAY();
 
-    _charge(_msgSender(), newFee - currentFee);
+    unchecked {
+      _charge(_msgSender(), newFee - currentFee);
+    }
 
     sd.validSince = newValidSince;
     sd.validTill = newValidSince + (newDurationInDays * 1 days);
