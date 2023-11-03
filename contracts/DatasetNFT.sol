@@ -112,8 +112,8 @@ contract DatasetNFT is
    */
   function tokenURI(uint256 tokenId) public view override(ERC721Upgradeable, IDatasetNFT) returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
-    string memory contractURI_ = string.concat(_contractURI(), "/");
-    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+    string memory contractURI_ = _contractURI();
+    return bytes(contractURI_).length > 0 ? string.concat(string.concat(contractURI_, "/"), tokenId.toString()) : "";
   }
 
   /**
@@ -166,17 +166,20 @@ contract DatasetNFT is
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+    ManagersConfig memory currentConfig = configurations[id];
+    ManagersConfig storage currentProxie = proxies[id];
+
     bool changed;
-    if (configurations[id].subscriptionManager != config.subscriptionManager) {
-      proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+    if (currentConfig.subscriptionManager != config.subscriptionManager) {
+      currentProxie.subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
       changed = true;
     }
-    if (configurations[id].distributionManager != config.distributionManager) {
-      proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+    if (currentConfig.distributionManager != config.distributionManager) {
+      currentProxie.distributionManager = _cloneAndInitialize(config.distributionManager, id);
       changed = true;
     }
-    if (configurations[id].verifierManager != config.verifierManager) {
-      proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+    if (currentConfig.verifierManager != config.verifierManager) {
+      currentProxie.verifierManager = _cloneAndInitialize(config.verifierManager, id);
       changed = true;
     }
     if (changed) {
@@ -197,12 +200,17 @@ contract DatasetNFT is
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
-    for (uint256 i; i < models.length; i++) {
+
+    uint256 totalModels = models.length;
+    for (uint256 i; i < totalModels; ) {
       DeployerFeeModel m = models[i];
       if (uint8(m) == 0) revert INVALID_ZERO_MODEL_FEE();
       uint256 p = percentages[i];
       if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
       deployerFeeModelPercentage[m] = p;
+      unchecked {
+        i++;
+      }
     }
   }
 
