@@ -148,6 +148,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return uin256 ID of the minted token
    */
   function mint(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
+    if (to == address(0)) revert ZERO_ADDRESS();
+
     bytes32 msgHash = _mintMessageHash(uuidHashed, to);
     address signer = ECDSA.recover(msgHash, signature);
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
@@ -169,6 +171,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function mintByFactory(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
     if (msg.sender != datasetFactory) revert NOT_DATASET_FACTORY();
+    if (to == address(0)) revert ZERO_ADDRESS();
 
     bytes32 msgHash = _mintMessageHash(uuidHashed, to);
     address signer = ECDSA.recover(msgHash, signature);
