@@ -410,11 +410,23 @@ export default async function suite(): Promise<void> {
 
       const uuidHash = getUuidHash(datasetUUID);
 
+      const defaultVerifierAddress = await (
+        await ethers.getContract('AcceptManuallyVerifier')
+      ).getAddress();
+      const feeAmount = parseUnits('0.1', 18);      
+      const dsOwnerPercentage = parseUnits('0.001', 18);
+
       await expect(
-        DatasetNFT_.connect(users_.datasetOwner).mint(
+        DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)]
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
@@ -632,11 +644,24 @@ export default async function suite(): Promise<void> {
           )
         );
 
-        await DatasetNFT_.connect(users_.dtAdmin).mint(
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMintMessage
-        );
+          signedMintMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)]
+        )
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
         expect(await DatasetNFT_.ownerOf(expected_2nd_DataSetId)).to.equal(
@@ -676,11 +701,23 @@ export default async function suite(): Promise<void> {
           )
         );
 
-        await DatasetNFT_.connect(users_.dtAdmin).mint(
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMintMessage
-        );
+          signedMintMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)]
+        )        
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
         expect(await DatasetNFT_.ownerOf(second_datasetId)).to.equal(users_.datasetOwner.address);
