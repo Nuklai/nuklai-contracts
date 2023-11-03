@@ -189,8 +189,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     uint256 length = tagCount.length();
     counts = new uint256[](length);
 
-    for (uint256 i; i < length; i++) {
+    for (uint256 i; i < length; ) {
       counts[i] = tagCount.get(tags_[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -214,8 +217,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     uint256 totalTagCount = tagCount.length();
     tags_ = tagCount.keys();
     counts = new uint256[](totalTagCount);
-    for (uint256 i; i < totalTagCount; i++) {
+    for (uint256 i; i < totalTagCount; ) {
       counts[i] = tagCount.get(tags_[i]);
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -235,12 +241,13 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     bytes32[] calldata tags_
   ) external view returns (uint256[] memory percentages) {
     if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
+    uint256 totalTags = tags_.length;
     uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
     EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestAccountSnapshot].totalTagCount;
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = _snapshots[latestAccountSnapshot].accountTagCount[account];
-    percentages = new uint256[](tags_.length);
+    percentages = new uint256[](totalTags);
 
-    for (uint256 i; i < tags_.length; i++) {
+    for (uint256 i; i < totalTags; ) {
       bytes32 tag = tags_[i];
       (, uint256 totalCount) = totalTagCount.tryGet(tag);
       if (totalCount != 0) {
@@ -248,6 +255,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
         percentages[i] = (1e18 * accountCount) / totalCount;
       }
       // else:  percentages[i] = 0, but we skip it because percentages are initialized with zeroes
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -294,9 +304,15 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    for (uint256 i; i < owners.length; i++) {
+    uint256 totalOwners = owners.length;
+    for (uint256 i; i < totalOwners; ) {
       address owner = owners[i];
-      if (owner == address(0)) continue;
+      if (owner == address(0)) {
+        unchecked {
+          i++;
+        }
+        continue;
+      }
 
       uint256 id = ++_mintCounter;
       bytes32 tag = tags_[i];
@@ -308,6 +324,10 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       // during this call OR at any following transaction.
       // DO NOT implement any state changes after this point!
       IVerifierManager(dataset.verifierManager(datasetId)).propose(id, tag);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -376,12 +396,17 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param ids Array of the IDs of the Fragment NFTs (pending or already minted) associated with the contributions to be removed
    */
   function removeMany(uint256[] calldata ids) external onlyDatasetOwner {
-    for (uint256 i; i < ids.length; i++) {
+    uint256 totalIds = ids.length;
+    for (uint256 i; i < totalIds; ) {
       uint256 id = ids[i];
       delete pendingFragmentOwners[id]; // in case we are deleting pending one
       if (_exists(id)) _burn(id);
       delete tags[id];
       emit FragmentRemoved(id);
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -444,11 +469,15 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       _copy(_snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
       accountSnapshotIds.push(currentSnapshot);
     }
-    for (uint256 i; i < batchSize; i++) {
+    for (uint256 i; i < batchSize; ) {
       uint256 id = firstTokenId + i;
       bytes32 tag = tags[id];
       (, uint256 currentCount) = currentAccountTagCount.tryGet(tag);
       currentAccountTagCount.set(tag, add ? (currentCount + 1) : (currentCount - 1));
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -470,11 +499,14 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       _copy(_snapshots[lastSnapshot].totalTagCount, totalTagCount);
       accountSnapshotIds.push(currentSnapshot);
     }
-    for (uint256 i; i < batchSize; i++) {
+    for (uint256 i; i < batchSize; ) {
       uint256 id = firstTokenId + i;
       bytes32 tag = tags[id];
       (, uint256 currentCount) = totalTagCount.tryGet(tag);
       totalTagCount.set(tag, add ? (currentCount + 1) : (currentCount - 1));
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -566,9 +598,12 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   function _copy(EnumerableMap.Bytes32ToUintMap storage from, EnumerableMap.Bytes32ToUintMap storage to) private {
     if (to.length() != 0) revert TARGET_NOT_EMPTY();
     uint256 length = from.length();
-    for (uint256 i; i < length; i++) {
+    for (uint256 i; i < length; ) {
       (bytes32 k, uint256 v) = from.at(i);
       to.set(k, v);
+      unchecked {
+        i++;
+      }
     }
   }
 
