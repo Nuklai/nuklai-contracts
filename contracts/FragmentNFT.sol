@@ -211,9 +211,10 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     EnumerableMap.Bytes32ToUintMap storage tagCount = _snapshots[_findAccountSnapshotId(account, snapshotId)]
       .accountTagCount[account];
+    uint256 totalTagCount = tagCount.length();
     tags_ = tagCount.keys();
-    counts = new uint256[](tagCount.length());
-    for (uint256 i; i < tagCount.length(); i++) {
+    counts = new uint256[](totalTagCount);
+    for (uint256 i; i < totalTagCount; i++) {
       counts[i] = tagCount.get(tags_[i]);
     }
   }
