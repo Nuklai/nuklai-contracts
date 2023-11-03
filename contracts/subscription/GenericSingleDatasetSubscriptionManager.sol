@@ -327,9 +327,6 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
-      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, extraDurationInDays);
-
     SubscriptionDetails storage sd = _subscriptions[subscription];
     uint256 newDurationInDays;
     uint256 newValidSince;
@@ -355,6 +352,11 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       newValidSince = block.timestamp;
       newDurationInDays = extraDurationInDays;
     }
+
+    newDurationInDays = newDurationInDays <= MAX_SUBSCRIPTION_DURATION_IN_DAYS
+      ? newDurationInDays
+      : MAX_SUBSCRIPTION_DURATION_IN_DAYS;
+
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);
     if (newFee <= currentFee) revert NOTHING_TO_PAY();
