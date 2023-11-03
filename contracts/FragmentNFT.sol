@@ -438,10 +438,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     EnumerableMap.Bytes32ToUintMap storage currentAccountTagCount = _snapshots[currentSnapshot].accountTagCount[
       account
     ];
-    uint256 lastAccountSnapshot = _lastUint256ArrayElement(_accountSnapshotIds[account]);
+    uint256[] storage accountSnapshotIds = _accountSnapshotIds[account];
+    uint256 lastAccountSnapshot = _lastUint256ArrayElement(accountSnapshotIds);
     if (lastAccountSnapshot < currentSnapshot) {
       _copy(_snapshots[lastAccountSnapshot].accountTagCount[account], currentAccountTagCount);
-      _accountSnapshotIds[account].push(currentSnapshot);
+      accountSnapshotIds.push(currentSnapshot);
     }
     for (uint256 i; i < batchSize; i++) {
       uint256 id = firstTokenId + i;
@@ -463,10 +464,11 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   function _updateTotalSnapshot(uint256 firstTokenId, uint256 batchSize, bool add) private {
     uint256 currentSnapshot = _currentSnapshotId();
     EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[currentSnapshot].totalTagCount;
-    uint256 lastSnapshot = _lastUint256ArrayElement(_accountSnapshotIds[address(this)]);
+    uint256[] storage accountSnapshotIds = _accountSnapshotIds[address(this)];
+    uint256 lastSnapshot = _lastUint256ArrayElement(accountSnapshotIds);
     if (lastSnapshot < currentSnapshot) {
       _copy(_snapshots[lastSnapshot].totalTagCount, totalTagCount);
-      _accountSnapshotIds[address(this)].push(currentSnapshot);
+      accountSnapshotIds.push(currentSnapshot);
     }
     for (uint256 i; i < batchSize; i++) {
       uint256 id = firstTokenId + i;
