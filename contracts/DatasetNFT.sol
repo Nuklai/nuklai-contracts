@@ -140,28 +140,6 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
-   * @notice Mints a Dataset NFT token to `to`
-   * @dev Emits a {Transfer} event
-   * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
-   * @param to Dataset owner
-   * @param signature Signature from a DT service confirming creation of Dataset
-   * @return uin256 ID of the minted token
-   */
-  function mint(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
-    if (to == address(0)) revert ZERO_ADDRESS();
-
-    bytes32 msgHash = _mintMessageHash(uuidHashed, to);
-    address signer = ECDSA.recover(msgHash, signature);
-    if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
-
-    uint256 id = uint256(uuidHashed);
-
-    _mint(to, id);
-
-    return id;
-  }
-
-  /**
    * @notice Mints a Dataset NFT token to the DatasetFactory, which will transfer it to `to` after configuration steps
    * @dev Emits a {Transfer} event
    * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
