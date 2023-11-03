@@ -184,6 +184,14 @@ export default async function suite(): Promise<void> {
       await ethers.provider.send('evm_revert', [snap]);
     });
 
+    it('Should maximum subscription duration in days to be 365 days', async function () {
+      expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_DURATION_IN_DAYS()).to.equal(365);
+    });
+
+    it('Should maximum subscription extension duration in days to be 30 days', async function () {
+      expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_EXTENSION_IN_DAYS()).to.equal(30);
+    });
+
     it('Should data set owner set ERC-20 token fee amount for data set subscription', async function () {
       const DeployedToken = await deployments.deploy('TestToken_new', {
         contract: 'TestToken',
