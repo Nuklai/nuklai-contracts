@@ -109,6 +109,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     _snapshots.push();
+    _snapshots.push();
   }
 
   /**
@@ -613,8 +614,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param arr The dynamic integer array from which to retrieve the last element
    * @return uint256 The value of the last element in the array
    */
-  function _lastUint256ArrayElement(uint256[] storage arr) private returns (uint256) {
-    if (arr.length == 0) arr.push();
+  function _lastUint256ArrayElement(uint256[] storage arr) private view returns (uint256) {
+    if (arr.length == 0) return 0;
 
     unchecked {
       return arr[arr.length - 1];
