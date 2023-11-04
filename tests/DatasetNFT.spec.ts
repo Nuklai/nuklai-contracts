@@ -413,7 +413,7 @@ export default async function suite(): Promise<void> {
       const defaultVerifierAddress = await (
         await ethers.getContract('AcceptManuallyVerifier')
       ).getAddress();
-      const feeAmount = parseUnits('0.1', 18);      
+      const feeAmount = parseUnits('0.1', 18);
       const dsOwnerPercentage = parseUnits('0.001', 18);
 
       await expect(
@@ -644,14 +644,13 @@ export default async function suite(): Promise<void> {
           )
         );
 
-
         const defaultVerifierAddress = await (
           await ethers.getContract('AcceptManuallyVerifier')
         ).getAddress();
         const feeAmount = parseUnits('0.1', 18);
         const dsOwnerPercentage = parseUnits('0.001', 18);
 
-        DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
+        await DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
           signedMintMessage,
@@ -661,17 +660,17 @@ export default async function suite(): Promise<void> {
           dsOwnerPercentage,
           [ZeroHash],
           [parseUnits('1', 18)]
-        )
+        );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
         expect(await DatasetNFT_.ownerOf(expected_2nd_DataSetId)).to.equal(
           users_.datasetOwner.address
         );
 
-        // 2nd Dataset NFT owner should be able to deploy the fragment instance for his dataset
+        // 2nd Dataset NFT owner should not be able to deploy the fragment instance if already called mintAndConfigureDataset()
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).deployFragmentInstance(expected_2nd_DataSetId)
-        ).to.not.be.reverted;
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_INSTANCE_ALREADY_DEPLOYED');
 
         // Admin sets fragment implementation to zeroAddress, thus disabling the creation of fragment instances
         await DatasetNFT_.connect(users_.dtAdmin).setFragmentImplementation(ZeroAddress);
@@ -707,7 +706,7 @@ export default async function suite(): Promise<void> {
         const feeAmount = parseUnits('0.1', 18);
         const dsOwnerPercentage = parseUnits('0.001', 18);
 
-        DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
+        await DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
           signedMintMessage,
@@ -717,13 +716,13 @@ export default async function suite(): Promise<void> {
           dsOwnerPercentage,
           [ZeroHash],
           [parseUnits('1', 18)]
-        )        
+        );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
         expect(await DatasetNFT_.ownerOf(second_datasetId)).to.equal(users_.datasetOwner.address);
 
         await expect(DatasetNFT_.connect(users_.dtAdmin).deployFragmentInstance(second_datasetId))
-          .to.be.revertedWithCustomError(DatasetNFT_, `NOT_OWNER`)
+          .to.be.revertedWithCustomError(DatasetNFT_, 'NOT_OWNER')
           .withArgs(second_datasetId, users_.dtAdmin.address);
       });
 
