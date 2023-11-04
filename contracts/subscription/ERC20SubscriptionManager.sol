@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
 import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSubscriptionManager.sol";
 
@@ -35,7 +34,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   IERC20 public token;
   uint256 public feePerConsumerPerDay;
 
-  constructor() ERC721(_NAME, _SYMBOL) {
+  constructor() {
     _disableInitializers();
   }
 
@@ -47,6 +46,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @param datasetId_ The ID of the Dataset NFT token
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
+    __ERC721_init(_NAME, _SYMBOL);
     __GenericSubscriptionManager_init(dataset_, datasetId_);
   }
 
