@@ -169,6 +169,22 @@ export default async function suite(): Promise<void> {
       await ethers.provider.send('evm_revert', [snap]);
     });
 
+    it('Should base 100% percent be set', async function () {
+      const percentage = parseUnits('1', 18);
+
+      const basePercentage = await DatasetDistributionManager_.BASE_100_PERCENT();
+
+      expect(basePercentage).to.equal(percentage);
+    });
+
+    it('Should maximum data set owner percentage be set', async function () {
+      const percentage = parseUnits('0.5', 18);
+
+      const maxDsOwnerPercentage = await DatasetDistributionManager_.MAX_DATASET_OWNER_PERCENTAGE();
+
+      expect(maxDsOwnerPercentage).to.equal(percentage);
+    });
+
     it('Should data set owner set its percentage to be sent on each payment', async function () {
       const percentage = parseUnits('0.01', 18);
 

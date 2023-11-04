@@ -60,6 +60,8 @@ contract DistributionManager is
     uint256 tagWeightsVersion;
   }
 
+  uint256 public constant BASE_100_PERCENT = 1e18;
+  uint256 public constant MAX_DATASET_OWNER_PERCENTAGE = 0.5e18;
   IDatasetNFT public dataset;
   uint256 public datasetId;
   IFragmentNFT public fragmentNFT;
@@ -165,7 +167,8 @@ contract DistributionManager is
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function _setDatasetOwnerPercentage(uint256 percentage) internal {
-    if (percentage > 0.5e18) revert PERCENTAGE_VALUE_INVALID(0.5e18, percentage);
+    if (percentage > MAX_DATASET_OWNER_PERCENTAGE)
+      revert PERCENTAGE_VALUE_INVALID(MAX_DATASET_OWNER_PERCENTAGE, percentage);
     datasetOwnerPercentage = percentage;
   }
 
@@ -182,7 +185,7 @@ contract DistributionManager is
       weightSum += weights[i];
       tagWeights.set(tags[i], weights[i]);
     }
-    if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
+    if (weightSum != BASE_100_PERCENT) revert TAG_WEIGHTS_SUM_INVALID(BASE_100_PERCENT, weightSum);
   }
 
   /**
@@ -205,7 +208,7 @@ contract DistributionManager is
     uint256 snapshotId = fragmentNFT.snapshot();
 
     // Deployer fee
-    uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / 1e18;
+    uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / BASE_100_PERCENT;
     if (deployerFee > 0) {
       address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
       if (deployerFeeBeneficiary == address(0)) revert DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
@@ -215,7 +218,7 @@ contract DistributionManager is
 
     // Dataset owner fee
     if (amount > 0) {
-      uint256 ownerAmount = (amount * datasetOwnerPercentage) / 1e18;
+      uint256 ownerAmount = (amount * datasetOwnerPercentage) / BASE_100_PERCENT;
       pendingOwnerFee[token] += ownerAmount;
       amount -= ownerAmount;
     }
