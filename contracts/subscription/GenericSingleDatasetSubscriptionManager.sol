@@ -43,6 +43,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   error SUBSCRIPTION_REMAINING_DURATION(uint256 maximum, uint256 current);
   error ARRAY_LENGTH_MISMATCH();
   error NOTHING_TO_PAY();
+  error SUBSCRIPTION_FEE_EXEEDS_LIMIT();
 
   struct SubscriptionDetails {
     uint256 validSince;
@@ -178,10 +179,16 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of the subscription in days
    * @param consumers Count of consumers who have access to the data with this subscription
+   * @param maxFee Max amount sender id willing to pay for subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
-  function subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) external payable returns (uint256 sid) {
-    return _subscribe(ds, durationInDays, consumers);
+  function subscribe(
+    uint256 ds,
+    uint256 durationInDays,
+    uint256 consumers,
+    uint256 maxFee
+  ) external payable returns (uint256 sid) {
+    return _subscribe(ds, durationInDays, consumers, maxFee);
   }
 
   /**
@@ -197,14 +204,16 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    * @param ds ID of the Dataset (ID of the target Dataset NFT token)
    * @param durationInDays Duration of subscription in days (maximum 365 days)
    * @param consumers Array of consumers who have access to the data with this subscription
+   * @param maxFee Max amount sender id willing to pay for subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
   function subscribeAndAddConsumers(
     uint256 ds,
     uint256 durationInDays,
-    address[] calldata consumers
+    address[] calldata consumers,
+    uint256 maxFee
   ) external payable returns (uint256 sid) {
-    sid = _subscribe(ds, durationInDays, consumers.length);
+    sid = _subscribe(ds, durationInDays, consumers.length, maxFee);
     _addConsumers(sid, consumers);
   }
 
@@ -232,13 +241,15 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDurationInDays Days to extend the subscription by
    * @param extraConsumers Number of consumers to add
+   * @param maxExtraFee Max amount sender id willing to pay for extending subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    */
   function extendSubscription(
     uint256 subscription,
     uint256 extraDurationInDays,
-    uint256 extraConsumers
+    uint256 extraConsumers,
+    uint256 maxExtraFee
   ) external payable {
-    _extendSubscription(subscription, extraDurationInDays, extraConsumers);
+    _extendSubscription(subscription, extraDurationInDays, extraConsumers, maxExtraFee);
   }
 
   /**
@@ -298,7 +309,12 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    * @param consumers Count of consumers to have access to the data with this subscription
    * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
-  function _subscribe(uint256 ds, uint256 durationInDays, uint256 consumers) internal returns (uint256 sid) {
+  function _subscribe(
+    uint256 ds,
+    uint256 durationInDays,
+    uint256 consumers,
+    uint256 maxFee
+  ) internal returns (uint256 sid) {
     _requireCorrectDataset(ds);
     if (balanceOf(_msgSender()) != 0) revert CONSUMER_ALREADY_SUBSCRIBED(_msgSender());
     if (durationInDays == 0 || durationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
@@ -307,6 +323,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     if (consumers == 0) revert CONSUMER_ZERO();
 
     (, uint256 fee) = _calculateFee(durationInDays, consumers);
+    if (fee > maxFee) revert SUBSCRIPTION_FEE_EXEEDS_LIMIT();
     _charge(_msgSender(), fee);
 
     sid = ++_mintCounter;
@@ -326,8 +343,14 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDurationInDays Days to extend the subscription by
    * @param extraConsumers Number of extra consumers to add
+   * @param maxExtraFee Max amount sender id willing to pay for extending subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    */
-  function _extendSubscription(uint256 subscription, uint256 extraDurationInDays, uint256 extraConsumers) internal {
+  function _extendSubscription(
+    uint256 subscription,
+    uint256 extraDurationInDays,
+    uint256 extraConsumers,
+    uint256 maxExtraFee
+  ) internal {
     _requireMinted(subscription);
 
     if (extraDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
@@ -364,7 +387,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     if (newFee <= currentFee) revert NOTHING_TO_PAY();
 
     unchecked {
-      _charge(_msgSender(), newFee - currentFee);
+      uint256 chargeFee = newFee - currentFee;
+      if (chargeFee > maxExtraFee) revert SUBSCRIPTION_FEE_EXEEDS_LIMIT();
+      _charge(_msgSender(), chargeFee);
     }
 
     sd.validSince = newValidSince;

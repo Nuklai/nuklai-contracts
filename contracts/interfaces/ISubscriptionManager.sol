@@ -60,9 +60,15 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
    * @param dataset ID of the Dataset (ID of the target Dataset NFT token)
    * @param duration Duration of the subscription in days
    * @param consumers Count of consumers who have access to the data with this subscription
+   * @param maxFee Max amount sender id willing to pay for subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
-  function subscribe(uint256 dataset, uint256 duration, uint256 consumers) external payable returns (uint256 sid);
+  function subscribe(
+    uint256 dataset,
+    uint256 duration,
+    uint256 consumers,
+    uint256 maxFee
+  ) external payable returns (uint256 sid);
 
   /**
    * @notice Subscribes to a Dataset, makes payment and adds consumers' addresses
@@ -77,12 +83,14 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
    * @param dataset ID of the Dataset (ID of the target Dataset NFT token)
    * @param duration Duration of subscription in days (maximum 365 days)
    * @param consumers Array of consumers who have access to the data with this subscription
+   * @param maxFee Max amount sender id willing to pay for subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    * @return sid ID of subscription (ID of the minted ERC721 token that represents the subscription)
    */
   function subscribeAndAddConsumers(
     uint256 dataset,
     uint256 duration,
-    address[] calldata consumers
+    address[] calldata consumers,
+    uint256 maxFee
   ) external payable returns (uint256 sid);
 
   /**
@@ -109,8 +117,14 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
    * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
    * @param extraDuration Days to extend the subscription by
    * @param extraConsumers Number of consumers to add
+   * @param maxExtraFee Max amount sender id willing to pay for extending subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
    */
-  function extendSubscription(uint256 subscription, uint256 extraDuration, uint256 extraConsumers) external payable;
+  function extendSubscription(
+    uint256 subscription,
+    uint256 extraDuration,
+    uint256 extraConsumers,
+    uint256 maxExtraFee
+  ) external payable;
 
   /**
    * @notice Adds the given addresses as consumers of an already existing specified subscription
