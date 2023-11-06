@@ -45,6 +45,7 @@ contract DistributionManager is
   error DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
   error SIGNATURE_OVERDUE();
   error NO_UNCLAIMED_PAYMENTS_AVAILABLE();
+  error UNSUPPORTED_MSG_VALUE();
 
   /**
    * @dev A Payment contains:
@@ -197,9 +198,10 @@ contract DistributionManager is
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     if (_versionedTagWeights.length == 0) revert TAG_WEIGHTS_NOT_INITIALIZED();
-    if (address(token) == address(0)) {
-      if (amount != msg.value) revert MSG_VALUE_MISMATCH(msg.value, amount);
+    if (address(token) == address(0) && amount != msg.value) {
+      revert MSG_VALUE_MISMATCH(msg.value, amount);
     } else {
+      if (msg.value > 0) revert UNSUPPORTED_MSG_VALUE();
       IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
     }
     uint256 snapshotId = fragmentNFT.snapshot();
@@ -254,7 +256,7 @@ contract DistributionManager is
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
   }
 
   /**
@@ -280,10 +282,10 @@ contract DistributionManager is
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim Pending Owner Fees
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
 
     // Claim Fragment Fees
-    _claimPayouts(_msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -302,26 +304,7 @@ contract DistributionManager is
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim payouts
-    uint256 firstUnclaimedPayout = _firstUnclaimedContribution[_msgSender()];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-
-    _firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern to prevent reentrancy
-
-    address collectToken = payments[firstUnclaimedPayout].token;
-    uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
-      Payment storage p = payments[i];
-      if (collectToken != p.token) {
-        // Payment token changed, send what we've already collected
-        _sendPayout(collectToken, collectAmount, _msgSender());
-        collectToken = p.token;
-        collectAmount = 0;
-      }
-      collectAmount += _calculatePayout(p, _msgSender());
-    }
-
-    // send collected and not sent yet
-    _sendPayout(collectToken, collectAmount, _msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -332,10 +315,11 @@ contract DistributionManager is
    */
   function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[account];
+    uint256 totalPayments = payments.length;
 
-    if (firstUnclaimedPayout >= payments.length) return 0;
+    if (firstUnclaimedPayout >= totalPayments) return 0;
 
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (token == p.token) {
         collectAmount += _calculatePayout(p, account);
@@ -347,23 +331,24 @@ contract DistributionManager is
    * @notice Internal _claimOwnerPayouts for claiming all pending Dataset ownership fees
    * @dev Called by `claimDatasetOwnerPayouts()` & `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param owner the adress of the Dataset owner
    */
-  function _claimOwnerPayouts(address owner) internal {
-    if (_firstUnclaimed >= payments.length) return; // Nothing to claim
+  function _claimOwnerPayouts() internal {
+    uint256 totalPayments = payments.length;
+    if (_firstUnclaimed >= totalPayments) return; // Nothing to claim
+
     uint256 firstUnclaimedPayout = _firstUnclaimed;
-    _firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
+    _firstUnclaimed = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken;
     uint256 pendingFeeToken;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       collectToken = payments[i].token;
       pendingFeeToken = pendingOwnerFee[collectToken];
 
       if (pendingFeeToken == 0) continue;
       delete pendingOwnerFee[collectToken];
 
-      _sendPayout(collectToken, pendingFeeToken, owner);
+      _sendPayout(collectToken, pendingFeeToken, _msgSender());
     }
   }
 
@@ -371,17 +356,18 @@ contract DistributionManager is
    * @notice Internal _claimPayouts for claiming all pending contribution fees (from fragments) for a specific contributor
    * @dev Called by `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param beneficiary the contributor's address to receive the payout
    */
-  function _claimPayouts(address beneficiary) internal {
+  function _claimPayouts() internal {
+    address beneficiary = _msgSender();
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[beneficiary];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-    _firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern to prevent reentrancy
+    uint256 totalPayments = payments.length;
+    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
+    _firstUnclaimedContribution[beneficiary] = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; i++) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected

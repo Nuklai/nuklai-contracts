@@ -651,6 +651,8 @@ export default async function suite(): Promise<void> {
     it('Should datasetOwner claim revenue from both contributing & being the owner via the `claimDatasetOwnerAndFragmentPayouts()`', async () => {
       const percentageForFeeModels = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
+
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [models.DATASET_OWNER_STORAGE, models.DEPLOYER_STORAGE],
         percentageForFeeModels
@@ -660,8 +662,6 @@ export default async function suite(): Promise<void> {
         datasetId_,
         models.DATASET_OWNER_STORAGE
       );
-
-      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
 

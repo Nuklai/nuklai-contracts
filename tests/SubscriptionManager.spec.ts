@@ -8,7 +8,7 @@ import {
   VerifierManager,
 } from '@typechained';
 import { expect } from 'chai';
-import { ZeroHash, parseUnits } from 'ethers';
+import { ZeroHash, parseEther, parseUnits } from 'ethers';
 import { deployments, ethers, network } from 'hardhat';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature } from './utils';
@@ -184,6 +184,14 @@ export default async function suite(): Promise<void> {
       await ethers.provider.send('evm_revert', [snap]);
     });
 
+    it('Should maximum subscription duration in days to be 365 days', async function () {
+      expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_DURATION_IN_DAYS()).to.equal(365);
+    });
+
+    it('Should maximum subscription extension duration in days to be 30 days', async function () {
+      expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_EXTENSION_IN_DAYS()).to.equal(30);
+    });
+
     it('Should data set owner set ERC-20 token fee amount for data set subscription', async function () {
       const DeployedToken = await deployments.deploy('TestToken_new', {
         contract: 'TestToken',
@@ -296,6 +304,38 @@ export default async function suite(): Promise<void> {
           1
         )
       ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
+    });
+
+    it('Should revert if user tries to pay data set with ERC-20 and in addition sending native currency in msg.value', async function () {
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [ZeroHash],
+        [parseUnits('1', 18)]
+      );
+
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('0.00864', 18)
+      );
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.01', 18)
+      );
+
+      const feeAmount = parseUnits('0.00864', 18); // totalFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        await users_.datasetOwner.Token!.getAddress(),
+        feeAmount
+      );
+
+      await expect(
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+          datasetId_,
+          BigInt(1), // 1 day
+          1,
+          { value: parseEther('0.0001') }
+        )
+      ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'UNSUPPORTED_MSG_VALUE');
     });
 
     it('Should revert if user tries to subscribe for duration == 0 days OR duration > 365 days', async () => {

@@ -215,6 +215,8 @@ export default async function suite(): Promise<void> {
     it('Should setDeployerFeeModelPercentages() revert if models and percentages length mismatch', async () => {
       const percentages = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
+
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
           [
@@ -227,23 +229,10 @@ export default async function suite(): Promise<void> {
       ).to.be.revertedWithCustomError(DatasetNFT_, 'ARRAY_LENGTH_MISMATCH');
     });
 
-    it('Should revert when trying to set feePercentage for NO_FEE model', async () => {
-      const percentages = [parseUnits('0.35', 18), parseUnits('0.1', 18), parseUnits('0.05', 18)];
-
-      await expect(
-        DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
-          [
-            constants.DeployerFeeModel.DEPLOYER_STORAGE,
-            constants.DeployerFeeModel.DATASET_OWNER_STORAGE,
-            constants.DeployerFeeModel.NO_FEE,
-          ],
-          percentages
-        )
-      ).to.be.revertedWithCustomError(DatasetNFT_, 'INVALID_ZERO_MODEL_FEE');
-    });
-
     it('Should DT admin set fee model percentage for deployer', async function () {
       const percentage = parseUnits('0.35', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DEPLOYER_STORAGE],
@@ -257,6 +246,8 @@ export default async function suite(): Promise<void> {
 
     it('Should DT admin set fee model percentage for data set owners', async function () {
       const percentage = parseUnits('0.1', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
@@ -273,6 +264,8 @@ export default async function suite(): Promise<void> {
     it('Should revert set deployer fee model percentage if goes over 100%', async function () {
       const percentage100Percent = parseUnits('1', 18);
       const percentage = parseUnits('1.1', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
