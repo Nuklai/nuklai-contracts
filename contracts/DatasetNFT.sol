@@ -40,6 +40,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   error FRAGMENT_INSTANCE_NOT_DEPLOYED();
   error FRAGMENT_PROXY_ADDRESS_INVALID();
   error ZERO_ADDRESS();
+  error DATASET_FACTORY_ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
   error INVALID_ZERO_MODEL_FEE();
 
@@ -94,6 +95,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param datasetFactory_ Address of DatasetFactory instance
    */
   function setDatasetFactory(address datasetFactory_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (datasetFactory_ == address(0)) revert DATASET_FACTORY_ZERO_ADDRESS();
     datasetFactory = datasetFactory_;
   }
 
@@ -148,6 +150,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @return uin256 ID of the minted token
    */
   function mintByFactory(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
+    if (datasetFactory == address(0)) revert DATASET_FACTORY_ZERO_ADDRESS();
     if (msg.sender != datasetFactory) revert NOT_DATASET_FACTORY();
     if (to == address(0)) revert ZERO_ADDRESS();
 

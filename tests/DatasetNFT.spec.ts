@@ -185,6 +185,28 @@ export default async function suite(): Promise<void> {
       );
     });
 
+    it('Should dataset factory be set on deploy', async function () {
+      const datasetFactory = await ethers.getContract('DatasetFactory');
+      expect(await DatasetNFT_.datasetFactory()).to.equal(await datasetFactory.getAddress());
+    });
+
+    it('Should DT admin be able to set dataset factory address', async function () {
+      const NewDatasetFactory = await deployments.deploy('DatasetFactory_new', {
+        contract: 'DatasetFactory',
+        from: users_.dtAdmin.address,
+      });
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDatasetFactory(NewDatasetFactory.address);
+
+      expect(await DatasetNFT_.datasetFactory()).to.equal(NewDatasetFactory.address);
+    });
+
+    it('Should revert to set dataset factory address if zero address', async function () {
+      await expect(
+        DatasetNFT_.connect(users_.dtAdmin).setDatasetFactory(ZeroAddress)
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'DATASET_FACTORY_ZERO_ADDRESS');
+    });
+
     it('Should DT admin be a signer', async function () {
       expect(await DatasetNFT_.isSigner(users_.dtAdmin)).to.be.true;
     });
@@ -347,6 +369,94 @@ export default async function suite(): Promise<void> {
         .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), dt_Id)
         .to.emit(DatasetNFT_, 'Transfer')
         .withArgs(await DatasetFactory_.getAddress(), users_.datasetOwner.address, dt_Id);
+    });
+
+    it('Should revert mint dataset if dataset factory is zero address', async function () {
+      const proxyAdmin = await ethers.getContract('ProxyAdmin');
+      const proxyAdminAddress = await proxyAdmin.getAddress();
+
+      const fragmentImplementation = await ethers.getContract('FragmentNFT');
+      const fragmentImplementationAddress = await fragmentImplementation.getAddress();
+
+      const deployedDatasetNFT = await deployments.deploy('DatasetNFT_new', {
+        contract: 'DatasetNFT',
+        from: users_.dtAdmin.address,
+        log: true,
+        proxy: {
+          owner: proxyAdminAddress,
+          proxyContract: 'TransparentUpgradeableProxy',
+          execute: {
+            init: {
+              methodName: 'initialize',
+              args: [users_.dtAdmin.address],
+            },
+          },
+        },
+      });
+
+      const DatasetNFT = (await ethers.getContractAt(
+        'DatasetNFT',
+        deployedDatasetNFT.address
+      )) as unknown as DatasetNFT;
+
+      await DatasetNFT.connect(users_.dtAdmin).grantRole(
+        constants.SIGNER_ROLE,
+        users_.dtAdmin.address
+      );
+
+      const datasetUUID = uuidv4();
+
+      const uuidHash = getUuidHash(datasetUUID);
+
+      const datasetId = getUint256FromBytes32(uuidHash);
+
+      const signedMessage = await users_.dtAdmin.signMessage(
+        signature.getDatasetMintMessage(
+          network.config.chainId!,
+          deployedDatasetNFT.address,
+          uuidHash,
+          users_.datasetOwner.address
+        )
+      );
+
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT.connect(users_.dtAdmin).grantRole(
+        constants.APPROVED_TOKEN_ROLE,
+        testTokenAddress
+      );
+
+      const defaultVerifierAddress = await (
+        await ethers.getContract('AcceptManuallyVerifier')
+      ).getAddress();
+      const feeAmount = parseUnits('0.1', 18);
+      const dsOwnerPercentage = parseUnits('0.001', 18);
+
+      const subscriptionManager = await ethers.getContract('ERC20SubscriptionManager');
+      const distributionManager = await ethers.getContract('DistributionManager');
+      const verifierManager = await ethers.getContract('VerifierManager');
+
+      await DatasetFactory_.connect(users_.dtAdmin).configure(
+        deployedDatasetNFT.address,
+        await subscriptionManager.getAddress(),
+        await distributionManager.getAddress(),
+        await verifierManager.getAddress()
+      );
+
+      await expect(
+        DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)]
+        )
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'DATASET_FACTORY_ZERO_ADDRESS');
     });
 
     it('Should data set owner not mint a dataset twice', async function () {
