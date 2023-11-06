@@ -376,9 +376,6 @@ export default async function suite(): Promise<void> {
       const proxyAdmin = await ethers.getContract('ProxyAdmin');
       const proxyAdminAddress = await proxyAdmin.getAddress();
 
-      const fragmentImplementation = await ethers.getContract('FragmentNFT');
-      const fragmentImplementationAddress = await fragmentImplementation.getAddress();
-
       const deployedDatasetNFT = await deployments.deploy('DatasetNFT_new', {
         contract: 'DatasetNFT',
         from: users_.dtAdmin.address,
@@ -389,7 +386,7 @@ export default async function suite(): Promise<void> {
           execute: {
             init: {
               methodName: 'initialize',
-              args: [users_.dtAdmin.address],
+              args: [users_.dtAdmin.address, ZeroAddress],
             },
           },
         },
