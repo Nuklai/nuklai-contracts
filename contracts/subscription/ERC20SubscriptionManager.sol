@@ -32,7 +32,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   error UNSUPPORTED_NATIVE_CURRENCY();
   error UNSUPPORTED_MSG_VALUE();
 
-  IERC20 public token;
+  IERC20 public token; // IERC20 token must not contain fee-on-transfer mechanism
   uint256 public feePerConsumerPerDay;
 
   constructor() ERC721(_NAME, _SYMBOL) {
@@ -54,6 +54,7 @@ contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
    * @notice Sets the daily subscription fee for a single consumer
    * @dev Only callable by the Dataset owner.
    * `token_` must be approved by DatasetNFT ADMIN (see `DatasetNFT.sol`).
+   * `token_` must not contain fee-on-transfer mechanism
    * `address(0)` (indicating natice currency) is not supported by this SubscriptionManager implementation.
    * @param token_ The address of the ERC20 token to be used for subscription payments
    * @param feePerConsumerPerDay_ The fee to set
