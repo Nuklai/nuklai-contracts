@@ -45,6 +45,7 @@ contract DistributionManager is
   error DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
   error SIGNATURE_OVERDUE();
   error NO_UNCLAIMED_PAYMENTS_AVAILABLE();
+  error UNSUPPORTED_MSG_VALUE();
 
   /**
    * @dev A Payment contains:
@@ -203,9 +204,10 @@ contract DistributionManager is
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     if (_versionedTagWeights.length == 0) revert TAG_WEIGHTS_NOT_INITIALIZED();
-    if (address(token) == address(0)) {
-      if (amount != msg.value) revert MSG_VALUE_MISMATCH(msg.value, amount);
+    if (address(token) == address(0) && amount != msg.value) {
+      revert MSG_VALUE_MISMATCH(msg.value, amount);
     } else {
+      if (msg.value > 0) revert UNSUPPORTED_MSG_VALUE();
       IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
     }
     uint256 snapshotId = fragmentNFT.snapshot();
@@ -260,7 +262,7 @@ contract DistributionManager is
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
   }
 
   /**
@@ -286,10 +288,10 @@ contract DistributionManager is
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim Pending Owner Fees
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
 
     // Claim Fragment Fees
-    _claimPayouts(_msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -308,30 +310,7 @@ contract DistributionManager is
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim payouts
-    uint256 firstUnclaimedPayout = _firstUnclaimedContribution[_msgSender()];
-    uint256 totalPayments = payments.length;
-    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
-
-    _firstUnclaimedContribution[_msgSender()] = totalPayments; // CEI pattern to prevent reentrancy
-
-    address collectToken = payments[firstUnclaimedPayout].token;
-    uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
-      Payment storage p = payments[i];
-      if (collectToken != p.token) {
-        // Payment token changed, send what we've already collected
-        _sendPayout(collectToken, collectAmount, _msgSender());
-        collectToken = p.token;
-        collectAmount = 0;
-      }
-      collectAmount += _calculatePayout(p, _msgSender());
-      unchecked {
-        i++;
-      }
-    }
-
-    // send collected and not sent yet
-    _sendPayout(collectToken, collectAmount, _msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -361,9 +340,8 @@ contract DistributionManager is
    * @notice Internal _claimOwnerPayouts for claiming all pending Dataset ownership fees
    * @dev Called by `claimDatasetOwnerPayouts()` & `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param owner the adress of the Dataset owner
    */
-  function _claimOwnerPayouts(address owner) internal {
+  function _claimOwnerPayouts() internal {
     uint256 totalPayments = payments.length;
     if (_firstUnclaimed >= totalPayments) return; // Nothing to claim
 
@@ -379,7 +357,7 @@ contract DistributionManager is
       if (pendingFeeToken == 0) continue;
       delete pendingOwnerFee[collectToken];
 
-      _sendPayout(collectToken, pendingFeeToken, owner);
+      _sendPayout(collectToken, pendingFeeToken, _msgSender());
 
       unchecked {
         i++;
@@ -391,9 +369,9 @@ contract DistributionManager is
    * @notice Internal _claimPayouts for claiming all pending contribution fees (from fragments) for a specific contributor
    * @dev Called by `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param beneficiary the contributor's address to receive the payout
    */
-  function _claimPayouts(address beneficiary) internal {
+  function _claimPayouts() internal {
+    address beneficiary = _msgSender();
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[beneficiary];
     uint256 totalPayments = payments.length;
