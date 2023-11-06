@@ -318,10 +318,17 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
         7, // 7 days
-        1
+        1,
+        maxSubscriptionFee
       );
 
       const claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
@@ -416,10 +423,17 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
       await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
         datasetId_,
         7, // 7 days
-        1
+        1,
+        maxSubscriptionFee
       );
 
       let claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
@@ -543,7 +557,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -628,8 +653,18 @@ export default async function suite(): Promise<void> {
         tokenAddress,
         feeAmount
       );
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -717,7 +752,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -840,7 +886,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -931,7 +988,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -976,10 +1044,13 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .approve(await DatasetSubscriptionManager_.getAddress(), parseUnits('604.8', 18));
 
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 7, 1);
+
       await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
         datasetId_,
         7,
-        1
+        1,
+        maxSubscriptionFee
       );
 
       await time.increase(constants.ONE_WEEK * 2);
@@ -1057,7 +1128,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1102,10 +1184,13 @@ export default async function suite(): Promise<void> {
         .connect(users_.secondSubscriber)
         .approve(await DatasetSubscriptionManager_.getAddress(), parseUnits('604.8', 18));
 
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 7, 1);
+
       await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
         datasetId_,
         7,
-        1
+        1,
+        maxSubscriptionFee
       );
 
       await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
@@ -1118,7 +1203,14 @@ export default async function suite(): Promise<void> {
         parseUnits('60.48', 18)
       );
 
-      await DatasetSubscriptionManager_.connect(users_.user).subscribe(datasetId_, 7, 1);
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 7, 1);
+
+      await DatasetSubscriptionManager_.connect(users_.user).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       await time.increase(constants.ONE_WEEK * 2);
 
@@ -1197,7 +1289,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       let validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1238,10 +1341,13 @@ export default async function suite(): Promise<void> {
         parseUnits('24192', 18)
       );
 
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 28, 1);
+
       await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
         datasetId_,
         28,
-        1
+        1,
+        maxSubscriptionFee
       );
 
       validSince =
@@ -1341,7 +1447,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       let claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
 
@@ -1381,10 +1498,13 @@ export default async function suite(): Promise<void> {
         parseUnits('24192', 18)
       );
 
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 28, 1);
+
       await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
         datasetId_,
         28,
-        1
+        1,
+        maxSubscriptionFee
       );
 
       claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
@@ -1487,7 +1607,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       let validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1555,10 +1686,13 @@ export default async function suite(): Promise<void> {
         parseUnits('2419.2')
       );
 
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 28, 1);
+
       await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
         datasetId_,
         28,
-        1
+        1,
+        maxSubscriptionFee
       );
 
       validSince =
@@ -1679,7 +1813,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1771,7 +1916,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1852,7 +2008,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -1932,7 +2099,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       let validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -2039,7 +2217,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       let validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
@@ -2144,7 +2333,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 7, 1);
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
 
       // 2 contributors (dtOwner & contributor, thus payout for fragment owners will be split in half:
       // 6048(totalFee) - 6.048(ownerFee) = 6041.952 for contributors) ,two contributors thus, 6041.952/2 == 3020.976
