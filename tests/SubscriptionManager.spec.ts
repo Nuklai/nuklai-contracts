@@ -316,6 +316,43 @@ export default async function suite(): Promise<void> {
       ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
     });
 
+    it('Should revert data set subscription if max fee is too low', async function () {
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [ZeroHash],
+        [parseUnits('1', 18)]
+      );
+
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('0.00864', 18)
+      );
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.01', 18)
+      );
+
+      const feeAmount = parseUnits('0.00864', 18); // totalFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        await users_.datasetOwner.Token!.getAddress(),
+        feeAmount
+      );
+
+      const maxSubscriptionFee = 1;
+
+      await expect(
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+          datasetId_,
+          1, // 1 day
+          1,
+          maxSubscriptionFee
+        )
+      ).to.be.revertedWithCustomError(
+        DatasetSubscriptionManager_,
+        'SUBSCRIPTION_FEE_EXCEEDS_LIMIT'
+      );
+    });
+
     it('Should revert if user tries to pay data set with ERC-20 and in addition sending native currency in msg.value', async function () {
       await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
         [ZeroHash],
@@ -1007,6 +1044,27 @@ export default async function suite(): Promise<void> {
             maxSubscriptionFee
           )
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
+      });
+
+      it('Should revert subscription extension if max fee is too low', async () => {
+        await users_.subscriber.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('0.7')
+        );
+
+        const maxSubscriptionFee = 1;
+
+        await expect(
+          DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+            subscriptionId_,
+            7, // 7 days
+            0,
+            maxSubscriptionFee
+          )
+        ).to.be.revertedWithCustomError(
+          DatasetSubscriptionManager_,
+          'SUBSCRIPTION_FEE_EXCEEDS_LIMIT'
+        );
       });
 
       it('Should revert if subscriber tries to extend a wrong subscription', async () => {
