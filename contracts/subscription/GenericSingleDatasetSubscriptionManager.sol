@@ -43,7 +43,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   error SUBSCRIPTION_REMAINING_DURATION(uint256 maximum, uint256 current);
   error ARRAY_LENGTH_MISMATCH();
   error NOTHING_TO_PAY();
-  error SUBSCRIPTION_FEE_EXEEDS_LIMIT();
+  error SUBSCRIPTION_FEE_EXCEEDS_LIMIT();
 
   struct SubscriptionDetails {
     uint256 validSince;
@@ -323,7 +323,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     if (consumers == 0) revert CONSUMER_ZERO();
 
     (, uint256 fee) = _calculateFee(durationInDays, consumers);
-    if (fee > maxFee) revert SUBSCRIPTION_FEE_EXEEDS_LIMIT();
+    if (fee > maxFee) revert SUBSCRIPTION_FEE_EXCEEDS_LIMIT();
     _charge(_msgSender(), fee);
 
     sid = ++_mintCounter;
@@ -388,7 +388,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
 
     unchecked {
       uint256 chargeFee = newFee - currentFee;
-      if (chargeFee > maxExtraFee) revert SUBSCRIPTION_FEE_EXEEDS_LIMIT();
+      if (chargeFee > maxExtraFee) revert SUBSCRIPTION_FEE_EXCEEDS_LIMIT();
       _charge(_msgSender(), chargeFee);
     }
 
