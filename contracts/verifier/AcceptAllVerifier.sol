@@ -16,6 +16,7 @@ contract AcceptAllVerifier is IVerifier {
    * @param id ID of the pending Fragment to be accepted
    */
   function propose(address /*fragmentNFT*/, uint256 id, bytes32 /*tag*/) external {
+    //We can use msg.sender here instead of _msgSender() because VerifierManager is always a smart-contract
     VerifierManager(msg.sender).resolve(id, true);
   }
 }

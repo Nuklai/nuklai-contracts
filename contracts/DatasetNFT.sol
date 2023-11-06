@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -12,15 +13,20 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
+import {ERC2771ContextMutableForwarderUpgradeable} from "./utils/ERC2771ContextMutableForwarderUpgradeable.sol";
 
 /**
  * @title DatasetNFT contract
  * @author Data Tunnel
  * @notice This contract mints ERC721 tokens, each representing a unique Dataset integrated into the Data Tunnel Protocol.
  * It enables the configuration of Datasets, including their monetization, and maintains a record of these configurations.
- * @dev Extends IDatasetNFT, ERC721Upgradeable & AccessControlUpgradeable
  */
-contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable {
+contract DatasetNFT is
+  IDatasetNFT,
+  ERC721Upgradeable,
+  AccessControlUpgradeable,
+  ERC2771ContextMutableForwarderUpgradeable
+{
   using Strings for uint256;
 
   string private constant _NAME = "Data Tunnel Dataset";
@@ -42,7 +48,7 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   error ZERO_ADDRESS();
   error DATASET_FACTORY_ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
-  error INVALID_ZERO_MODEL_FEE();
+  error BENEFICIARY_ZERO_ADDRESS();
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
@@ -73,10 +79,12 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @dev Sets the name & symbol of the token collection, and
    * grants `DEFAULT_ADMIN_ROLE` role to `admin_`.
    * @param admin_ The address to grant `DEFAULT_ADMIN_ROLE` role
+   * @param trustedForwarder_ Address of ERC2771 trusted forwarder. Can be zero if not used.
    */
-  function initialize(address admin_) external initializer {
+  function initialize(address admin_, address trustedForwarder_) external initializer {
     if (admin_ == address(0)) revert ZERO_ADDRESS();
     __ERC721_init(_NAME, _SYMBOL);
+    __ERC2771ContextMutableForwarderUpgradeable_init_unchained(trustedForwarder_);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
@@ -116,8 +124,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function tokenURI(uint256 tokenId) public view override(ERC721Upgradeable, IDatasetNFT) returns (string memory) {
     if (!_exists(tokenId)) revert TOKEN_ID_NOT_EXISTS(tokenId);
-    string memory contractURI_ = string.concat(_contractURI(), "/");
-    return bytes(_contractURI()).length > 0 ? string.concat(contractURI_, tokenId.toString()) : "";
+    string memory contractURI_ = _contractURI();
+    return bytes(contractURI_).length > 0 ? string.concat(string.concat(contractURI_, "/"), tokenId.toString()) : "";
   }
 
   /**
@@ -174,17 +182,20 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+    ManagersConfig memory currentConfig = configurations[id];
+    ManagersConfig storage currentProxie = proxies[id];
+
     bool changed;
-    if (configurations[id].subscriptionManager != config.subscriptionManager) {
-      proxies[id].subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
+    if (currentConfig.subscriptionManager != config.subscriptionManager) {
+      currentProxie.subscriptionManager = _cloneAndInitialize(config.subscriptionManager, id);
       changed = true;
     }
-    if (configurations[id].distributionManager != config.distributionManager) {
-      proxies[id].distributionManager = _cloneAndInitialize(config.distributionManager, id);
+    if (currentConfig.distributionManager != config.distributionManager) {
+      currentProxie.distributionManager = _cloneAndInitialize(config.distributionManager, id);
       changed = true;
     }
-    if (configurations[id].verifierManager != config.verifierManager) {
-      proxies[id].verifierManager = _cloneAndInitialize(config.verifierManager, id);
+    if (currentConfig.verifierManager != config.verifierManager) {
+      currentProxie.verifierManager = _cloneAndInitialize(config.verifierManager, id);
       changed = true;
     }
     if (changed) {
@@ -204,13 +215,18 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
     DeployerFeeModel[] calldata models,
     uint256[] calldata percentages
   ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (deployerFeeBeneficiary == address(0)) revert BENEFICIARY_ZERO_ADDRESS();
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
-    for (uint256 i; i < models.length; i++) {
-      DeployerFeeModel m = models[i];
-      if (uint8(m) == 0) revert INVALID_ZERO_MODEL_FEE();
-      uint256 p = percentages[i];
-      if (p > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, p);
-      deployerFeeModelPercentage[m] = p;
+    uint256 totalModels = models.length;
+    for (uint256 i; i < totalModels; ) {
+      DeployerFeeModel model = models[i];
+      if (uint8(model) == 0) continue;
+      uint256 percentage = percentages[i];
+      if (percentage > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, percentage);
+      deployerFeeModelPercentage[model] = percentage;
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -259,6 +275,16 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
   }
 
   /**
+   * @notice Sets the address of the trusted Forwarder contract
+   * @dev Forwarder contract will be in charge to verify signature for ERC-2771 standard.
+   * Only callable by DatasetNFT ADMIN
+   * @param trustedForwarder_ The address to set as trusted forwarder
+   */
+  function setTrustedForwarder(address trustedForwarder_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setTrustedForwarder(trustedForwarder_);
+  }
+
+  /**
    * @notice Deploys a TransparentUpgradeableProxy of the FragmentNFT implementation contract for a specific Dataset
    * @dev Only callable by the owner of the Dataset NFT token.
    * Emits a {FragmentInstanceDeployment} event.
@@ -296,8 +322,8 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function proposeManyFragments(
     uint256 datasetId,
-    address[] memory owners,
-    bytes32[] memory tags,
+    address[] calldata owners,
+    bytes32[] calldata tags,
     bytes calldata signature
   ) external {
     IFragmentNFT fragmentInstance = fragments[datasetId];
@@ -427,5 +453,25 @@ contract DatasetNFT is IDatasetNFT, ERC721Upgradeable, AccessControlUpgradeable 
    */
   function _mintMessageHash(bytes32 uuidHashed, address to) private view returns (bytes32) {
     return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed, to));
+  }
+
+  function _msgSender()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable)
+    returns (address sender)
+  {
+    return ERC2771ContextMutableForwarderUpgradeable._msgSender();
+  }
+
+  function _msgData()
+    internal
+    view
+    virtual
+    override(ContextUpgradeable, ERC2771ContextMutableForwarderUpgradeable)
+    returns (bytes calldata)
+  {
+    return ERC2771ContextMutableForwarderUpgradeable._msgData();
   }
 }

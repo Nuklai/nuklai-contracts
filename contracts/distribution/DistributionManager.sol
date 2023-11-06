@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -11,6 +10,9 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IDistributionManager} from "../interfaces/IDistributionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
+import {
+  ERC2771ContextExternalForwarderSourceUpgradeable
+} from "../utils/ERC2771ContextExternalForwarderSourceUpgradeable.sol";
 
 /**
  * @title DistributionManager contract
@@ -19,9 +21,12 @@ import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
  * provides configuration options for fee distribution percentages among parties.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
- * @dev Extends IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable
  */
-contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable, ContextUpgradeable {
+contract DistributionManager is
+  IDistributionManager,
+  ReentrancyGuardUpgradeable,
+  ERC2771ContextExternalForwarderSourceUpgradeable
+{
   using SafeERC20 for IERC20;
   using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
   using Address for address payable;
@@ -40,6 +45,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   error DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
   error SIGNATURE_OVERDUE();
   error NO_UNCLAIMED_PAYMENTS_AVAILABLE();
+  error UNSUPPORTED_MSG_VALUE();
 
   /**
    * @dev A Payment contains:
@@ -55,6 +61,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     uint256 tagWeightsVersion;
   }
 
+  uint256 public constant BASE_100_PERCENT = 1e18;
+  uint256 public constant MAX_DATASET_OWNER_PERCENTAGE = 0.5e18;
   IDatasetNFT public dataset;
   uint256 public datasetId;
   IFragmentNFT public fragmentNFT;
@@ -71,7 +79,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   }
 
   modifier onlySubscriptionManager() {
-    if (dataset.subscriptionManager(datasetId) != _msgSender()) revert NOT_SUBSCRIPTION_MANAGER(_msgSender());
+    //Use msg.sender here instead of _msgSender() because this call should not go through trustedForwarder
+    if (dataset.subscriptionManager(datasetId) != msg.sender) revert NOT_SUBSCRIPTION_MANAGER(msg.sender);
     _;
   }
 
@@ -86,6 +95,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ReentrancyGuard_init();
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
@@ -117,10 +127,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights[_versionedTagWeights.length - 1];
     uint256 tagsLength = tags.length;
     weights = new uint256[](tagsLength);
-    for (uint256 i; i < tagsLength; i++) {
+    for (uint256 i; i < tagsLength; ) {
       bytes32 tag = tags[i];
       (, uint256 weight) = tagWeights.tryGet(tag);
       weights[i] = weight;
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -158,7 +171,8 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function _setDatasetOwnerPercentage(uint256 percentage) internal {
-    if (percentage > 5e17) revert PERCENTAGE_VALUE_INVALID(5e17, percentage);
+    if (percentage > MAX_DATASET_OWNER_PERCENTAGE)
+      revert PERCENTAGE_VALUE_INVALID(MAX_DATASET_OWNER_PERCENTAGE, percentage);
     datasetOwnerPercentage = percentage;
   }
 
@@ -171,11 +185,14 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
   function _setTagWeights(bytes32[] calldata tags, uint256[] calldata weights) internal {
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights.push();
     uint256 weightSum;
-    for (uint256 i; i < weights.length; i++) {
+    for (uint256 i; i < weights.length; ) {
       weightSum += weights[i];
       tagWeights.set(tags[i], weights[i]);
+      unchecked {
+        i++;
+      }
     }
-    if (weightSum != 1e18) revert TAG_WEIGHTS_SUM_INVALID(1e18, weightSum);
+    if (weightSum != BASE_100_PERCENT) revert TAG_WEIGHTS_SUM_INVALID(BASE_100_PERCENT, weightSum);
   }
 
   /**
@@ -190,15 +207,16 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    */
   function receivePayment(address token, uint256 amount) external payable onlySubscriptionManager nonReentrant {
     if (_versionedTagWeights.length == 0) revert TAG_WEIGHTS_NOT_INITIALIZED();
-    if (address(token) == address(0)) {
-      if (amount != msg.value) revert MSG_VALUE_MISMATCH(msg.value, amount);
+    if (address(token) == address(0) && amount != msg.value) {
+      revert MSG_VALUE_MISMATCH(msg.value, amount);
     } else {
+      if (msg.value > 0) revert UNSUPPORTED_MSG_VALUE();
       IERC20(token).safeTransferFrom(_msgSender(), address(this), amount);
     }
     uint256 snapshotId = fragmentNFT.snapshot();
 
     // Deployer fee
-    uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / 1e18;
+    uint256 deployerFee = (amount * dataset.deployerFeePercentage(datasetId)) / BASE_100_PERCENT;
     if (deployerFee > 0) {
       address deployerFeeBeneficiary = dataset.deployerFeeBeneficiary();
       if (deployerFeeBeneficiary == address(0)) revert DEPLOYER_FEE_BENEFICIARY_ZERO_ADDRESS();
@@ -208,7 +226,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
 
     // Dataset owner fee
     if (amount > 0) {
-      uint256 ownerAmount = (amount * datasetOwnerPercentage) / 1e18;
+      uint256 ownerAmount = (amount * datasetOwnerPercentage) / BASE_100_PERCENT;
       pendingOwnerFee[token] += ownerAmount;
       amount -= ownerAmount;
     }
@@ -247,7 +265,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
   }
 
   /**
@@ -273,10 +291,10 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim Pending Owner Fees
-    _claimOwnerPayouts(_msgSender());
+    _claimOwnerPayouts();
 
     // Claim Fragment Fees
-    _claimPayouts(_msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -295,26 +313,7 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     // Claim payouts
-    uint256 firstUnclaimedPayout = _firstUnclaimedContribution[_msgSender()];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-
-    _firstUnclaimedContribution[_msgSender()] = payments.length; // CEI pattern to prevent reentrancy
-
-    address collectToken = payments[firstUnclaimedPayout].token;
-    uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
-      Payment storage p = payments[i];
-      if (collectToken != p.token) {
-        // Payment token changed, send what we've already collected
-        _sendPayout(collectToken, collectAmount, _msgSender());
-        collectToken = p.token;
-        collectAmount = 0;
-      }
-      collectAmount += _calculatePayout(p, _msgSender());
-    }
-
-    // send collected and not sent yet
-    _sendPayout(collectToken, collectAmount, _msgSender());
+    _claimPayouts();
   }
 
   /**
@@ -325,13 +324,17 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    */
   function calculatePayoutByToken(address token, address account) external view returns (uint256 collectAmount) {
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[account];
+    uint256 totalPayments = payments.length;
 
-    if (firstUnclaimedPayout >= payments.length) return 0;
+    if (firstUnclaimedPayout >= totalPayments) return 0;
 
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
       Payment storage p = payments[i];
       if (token == p.token) {
         collectAmount += _calculatePayout(p, account);
+      }
+      unchecked {
+        i++;
       }
     }
   }
@@ -340,23 +343,28 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @notice Internal _claimOwnerPayouts for claiming all pending Dataset ownership fees
    * @dev Called by `claimDatasetOwnerPayouts()` & `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param owner the adress of the Dataset owner
    */
-  function _claimOwnerPayouts(address owner) internal {
-    if (_firstUnclaimed >= payments.length) return; // Nothing to claim
+  function _claimOwnerPayouts() internal {
+    uint256 totalPayments = payments.length;
+    if (_firstUnclaimed >= totalPayments) return; // Nothing to claim
+
     uint256 firstUnclaimedPayout = _firstUnclaimed;
-    _firstUnclaimed = payments.length; // CEI pattern to prevent reentrancy
+    _firstUnclaimed = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken;
     uint256 pendingFeeToken;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
       collectToken = payments[i].token;
       pendingFeeToken = pendingOwnerFee[collectToken];
 
       if (pendingFeeToken == 0) continue;
       delete pendingOwnerFee[collectToken];
 
-      _sendPayout(collectToken, pendingFeeToken, owner);
+      _sendPayout(collectToken, pendingFeeToken, _msgSender());
+
+      unchecked {
+        i++;
+      }
     }
   }
 
@@ -364,17 +372,18 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
    * @notice Internal _claimPayouts for claiming all pending contribution fees (from fragments) for a specific contributor
    * @dev Called by `claimDatasetOwnerAndFragmentPayouts()`.
    * Emits {PayoutSent} event(s).
-   * @param beneficiary the contributor's address to receive the payout
    */
-  function _claimPayouts(address beneficiary) internal {
+  function _claimPayouts() internal {
+    address beneficiary = _msgSender();
     // Claim payouts
     uint256 firstUnclaimedPayout = _firstUnclaimedContribution[beneficiary];
-    if (firstUnclaimedPayout >= payments.length) return; // Nothing to claim
-    _firstUnclaimedContribution[beneficiary] = payments.length; // CEI pattern to prevent reentrancy
+    uint256 totalPayments = payments.length;
+    if (firstUnclaimedPayout >= totalPayments) return; // Nothing to claim
+    _firstUnclaimedContribution[beneficiary] = totalPayments; // CEI pattern to prevent reentrancy
 
     address collectToken = payments[firstUnclaimedPayout].token;
     uint256 collectAmount;
-    for (uint256 i = firstUnclaimedPayout; i < payments.length; i++) {
+    for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
       Payment storage p = payments[i];
       if (collectToken != p.token) {
         // Payment token changed, send what we've already collected
@@ -383,6 +392,9 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
         collectAmount = 0;
       }
       collectAmount += _calculatePayout(p, beneficiary);
+      unchecked {
+        i++;
+      }
     }
     // send collected and not sent yet
     _sendPayout(collectToken, collectAmount, beneficiary);
@@ -407,10 +419,13 @@ contract DistributionManager is IDistributionManager, ReentrancyGuardUpgradeable
     EnumerableMap.Bytes32ToUintMap storage tagWeights = _versionedTagWeights[p.tagWeightsVersion];
     bytes32[] memory tags = tagWeights.keys();
     uint256[] memory percentages = fragmentNFT.accountTagPercentageAt(p.snapshotId, account, tags);
-    for (uint256 i; i < tags.length; i++) {
+    for (uint256 i; i < tags.length; ) {
       bytes32 tag = tags[i];
       if (percentages[i] > 0) {
         payout += (paymentAmount * tagWeights.get(tag) * percentages[i]) / 1e36;
+      }
+      unchecked {
+        i++;
       }
     }
   }

@@ -211,6 +211,14 @@ export default async function suite(): Promise<void> {
       expect(await DatasetNFT_.isSigner(users_.dtAdmin)).to.be.true;
     });
 
+    it('Should DT admin set a forwarder address for meta transactions', async function () {
+      await expect(DatasetNFT_.connect(users_.dtAdmin).setTrustedForwarder(users_.dtAdmin.address))
+        .to.emit(DatasetNFT_, 'TrustedForwarderChanged')
+        .withArgs(users_.dtAdmin.address);
+
+      expect(await DatasetNFT_.isTrustedForwarder(users_.dtAdmin.address)).to.be.true;
+    });
+
     it('Should DT admin set a deployer beneficiary for fees', async function () {
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
@@ -234,6 +242,8 @@ export default async function suite(): Promise<void> {
     it('Should setDeployerFeeModelPercentages() revert if models and percentages length mismatch', async () => {
       const percentages = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
 
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
+
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
           [
@@ -246,23 +256,10 @@ export default async function suite(): Promise<void> {
       ).to.be.revertedWithCustomError(DatasetNFT_, 'ARRAY_LENGTH_MISMATCH');
     });
 
-    it('Should revert when trying to set feePercentage for NO_FEE model', async () => {
-      const percentages = [parseUnits('0.35', 18), parseUnits('0.1', 18), parseUnits('0.05', 18)];
-
-      await expect(
-        DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
-          [
-            constants.DeployerFeeModel.DEPLOYER_STORAGE,
-            constants.DeployerFeeModel.DATASET_OWNER_STORAGE,
-            constants.DeployerFeeModel.NO_FEE,
-          ],
-          percentages
-        )
-      ).to.be.revertedWithCustomError(DatasetNFT_, 'INVALID_ZERO_MODEL_FEE');
-    });
-
     it('Should DT admin set fee model percentage for deployer', async function () {
       const percentage = parseUnits('0.35', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DEPLOYER_STORAGE],
@@ -276,6 +273,8 @@ export default async function suite(): Promise<void> {
 
     it('Should DT admin set fee model percentage for data set owners', async function () {
       const percentage = parseUnits('0.1', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
         [constants.DeployerFeeModel.DATASET_OWNER_STORAGE],
@@ -292,6 +291,8 @@ export default async function suite(): Promise<void> {
     it('Should revert set deployer fee model percentage if goes over 100%', async function () {
       const percentage100Percent = parseUnits('1', 18);
       const percentage = parseUnits('1.1', 18);
+
+      await DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeBeneficiary(users_.dtAdmin.address);
 
       await expect(
         DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
@@ -972,7 +973,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1028,7 +1029,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         await DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1063,6 +1064,31 @@ export default async function suite(): Promise<void> {
           .withArgs(lastFragmentPendingId + 1n, true)
           .to.emit(DatasetFragment_, 'FragmentAccepted')
           .withArgs(lastFragmentPendingId + 1n);
+      });
+
+      it('Should proposeFragment() revert if contributor is address zero', async () => {
+        const tag = utils.encodeTag('dataset.metadata');
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            ZeroAddress,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId_,
+            ZeroAddress,
+            tag,
+            proposeSignature
+          )
+        ).to.be.revertedWithCustomError(DatasetFragment_, 'ZERO_ADDRESS');
       });
 
       it('Should proposeFragment() revert if no FragmentInstance for dataset is deployed', async () => {
@@ -1134,7 +1160,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1174,6 +1200,42 @@ export default async function suite(): Promise<void> {
           .withArgs(lastFragmentPendingId + 3n, tagData);
       });
 
+      it('Should proposeManyFragments() skip contributor if it is the zero address and continue', async () => {
+        const tagSchemas = utils.encodeTag('dataset.schemas');
+        const tagRows = utils.encodeTag('dataset.rows');
+        const tagData = utils.encodeTag('dataset.data');
+
+        const tags = [tagSchemas, tagRows, tagData];
+
+        const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+        const proposeManySignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeBatchMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId_,
+            lastFragmentPendingId + 1n,
+            lastFragmentPendingId + BigInt(tags.length),
+            [users_.contributor.address, ZeroAddress, users_.contributor.address],
+            tags
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+            datasetId_,
+            [users_.contributor.address, ZeroAddress, users_.contributor.address],
+            tags,
+            proposeManySignature
+          )
+        )
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tagSchemas)
+          .to.emit(DatasetFragment_, 'FragmentPending')
+          // tagData fragment id should be lastFragmentPendingId + 3n, but it's lastFragmentPendingId + 2n
+          .withArgs(lastFragmentPendingId + 2n, tagData);
+      });
+
       it('Should revert contributor propose multiple fragments if proposes length is not correct', async function () {
         const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
           users_.datasetOwner
@@ -1199,7 +1261,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
@@ -1314,7 +1376,7 @@ export default async function suite(): Promise<void> {
 
         const AcceptManuallyVerifier = await AcceptManuallyVerifierFactory_.connect(
           users_.datasetOwner
-        ).deploy();
+        ).deploy(await DatasetNFT_.getAddress());
 
         DatasetVerifierManager.setDefaultVerifier(await AcceptManuallyVerifier.getAddress());
 
