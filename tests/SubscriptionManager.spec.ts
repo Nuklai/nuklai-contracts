@@ -122,10 +122,13 @@ const setupOnSubscribe = async () => {
     feeAmount
   );
 
+  const [, maxSubscriptionFee] = await DatasetSubscriptionManager.subscriptionFee(datasetId, 1, 1);
+
   await DatasetSubscriptionManager.connect(users.subscriber).subscribe(
     datasetId,
-    BigInt(1), // 1 day
-    1
+    1, // 1 day
+    1,
+    maxSubscriptionFee
   );
 
   const subscriptionId = await DatasetSubscriptionManager.tokenOfOwnerByIndex(
@@ -297,13 +300,57 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        1,
+        1
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
           datasetId_,
-          BigInt(1), // 1 day
-          1
+          1, // 1 day
+          1,
+          maxSubscriptionFee
         )
       ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
+    });
+
+    it('Should revert data set subscription if max fee is too low', async function () {
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [ZeroHash],
+        [parseUnits('1', 18)]
+      );
+
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('0.00864', 18)
+      );
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.01', 18)
+      );
+
+      const feeAmount = parseUnits('0.00864', 18); // totalFee for 1 day & 1 consumer :: 0.00864 * 1 * 1 = 0.00864
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        await users_.datasetOwner.Token!.getAddress(),
+        feeAmount
+      );
+
+      const maxSubscriptionFee = 1;
+
+      await expect(
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+          datasetId_,
+          1, // 1 day
+          1,
+          maxSubscriptionFee
+        )
+      ).to.be.revertedWithCustomError(
+        DatasetSubscriptionManager_,
+        'SUBSCRIPTION_FEE_EXCEEDS_LIMIT'
+      );
     });
 
     it('Should revert if user tries to pay data set with ERC-20 and in addition sending native currency in msg.value', async function () {
@@ -328,11 +375,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        1,
+        1
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
           datasetId_,
-          BigInt(1), // 1 day
+          1, // 1 day
           1,
+          maxSubscriptionFee,
           { value: parseEther('0.0001') }
         )
       ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'UNSUPPORTED_MSG_VALUE');
@@ -361,7 +415,7 @@ export default async function suite(): Promise<void> {
       );
 
       await expect(
-        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 0, 1)
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 0, 1, 1)
       )
         .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'SUBSCRIPTION_DURATION_INVALID')
         .withArgs(1, 365, 0);
@@ -370,6 +424,7 @@ export default async function suite(): Promise<void> {
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
           datasetId_,
           BigInt(365) + BigInt(1),
+          1,
           1
         )
       )
@@ -399,8 +454,19 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        30,
+        1
+      );
+
       await expect(
-        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, 30, 0)
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+          datasetId_,
+          30,
+          0,
+          maxSubscriptionFee
+        )
       ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'CONSUMER_ZERO');
     });
 
@@ -429,11 +495,7 @@ export default async function suite(): Promise<void> {
       );
 
       await expect(
-        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
-          wrongDatasetId,
-          BigInt(1),
-          1
-        )
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(wrongDatasetId, 1, 1, 1)
       )
         .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'UNSUPPORTED_DATASET')
         .withArgs(wrongDatasetId);
@@ -461,11 +523,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        1,
+        1
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
           datasetId_,
           BigInt(1), // 1 day
-          1
+          1,
+          maxSubscriptionFee
         )
       ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
 
@@ -496,11 +565,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        1,
+        2
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribeAndAddConsumers(
           datasetId_,
           1,
-          [users_.subscriber.address, users_.datasetOwner.address]
+          [users_.subscriber.address, users_.datasetOwner.address],
+          maxSubscriptionFee
         )
       ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
     });
@@ -527,14 +603,26 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
-      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
         datasetId_,
-        BigInt(1), // 1 day
+        1,
         1
       );
 
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        1, // 1 day
+        1,
+        maxSubscriptionFee
+      );
+
       await expect(
-        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(datasetId_, BigInt(1), 1)
+        DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+          datasetId_,
+          1,
+          1,
+          maxSubscriptionFee
+        )
       )
         .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'CONSUMER_ALREADY_SUBSCRIBED')
         .withArgs(users_.subscriber.address);
@@ -556,11 +644,18 @@ export default async function suite(): Promise<void> {
         feeAmount
       );
 
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        1,
+        1
+      );
+
       await expect(
         DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
           datasetId_,
-          BigInt(1), // 1 day
-          1
+          1, // 1 day
+          1,
+          maxSubscriptionFee
         )
       ).to.be.revertedWith('ERC20: insufficient allowance');
     });
@@ -810,11 +905,18 @@ export default async function suite(): Promise<void> {
           parseUnits('0.7', 18) // oneweek and 1 subscriber :: 0.1 * 7 * 1 = 0.7
         );
 
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          7,
+          1
+        );
+
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
-            BigInt(7),
-            0
+            7,
+            0,
+            maxSubscriptionFee
           )
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
       });
@@ -825,7 +927,8 @@ export default async function suite(): Promise<void> {
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
             daysInYear + BigInt(1),
-            0
+            0,
+            1
           )
         )
           .to.be.revertedWithCustomError(
@@ -844,21 +947,35 @@ export default async function suite(): Promise<void> {
           parseUnits('12')
         );
 
+        let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          BigInt(30) * BigInt(4),
+          1
+        );
+
         // Subscriber extends the subscription for 4 months (should pass since remaining <= 30 days)
         await DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
           subscriptionId_,
           BigInt(30) * BigInt(4),
-          0
+          0,
+          maxSubscriptionFee
         );
 
         const daysInYear = BigInt(365);
+
+        [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          daysInYear,
+          1
+        );
 
         //remaining duration :: 4months +1day > 30days (extension should revert)
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
             daysInYear,
-            0
+            0,
+            maxSubscriptionFee
           )
         )
           .to.be.revertedWithCustomError(
@@ -876,12 +993,19 @@ export default async function suite(): Promise<void> {
           parseUnits('36.5')
         );
 
+        [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          daysInYear,
+          1
+        );
+
         // Now extension should not revert since remaining duration < 30 days
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
             daysInYear,
-            0
+            0,
+            maxSubscriptionFee
           )
         ).to.not.be.reverted;
       });
@@ -891,7 +1015,8 @@ export default async function suite(): Promise<void> {
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
             0,
-            0
+            0,
+            1
           )
         ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'NOTHING_TO_PAY');
       });
@@ -905,13 +1030,41 @@ export default async function suite(): Promise<void> {
           parseUnits('0.7')
         );
 
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          7,
+          1
+        );
+
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
-            BigInt(7), // 7 days
-            0
+            7, // 7 days
+            0,
+            maxSubscriptionFee
           )
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
+      });
+
+      it('Should revert subscription extension if max fee is too low', async () => {
+        await users_.subscriber.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('0.7')
+        );
+
+        const maxSubscriptionFee = 1;
+
+        await expect(
+          DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+            subscriptionId_,
+            7, // 7 days
+            0,
+            maxSubscriptionFee
+          )
+        ).to.be.revertedWithCustomError(
+          DatasetSubscriptionManager_,
+          'SUBSCRIPTION_FEE_EXCEEDS_LIMIT'
+        );
       });
 
       it('Should revert if subscriber tries to extend a wrong subscription', async () => {
@@ -920,8 +1073,9 @@ export default async function suite(): Promise<void> {
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             wrongSubscriptionId,
-            BigInt(7),
-            0
+            7,
+            0,
+            1
           )
         ).to.be.revertedWith('ERC721: invalid token ID');
       });
