@@ -12,10 +12,11 @@ import { ZeroHash, parseEther, parseUnits } from 'ethers';
 import { deployments, ethers, network } from 'hardhat';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature } from './utils';
-import { APPROVED_TOKEN_ROLE } from '../utils/constants';
+import { APPROVED_TOKEN_ROLE, SIGNER_ROLE } from '../utils/constants';
 import { getUuidHash, getUint256FromBytes32 } from './utils/utils';
 import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
+import { ONE_DAY } from './utils/constants';
 
 const setup = async () => {
   await deployments.fixture([
@@ -276,6 +277,25 @@ export default async function suite(): Promise<void> {
       )
         .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'UNSUPPORTED_DATASET')
         .withArgs(wrongDatasetId);
+    });
+
+    it('Should revert calculate fees for data set subscription if duration is wrong', async function () {
+      const consumers = 1;
+
+      const maxDurationInDays =
+        await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_DURATION_IN_DAYS();
+
+      const MORE_THAN_ONE_YEAR = 365 + 50;
+
+      await expect(
+        DatasetSubscriptionManager_.subscriptionFee(datasetId_, MORE_THAN_ONE_YEAR, consumers)
+      )
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'SUBSCRIPTION_DURATION_INVALID')
+        .withArgs(1, maxDurationInDays, MORE_THAN_ONE_YEAR);
+
+      await expect(DatasetSubscriptionManager_.subscriptionFee(datasetId_, 0, consumers))
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'SUBSCRIPTION_DURATION_INVALID')
+        .withArgs(1, maxDurationInDays, 0);
     });
 
     it('Should user pay data set subscription with ERC-20 token - data set admin received payment', async function () {
@@ -692,6 +712,39 @@ export default async function suite(): Promise<void> {
 
       afterEach(async () => {
         await ethers.provider.send('evm_revert', [snap]);
+      });
+
+      it('Should consumer be added multiple times to a subscription', async () => {
+        await DatasetSubscriptionManager_.connect(users_.subscriber).addConsumers(subscriptionId_, [
+          users_.consumer.address,
+        ]);
+
+        await time.increase(ONE_DAY * 4);
+
+        await users_.secondConsumer.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('0.01728', 18)
+        );
+
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          1,
+          2
+        );
+
+        await DatasetSubscriptionManager_.connect(users_.secondConsumer).subscribeAndAddConsumers(
+          datasetId_,
+          1, // 1 day
+          [users_.secondConsumer.address, users_.consumer.address],
+          maxSubscriptionFee
+        );
+
+        expect(
+          await DatasetSubscriptionManager_.isSubscriptionPaidFor(
+            datasetId_,
+            users_.consumer.address
+          )
+        ).to.be.true;
       });
 
       it('Should subscription owner add consumers to the subscription', async () => {
