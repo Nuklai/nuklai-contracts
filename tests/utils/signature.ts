@@ -3,11 +3,12 @@ import { AddressLike, getBytes, solidityPacked } from 'ethers';
 export const getDatasetMintMessage = (
   chainId: number,
   datasetAddress: AddressLike,
-  datasetUuidHash: string
+  datasetUuidHash: string,
+  to: AddressLike
 ): Uint8Array => {
   const message = solidityPacked(
-    ['uint256', 'address', 'bytes32'],
-    [chainId, datasetAddress, datasetUuidHash]
+    ['uint256', 'address', 'bytes32', 'address'],
+    [chainId, datasetAddress, datasetUuidHash, to]
   );
 
   return getBytes(message);

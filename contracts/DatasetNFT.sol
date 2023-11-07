@@ -37,6 +37,7 @@ contract DatasetNFT is
 
   error TOKEN_ID_NOT_EXISTS(uint256 tokenId);
   error NOT_OWNER(uint256 id, address account);
+  error NOT_DATASET_FACTORY();
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
   error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
   error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
@@ -45,6 +46,7 @@ contract DatasetNFT is
   error FRAGMENT_INSTANCE_NOT_DEPLOYED();
   error FRAGMENT_PROXY_ADDRESS_INVALID();
   error ZERO_ADDRESS();
+  error DATASET_FACTORY_ZERO_ADDRESS();
   error ARRAY_LENGTH_MISMATCH();
   error BENEFICIARY_ZERO_ADDRESS();
 
@@ -55,6 +57,7 @@ contract DatasetNFT is
   address private _fragmentProxyAdmin;
   address public fragmentImplementation;
   address public deployerFeeBeneficiary;
+  address public datasetFactory;
   mapping(uint256 id => ManagersConfig config) public configurations;
   mapping(uint256 id => ManagersConfig proxy) public proxies;
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
@@ -93,6 +96,15 @@ contract DatasetNFT is
    */
   function setBaseURI(string calldata baseURI_) external onlyRole(DEFAULT_ADMIN_ROLE) {
     baseURI = baseURI_;
+  }
+
+  /**
+   * @notice Sets the `datasetFactory` used to validate sender of `mintByFactory()` call
+   * @param datasetFactory_ Address of DatasetFactory instance
+   */
+  function setDatasetFactory(address datasetFactory_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (datasetFactory_ == address(0)) revert DATASET_FACTORY_ZERO_ADDRESS();
+    datasetFactory = datasetFactory_;
   }
 
   /**
@@ -138,21 +150,25 @@ contract DatasetNFT is
   }
 
   /**
-   * @notice Mints a Dataset NFT token to `to`
+   * @notice Mints a Dataset NFT token to the DatasetFactory, which will transfer it to `to` after configuration steps
    * @dev Emits a {Transfer} event
    * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner
    * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
    */
-  function mint(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
-    bytes32 msgHash = _mintMessageHash(uuidHashed);
+  function mintByFactory(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
+    if (datasetFactory == address(0)) revert DATASET_FACTORY_ZERO_ADDRESS();
+    if (msg.sender != datasetFactory) revert NOT_DATASET_FACTORY();
+    if (to == address(0)) revert ZERO_ADDRESS();
+
+    bytes32 msgHash = _mintMessageHash(uuidHashed, to);
     address signer = ECDSA.recover(msgHash, signature);
     if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
 
     uint256 id = uint256(uuidHashed);
 
-    _mint(to, id);
+    _mint(datasetFactory, id); // Here we mint to a factory, and factory has to transfer the token to a `to` after configurations is done
 
     return id;
   }
@@ -432,10 +448,11 @@ contract DatasetNFT is
    * @notice Returns an Ethereum Signed Message hash for minting a Dataset NFT token
    * @dev See `ECDSA.sol`
    * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
+   * @param to Address of the Dataset owner, approved by off-chain service
    * @return bytes32 The generated Ethereum signed message hash
    */
-  function _mintMessageHash(bytes32 uuidHashed) private view returns (bytes32) {
-    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed));
+  function _mintMessageHash(bytes32 uuidHashed, address to) private view returns (bytes32) {
+    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed, to));
   }
 
   function _msgSender()
