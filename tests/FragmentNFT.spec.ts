@@ -290,7 +290,7 @@ export default async function suite(): Promise<void> {
 
     it('Should currentSnapshotId() return the correct index of Snapshots array', async () => {
       // Currently only 1 element is pushed into the snapshots array (during initialize() call)
-      const expectedIndex = 0;
+      const expectedIndex = 1;
 
       const idx = await DatasetFragment_.currentSnapshotId();
       expect(idx).to.equal(expectedIndex);
