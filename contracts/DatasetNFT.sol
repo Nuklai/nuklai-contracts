@@ -13,6 +13,9 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IDatasetLinkInitializable} from "./interfaces/IDatasetLinkInitializable.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "./interfaces/IFragmentNFT.sol";
+import {IDistributionManager} from "./interfaces/IDistributionManager.sol";
+import {ISubscriptionManager} from "./interfaces/ISubscriptionManager.sol";
+import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
 import {ERC2771ContextMutableForwarderUpgradeable} from "./utils/ERC2771ContextMutableForwarderUpgradeable.sol";
 
 /**
@@ -34,8 +37,12 @@ contract DatasetNFT is
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
   bytes32 public constant APPROVED_TOKEN_ROLE = keccak256("APPROVED_TOKEN_ROLE");
+  bytes32 public constant WHITELISTED_MANAGER_ROLE = keccak256("WHITELISTED_MANAGER_ROLE");
 
   error TOKEN_ID_NOT_EXISTS(uint256 tokenId);
+  error MANAGER_NOT_WHITELISTED(address manager);
+  error MANAGER_INTERFACE_INVALID(address manager);
+  error MANAGER_ZERO_ADDRESS();
   error NOT_OWNER(uint256 id, address account);
   error NOT_DATASET_FACTORY();
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
@@ -183,6 +190,11 @@ contract DatasetNFT is
    */
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
     if (address(fragments[id]) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
+
+    _checkManager(config.distributionManager);
+    _checkManager(config.subscriptionManager);
+    _checkManager(config.verifierManager);
+
     ManagersConfig memory currentConfig = configurations[id];
     ManagersConfig storage currentProxie = proxies[id];
 
@@ -203,6 +215,23 @@ contract DatasetNFT is
       configurations[id] = config;
       emit ManagersConfigChange(id);
     }
+  }
+
+  /**
+   * @notice Checks if manager is not zero address, is whitelisted and check interfaceId using ERC165.
+   * Otherwise will throw a custom revert error
+   * @param manager The address of the manager implementation to check
+   */
+  function _checkManager(address manager) internal view {
+    if (manager == address(0)) revert MANAGER_ZERO_ADDRESS();
+
+    if (!hasRole(WHITELISTED_MANAGER_ROLE, manager)) revert MANAGER_NOT_WHITELISTED(manager);
+
+    if (
+      !IDistributionManager(manager).supportsInterface(type(IDistributionManager).interfaceId) &&
+      !ISubscriptionManager(manager).supportsInterface(type(ISubscriptionManager).interfaceId) &&
+      !IVerifierManager(manager).supportsInterface(type(IVerifierManager).interfaceId)
+    ) revert MANAGER_INTERFACE_INVALID(manager);
   }
 
   /**
@@ -348,6 +377,15 @@ contract DatasetNFT is
    */
   function isApprovedToken(address token) external view returns (bool) {
     return hasRole(APPROVED_TOKEN_ROLE, token);
+  }
+
+  /**
+   * @notice Checks whether the given manager address is approved for data set managements
+   * @param manager The address of the manager to check
+   * @return bool True if `manager` is approved, false if it is not
+   */
+  function isWhitelistedManager(address manager) external view returns (bool) {
+    return hasRole(WHITELISTED_MANAGER_ROLE, manager);
   }
 
   /**

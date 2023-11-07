@@ -29,4 +29,12 @@ interface IVerifierManager is IDatasetLinkInitializable {
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(uint256 id, bool accept) external;
+
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

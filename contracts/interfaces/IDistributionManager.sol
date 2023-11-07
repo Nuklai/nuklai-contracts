@@ -57,4 +57,12 @@ interface IDistributionManager is IDatasetLinkInitializable {
    * @param percentage The percentage to set (must be less than or equal to 50%)
    */
   function setDatasetOwnerPercentage(uint256 percentage) external;
+
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
