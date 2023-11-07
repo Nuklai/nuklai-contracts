@@ -182,6 +182,7 @@ contract DatasetNFT is
    * @param config A struct containing the addresses of the Managers' implementation contracts
    */
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
+    if (address(fragments[id]) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     ManagersConfig memory currentConfig = configurations[id];
     ManagersConfig storage currentProxie = proxies[id];
 
