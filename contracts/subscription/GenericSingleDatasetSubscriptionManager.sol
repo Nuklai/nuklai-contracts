@@ -2,9 +2,11 @@
 pragma solidity =0.8.18;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {
+  ERC721EnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ISubscriptionManager} from "../interfaces/ISubscriptionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {
@@ -19,10 +21,10 @@ import {
  * have unique IDs which are the respective minted ERC721 tokens' IDs.
  */
 abstract contract GenericSingleDatasetSubscriptionManager is
-  ISubscriptionManager,
   Initializable,
-  ERC721Enumerable,
-  ERC2771ContextExternalForwarderSourceUpgradeable
+  ERC721EnumerableUpgradeable,
+  ERC2771ContextExternalForwarderSourceUpgradeable,
+  ISubscriptionManager
 {
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
@@ -81,6 +83,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function __GenericSubscriptionManager_init(address dataset_, uint256 datasetId_) internal onlyInitializing {
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
+    __ERC721Enumerable_init_unchained();
   }
 
   /**
@@ -500,7 +503,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     internal
     view
     virtual
-    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
     returns (address sender)
   {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
@@ -510,7 +513,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     internal
     view
     virtual
-    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
     returns (bytes calldata)
   {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();

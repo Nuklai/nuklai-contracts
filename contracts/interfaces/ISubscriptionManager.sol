@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {
+  IERC721EnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/IERC721EnumerableUpgradeable.sol";
 import {IDatasetLinkInitializable} from "./IDatasetLinkInitializable.sol";
 
 /**
@@ -9,7 +11,7 @@ import {IDatasetLinkInitializable} from "./IDatasetLinkInitializable.sol";
  * @notice Defines functions available for Dataset Owner, Subscription Owners, and users
  * @dev Extends IDatasetLinkInitializable and IERC721
  */
-interface ISubscriptionManager is IDatasetLinkInitializable, IERC721 {
+interface ISubscriptionManager is IDatasetLinkInitializable, IERC721EnumerableUpgradeable {
   /**
    * @notice Verifies if a given subscription is paid for a specified consumer
    * @param dataset ID of the Dataset to access (ID of the target Dataset NFT token)
