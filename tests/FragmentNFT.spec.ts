@@ -339,6 +339,16 @@ export default async function suite(): Promise<void> {
       ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ARRAY_LENGTH_MISMATCH');
     });
 
+    it('Should revert set default tag verifier if it is not data set owner', async function () {
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setDefaultVerifier(
+          await AcceptManuallyVerifier_.getAddress()
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
+    });
+
     it('Should revert set default tag verifier if it is zero address', async function () {
       await expect(
         DatasetVerifierManager_.connect(users_.datasetOwner).setDefaultVerifier(ZeroAddress)
@@ -444,6 +454,26 @@ export default async function suite(): Promise<void> {
       )
         .to.be.revertedWithCustomError(DatasetFragment_, 'NOT_PENDING_FRAGMENT')
         .withArgs(wrongFragmentId);
+    });
+
+    it('Should revert accept/reject fragment propose if it is not data set owner', async function () {
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.user).resolve(
+          fragmentAddress,
+          fragmentIds_[0],
+          false
+        )
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.user).resolve(fragmentAddress, fragmentIds_[0], true)
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should data set owner remove a fragment', async function () {
@@ -569,6 +599,32 @@ export default async function suite(): Promise<void> {
       expect(numberOfApprovalsForEachTag[1]).to.equal(1);
       expect(numberOfApprovalsForEachTag[2]).to.equal(1);
       expect(numberOfApprovalsForEachTag[3]).to.equal(1);
+    });
+
+    it('Should revert if someone tries to call propose() directly in AcceptManuallyVerifier', async () => {
+      const tag = utils.encodeTag('dataset.metadata');
+      const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.contributor).propose(
+          await DatasetFragment_.getAddress(),
+          lastFragmentPendingId + 1n,
+          tag
+        )
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_VERIFIER_MANAGER')
+        .withArgs(users_.contributor.address);
+    });
+
+    it('Should revert if someone tries to call propose() directly in VerifierManager', async () => {
+      const tag = utils.encodeTag('dataset.metadata');
+      const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.contributor).propose(lastFragmentPendingId + 1n, tag)
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_FRAGMENT_NFT')
+        .withArgs(users_.contributor.address);
     });
 
     it('Should snapshot() revert if msgSender is not the configured DistributionManager', async () => {

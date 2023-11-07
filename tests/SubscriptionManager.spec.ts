@@ -233,7 +233,6 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should revert set ERC-20 fee for data set subscription if token is not approved', async function () {
-
       const feeAmount = parseUnits('0.0000001', 18);
 
       await expect(
