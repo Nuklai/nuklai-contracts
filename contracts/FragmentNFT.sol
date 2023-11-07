@@ -47,6 +47,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   error NOT_DATASET_NFT(address account);
   error NOT_PENDING_FRAGMENT(uint256 id);
   error ARRAY_LENGTH_MISMATCH();
+  error MINT_COUNTER_MISMATCH();
   error TARGET_NOT_EMPTY();
   error ZERO_ADDRESS();
 
@@ -305,12 +306,15 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     address signer = ECDSA.recover(msgHash, signature);
     if (!dataset.isSigner(signer)) revert BAD_SIGNATURE(msgHash, signer);
 
+    uint256 skippedOwners;
     uint256 totalOwners = owners.length;
+    uint256 lastMintCounter = _mintCounter;
     for (uint256 i; i < totalOwners; ) {
       address owner = owners[i];
       if (owner == address(0)) {
         unchecked {
           i++;
+          skippedOwners++;
         }
         continue;
       }
@@ -330,6 +334,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
         i++;
       }
     }
+    if (lastMintCounter + tags_.length - skippedOwners != _mintCounter) revert MINT_COUNTER_MISMATCH();
   }
 
   /**
