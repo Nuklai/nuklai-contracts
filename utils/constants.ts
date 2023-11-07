@@ -5,6 +5,10 @@ export const APPROVED_TOKEN_ROLE: BytesLike = solidityPackedKeccak256(
   ['string'],
   ['APPROVED_TOKEN_ROLE']
 );
+export const WHITELISTED_MANAGER_ROLE: BytesLike = solidityPackedKeccak256(
+  ['string'],
+  ['WHITELISTED_MANAGER_ROLE']
+);
 
 export enum DeployerFeeModel {
   NO_FEE, // No Fee wii
