@@ -2,7 +2,7 @@
 // Based on:
 // https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable/blob/v4.9.3/contracts/metatx/ERC2771ContextUpgradeable.sol
 
-pragma solidity ^0.8.9;
+pragma solidity =0.8.18;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";

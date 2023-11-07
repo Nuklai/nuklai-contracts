@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.18;
 
 import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
@@ -108,6 +108,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
+    _snapshots.push();
     _snapshots.push();
   }
 
@@ -613,8 +614,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @param arr The dynamic integer array from which to retrieve the last element
    * @return uint256 The value of the last element in the array
    */
-  function _lastUint256ArrayElement(uint256[] storage arr) private returns (uint256) {
-    if (arr.length == 0) arr.push();
+  function _lastUint256ArrayElement(uint256[] storage arr) private view returns (uint256) {
+    if (arr.length == 0) return 0;
 
     unchecked {
       return arr[arr.length - 1];

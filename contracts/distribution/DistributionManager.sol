@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.18;
 
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -199,6 +199,7 @@ contract DistributionManager is
    * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and
    * creates a record of the amounts eligible for claiming by the Dataset owner and contributors respectively.
    * @dev Called by SubscriptionManager when a subscription payment is initiated.
+   * `token` must not contain fee-on-transfer mechanism.
    * If `token` is address(0) (indicating native currency), the `amount` should match the `msg.value`,
    * otherwise DistributionManager should call `transferFrom()` to transfer the amount from sender.
    * Emits {PaymentReceived} and {PayoutSent} events.

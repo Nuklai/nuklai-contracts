@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity =0.8.18;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
@@ -75,7 +75,7 @@ contract DatasetFactory is Ownable {
     bytes32[] calldata tags,
     uint256[] calldata weights
   ) external {
-    uint256 id = datasetNFT.mint(uuidHashed, address(this), mintSignature);
+    uint256 id = datasetNFT.mintByFactory(uuidHashed, to, mintSignature);
 
     _deployProxies(id);
     _configureVerifierManager(id, defaultVerifier);
