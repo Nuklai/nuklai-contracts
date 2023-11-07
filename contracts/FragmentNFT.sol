@@ -313,8 +313,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
       if (owner == address(0)) {
         unchecked {
           i++;
+          skippedOwners++;
         }
-        skippedOwners++;
         continue;
       }
 
