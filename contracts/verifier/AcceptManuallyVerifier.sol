@@ -48,7 +48,7 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
    */
   constructor(address _dataset) initializer {
     dataset = IDatasetNFT(_dataset);
-    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(_dataset);
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init(_dataset);
   }
 
   /**

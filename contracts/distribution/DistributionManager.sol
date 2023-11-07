@@ -95,7 +95,7 @@ contract DistributionManager is
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ReentrancyGuard_init();
-    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));

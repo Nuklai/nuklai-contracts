@@ -58,7 +58,7 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
    * @param datasetId_ The ID of the target Dataset NFT token
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
-    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
   }
