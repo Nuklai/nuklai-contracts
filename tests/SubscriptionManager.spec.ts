@@ -8,7 +8,7 @@ import {
   VerifierManager,
 } from '@typechained';
 import { expect } from 'chai';
-import { ZeroHash, parseEther, parseUnits } from 'ethers';
+import { ZeroAddress, ZeroHash, parseEther, parseUnits } from 'ethers';
 import { deployments, ethers, network } from 'hardhat';
 import { v4 as uuidv4 } from 'uuid';
 import { constants, signature } from './utils';
@@ -222,6 +222,28 @@ export default async function suite(): Promise<void> {
 
       expect(await DatasetSubscriptionManager_.token()).to.equal(DeployedToken.address);
       expect(await DatasetSubscriptionManager_.feePerConsumerPerDay()).to.equal(feeAmount);
+    });
+
+    it('Should revert set ERC-20 fee for data set subscription if token is zero address', async function () {
+      const feeAmount = parseUnits('0.0000001', 18);
+
+      await expect(
+        DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(ZeroAddress, feeAmount)
+      ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'UNSUPPORTED_NATIVE_CURRENCY');
+    });
+
+    it('Should revert set ERC-20 fee for data set subscription if token is not approved', async function () {
+
+      const feeAmount = parseUnits('0.0000001', 18);
+
+      await expect(
+        DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+          users_.datasetOwner.address,
+          feeAmount
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'NOT_APPROVED_TOKEN')
+        .withArgs(users_.datasetOwner.address);
     });
 
     it('Should calculate fees for data set subscription (one week and 1 consumer)', async function () {
