@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {
@@ -509,7 +510,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    */
   function supportsInterface(
     bytes4 interfaceId
-  ) public view virtual override(ERC165Upgradeable, ERC721EnumerableUpgradeable, ISubscriptionManager) returns (bool) {
+  ) public view virtual override(ERC165Upgradeable, ERC721EnumerableUpgradeable, IERC165Upgradeable) returns (bool) {
     return interfaceId == type(ISubscriptionManager).interfaceId || super.supportsInterface(interfaceId);
   }
 

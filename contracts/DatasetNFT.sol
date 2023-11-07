@@ -191,9 +191,9 @@ contract DatasetNFT is
   function setManagers(uint256 id, ManagersConfig calldata config) external onlyTokenOwner(id) {
     if (address(fragments[id]) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
 
-    _checkManager(config.distributionManager);
-    _checkManager(config.subscriptionManager);
-    _checkManager(config.verifierManager);
+    _checkManager(type(IDistributionManager).interfaceId, config.distributionManager);
+    _checkManager(type(ISubscriptionManager).interfaceId, config.subscriptionManager);
+    _checkManager(type(IVerifierManager).interfaceId, config.verifierManager);
 
     ManagersConfig memory currentConfig = configurations[id];
     ManagersConfig storage currentProxie = proxies[id];
@@ -222,16 +222,10 @@ contract DatasetNFT is
    * Otherwise will throw a custom revert error
    * @param manager The address of the manager implementation to check
    */
-  function _checkManager(address manager) internal view {
+  function _checkManager(bytes4 expectedInterface, address manager) internal view {
     if (manager == address(0)) revert MANAGER_ZERO_ADDRESS();
-
     if (!hasRole(WHITELISTED_MANAGER_ROLE, manager)) revert MANAGER_NOT_WHITELISTED(manager);
-
-    if (
-      !IDistributionManager(manager).supportsInterface(type(IDistributionManager).interfaceId) &&
-      !ISubscriptionManager(manager).supportsInterface(type(ISubscriptionManager).interfaceId) &&
-      !IVerifierManager(manager).supportsInterface(type(IVerifierManager).interfaceId)
-    ) revert MANAGER_INTERFACE_INVALID(manager);
+    if (!IERC165Upgradeable(manager).supportsInterface(expectedInterface)) revert MANAGER_INTERFACE_INVALID(manager);
   }
 
   /**

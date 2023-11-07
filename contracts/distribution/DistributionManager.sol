@@ -2,6 +2,7 @@
 pragma solidity =0.8.18;
 
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -485,7 +486,7 @@ contract DistributionManager is
    */
   function supportsInterface(
     bytes4 interfaceId
-  ) public view virtual override(ERC165Upgradeable, IDistributionManager) returns (bool) {
+  ) public view virtual override(ERC165Upgradeable, IERC165Upgradeable) returns (bool) {
     return interfaceId == type(IDistributionManager).interfaceId || super.supportsInterface(interfaceId);
   }
 }

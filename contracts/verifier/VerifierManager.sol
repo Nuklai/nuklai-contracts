@@ -2,6 +2,7 @@
 pragma solidity =0.8.18;
 
 import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "../interfaces/IVerifierManager.sol";
@@ -168,7 +169,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
    */
   function supportsInterface(
     bytes4 interfaceId
-  ) public view virtual override(ERC165Upgradeable, IVerifierManager) returns (bool) {
+  ) public view virtual override(ERC165Upgradeable, IERC165Upgradeable) returns (bool) {
     return interfaceId == type(IVerifierManager).interfaceId || super.supportsInterface(interfaceId);
   }
 }

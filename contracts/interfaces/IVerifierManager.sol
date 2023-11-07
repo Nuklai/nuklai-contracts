@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {IDatasetLinkInitializable} from "./IDatasetLinkInitializable.sol";
 
-interface IVerifierManager is IDatasetLinkInitializable {
+interface IVerifierManager is IDatasetLinkInitializable, IERC165Upgradeable {
   /**
    * @notice Adds the pending Fragment ID to the verification queue
    * @dev It is expected that `FragmentNFT.accept()` or `FragmentNFT.reject()` will be called by the manager when decision is made
@@ -29,12 +30,4 @@ interface IVerifierManager is IDatasetLinkInitializable {
    * @param accept Flag to indicate acceptance (`true`) or rejection (`true`)
    */
   function resolve(uint256 id, bool accept) external;
-
-  /**
-   * @notice Checks whether the interface ID provided is supported by this Contract
-   * @dev For more information, see `EIP-165`
-   * @param interfaceId The interface ID to check
-   * @return bool true if it is supported, false if it is not
-   */
-  function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }

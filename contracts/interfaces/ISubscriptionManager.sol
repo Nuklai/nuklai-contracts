@@ -159,12 +159,4 @@ interface ISubscriptionManager is IDatasetLinkInitializable, IERC721EnumerableUp
     address[] calldata oldConsumers,
     address[] calldata newConsumers
   ) external;
-
-  /**
-   * @notice Checks whether the interface ID provided is supported by this Contract
-   * @dev For more information, see `EIP-165`
-   * @param interfaceId The interface ID to check
-   * @return bool true if it is supported, false if it is not
-   */
-  function supportsInterface(bytes4 interfaceId) external view returns (bool);
 }
