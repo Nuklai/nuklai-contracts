@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {IDatasetLinkInitializable} from "./IDatasetLinkInitializable.sol";
 
 /**
@@ -8,7 +9,7 @@ import {IDatasetLinkInitializable} from "./IDatasetLinkInitializable.sol";
  * @notice Defines functions available for Dataset NFT token owner, users, contributors, DatasetNFT & SubscriptionManager contracts
  * @dev Extends IDatasetLinkInitializable
  */
-interface IDistributionManager is IDatasetLinkInitializable {
+interface IDistributionManager is IDatasetLinkInitializable, IERC165Upgradeable {
   /**
    * @notice Receives a subscription payment, sends deployer fee to configured beneficiary, and
    * creates a record of the amounts eligible for claiming by the Dataset owner and contributors respectively.

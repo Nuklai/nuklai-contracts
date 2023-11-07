@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
+import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {
   ERC721EnumerableUpgradeable
@@ -22,6 +24,7 @@ import {
  */
 abstract contract GenericSingleDatasetSubscriptionManager is
   Initializable,
+  ERC165Upgradeable,
   ERC721EnumerableUpgradeable,
   ERC2771ContextExternalForwarderSourceUpgradeable,
   ISubscriptionManager
@@ -497,6 +500,18 @@ abstract contract GenericSingleDatasetSubscriptionManager is
    */
   function _requireCorrectDataset(uint256 _datasetId) internal view {
     if (datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
+  }
+
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override(ERC165Upgradeable, ERC721EnumerableUpgradeable, IERC165Upgradeable) returns (bool) {
+    return interfaceId == type(ISubscriptionManager).interfaceId || super.supportsInterface(interfaceId);
   }
 
   function _msgSender()

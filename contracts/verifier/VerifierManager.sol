@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {IFragmentNFT} from "../interfaces/IFragmentNFT.sol";
 import {IVerifierManager} from "../interfaces/IVerifierManager.sol";
@@ -17,7 +19,7 @@ import {
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated
  * with a specific instance of this implementation.
  */
-contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSourceUpgradeable {
+contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextExternalForwarderSourceUpgradeable {
   error NOT_DATASET_OWNER(address account);
   error NOT_FRAGMENT_NFT(address account);
   error VERIFIER_WRONG_SENDER(address account);
@@ -157,5 +159,17 @@ contract VerifierManager is IVerifierManager, ERC2771ContextExternalForwarderSou
     if (verifier == address(0) && defaultVerifier != address(0)) {
       verifier = defaultVerifier;
     }
+  }
+
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override(ERC165Upgradeable, IERC165Upgradeable) returns (bool) {
+    return interfaceId == type(IVerifierManager).interfaceId || super.supportsInterface(interfaceId);
   }
 }
