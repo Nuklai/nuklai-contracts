@@ -735,6 +735,38 @@ export default async function suite(): Promise<void> {
         );
       });
 
+      it('Should DT admin add managers to whitelist', async function () {
+        const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const DistributionManager = await DistributionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
+        expect(await DatasetNFT_.isWhitelistedManager(await SubscriptionManager.getAddress())).to.be
+          .true;
+        expect(await DatasetNFT_.isWhitelistedManager(await DistributionManager.getAddress())).to.be
+          .true;
+        expect(await DatasetNFT_.isWhitelistedManager(await VerifierManager.getAddress())).to.be
+          .true;
+      });
+
       it('Should DT admin disable fragment instance creation', async () => {
         const uuId_Dataset2nd = uuidv4();
 
@@ -845,6 +877,23 @@ export default async function suite(): Promise<void> {
 
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          ZeroAddress
+        );
+
         const subscriptionManagerAddr = await SubscriptionManager.getAddress();
         const distributionManagerAddr = await DistributionManager.getAddress();
         const verifierManagerAddr = await VerifierManager.getAddress();
@@ -868,15 +917,15 @@ export default async function suite(): Promise<void> {
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config1)
-        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_ZERO_ADDRESS');
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config2)
-        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_ZERO_ADDRESS');
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config3)
-        ).to.be.revertedWithCustomError(DatasetNFT_, 'ZERO_ADDRESS');
+        ).to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_ZERO_ADDRESS');
       });
 
       it('Should not emit event if all managers provided are the same as currently set', async () => {
@@ -911,6 +960,19 @@ export default async function suite(): Promise<void> {
           users_.datasetOwner
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
@@ -953,6 +1015,19 @@ export default async function suite(): Promise<void> {
           users_.datasetOwner
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
 
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
@@ -1009,6 +1084,19 @@ export default async function suite(): Promise<void> {
           users_.datasetOwner
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
 
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
@@ -1141,6 +1229,19 @@ export default async function suite(): Promise<void> {
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
           distributionManager: await DistributionManager.getAddress(),
@@ -1242,6 +1343,19 @@ export default async function suite(): Promise<void> {
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
           distributionManager: await DistributionManager.getAddress(),
@@ -1301,6 +1415,19 @@ export default async function suite(): Promise<void> {
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
           distributionManager: await DistributionManager.getAddress(),
@@ -1356,6 +1483,19 @@ export default async function suite(): Promise<void> {
           users_.datasetOwner
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
 
         await DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
           subscriptionManager: await SubscriptionManager.getAddress(),
