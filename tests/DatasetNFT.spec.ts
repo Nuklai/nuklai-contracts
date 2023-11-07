@@ -928,6 +928,128 @@ export default async function suite(): Promise<void> {
         ).to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_ZERO_ADDRESS');
       });
 
+      it('Should revert when data set owner tries to set managers with invalid interface id', async () => {
+        const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const DistributionManager = await DistributionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        const subscriptionManagerAddr = await SubscriptionManager.getAddress();
+        const distributionManagerAddr = await DistributionManager.getAddress();
+        const verifierManagerAddr = await VerifierManager.getAddress();
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
+        // ManagersConfig :: {subscription, distribution, verifier}
+        let config = {
+          distributionManager: verifierManagerAddr,
+          subscriptionManager: distributionManagerAddr,
+          verifierManager: subscriptionManagerAddr,
+        };
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_INTERFACE_INVALID')
+          .withArgs(verifierManagerAddr);
+
+        config = {
+          distributionManager: distributionManagerAddr,
+          subscriptionManager: distributionManagerAddr,
+          verifierManager: subscriptionManagerAddr,
+        };
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_INTERFACE_INVALID')
+          .withArgs(distributionManagerAddr);
+
+        config = {
+          distributionManager: distributionManagerAddr,
+          subscriptionManager: subscriptionManagerAddr,
+          verifierManager: subscriptionManagerAddr,
+        };
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_INTERFACE_INVALID')
+          .withArgs(subscriptionManagerAddr);
+
+        config = {
+          distributionManager: distributionManagerAddr,
+          subscriptionManager: subscriptionManagerAddr,
+          verifierManager: verifierManagerAddr,
+        };
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config)).to
+          .not.be.reverted;
+      });
+
+      it('Should revert when data set owner tries to set non-whitelisted managers', async () => {
+        const SubscriptionManager = await ERC20SubscriptionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const DistributionManager = await DistributionManagerFactory_.connect(
+          users_.datasetOwner
+        ).deploy();
+
+        const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
+
+        const subscriptionManagerAddr = await SubscriptionManager.getAddress();
+        const distributionManagerAddr = await DistributionManager.getAddress();
+        const verifierManagerAddr = await VerifierManager.getAddress();
+
+        // ManagersConfig :: {subscription, distribution, verifier}
+        const config = {
+          distributionManager: distributionManagerAddr,
+          subscriptionManager: subscriptionManagerAddr,
+          verifierManager: verifierManagerAddr,
+        };
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_NOT_WHITELISTED')
+          .withArgs(distributionManagerAddr);
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await DistributionManager.getAddress()
+        );
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_NOT_WHITELISTED')
+          .withArgs(subscriptionManagerAddr);
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await SubscriptionManager.getAddress()
+        );
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config))
+          .to.be.revertedWithCustomError(DatasetNFT_, 'MANAGER_NOT_WHITELISTED')
+          .withArgs(verifierManagerAddr);
+
+        await DatasetNFT_.connect(users_.dtAdmin).grantRole(
+          constants.WHITELISTED_MANAGER_ROLE,
+          await VerifierManager.getAddress()
+        );
+
+        await expect(DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, config)).to
+          .not.be.reverted;
+      });
+
       it('Should not emit event if all managers provided are the same as currently set', async () => {
         const config = await DatasetNFT_.configurations(datasetId_);
 
