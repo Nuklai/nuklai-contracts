@@ -383,9 +383,8 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       newDurationInDays = extraDurationInDays;
     }
 
-    newDurationInDays = newDurationInDays <= MAX_SUBSCRIPTION_DURATION_IN_DAYS
-      ? newDurationInDays
-      : MAX_SUBSCRIPTION_DURATION_IN_DAYS;
+    if (newDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
+      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, newDurationInDays);
 
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);

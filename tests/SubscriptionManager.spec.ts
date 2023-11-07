@@ -921,13 +921,8 @@ export default async function suite(): Promise<void> {
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
       });
 
-      it('Should subscription duration be 365 days even if we pass 600 subscription days as parameter', async () => {
-        await time.increase(constants.ONE_DAY * 3);
-
-        await users_.subscriber.Token!.approve(
-          await DatasetSubscriptionManager_.getAddress(),
-          parseUnits('3.1536', 18)
-        );
+      it('Should revert if subscriber tries to extend non expired subscription with extraDuration > 365 days', async () => {
+        const remainingDuration = BigInt(1);
 
         const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
           datasetId_,
@@ -935,34 +930,24 @@ export default async function suite(): Promise<void> {
           1
         );
 
-        const extendSubscriptionReceipt = await (
-          await DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
+        const daysInYear = BigInt(365);
+        await expect(
+          DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
-            BigInt(600),
+            daysInYear + BigInt(1),
             0,
-            maxSubscriptionFee * 2n
+            maxSubscriptionFee
           )
-        ).wait();
-
-        const logs = extendSubscriptionReceipt?.logs[6];
-
-        const [, validSince, validTill] = (logs as any).args as unknown as [
-          bigint,
-          bigint,
-          bigint,
-          bigint
-        ];
-
-        const validSince_ = new Date(Number(validSince * 1000n));
-        const validTill_ = new Date(Number(validTill * 1000n));
-
-        const duration = (validTill_.getTime() - validSince_.getTime()) / (1000 * 3600 * 24);
-
-        expect(duration).to.equal(365);
+        )
+          .to.be.revertedWithCustomError(
+            DatasetSubscriptionManager_,
+            'SUBSCRIPTION_DURATION_INVALID'
+          )
+          .withArgs(1, 365, daysInYear + BigInt(1) + remainingDuration);
       });
 
       it('Should revert if subscriber tries to extend non expired subscription when remaining duration < 30 days', async () => {
-        // Currently subscriber has subscription with remaining duration == 1 day
+        // Currently subscriber has subscription with remaining duration == 1 days
 
         // For 4 months and 1 consumer :: 0.1 * 30 * 4 * 1 = 12
         await users_.subscriber.Token!.approve(
@@ -1010,15 +995,15 @@ export default async function suite(): Promise<void> {
         // Current remaining duration == 4 months + 1 day, increase time so that remaining < 30 days
         await time.increase(constants.ONE_MONTH * 3 + (constants.ONE_DAY + 400));
 
-        // For 1 Year and 1 subscriber :: 0.1 * 365 * 1 = 36.5
+        // For 1 Year and 1 subscriber :: 0.1 * 200 * 1 = 20
         await users_.subscriber.Token!.approve(
           await DatasetSubscriptionManager_.getAddress(),
-          parseUnits('36.5')
+          parseUnits('20')
         );
 
         [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
           datasetId_,
-          daysInYear,
+          200,
           1
         );
 
@@ -1026,7 +1011,7 @@ export default async function suite(): Promise<void> {
         await expect(
           DatasetSubscriptionManager_.connect(users_.subscriber).extendSubscription(
             subscriptionId_,
-            daysInYear,
+            200,
             0,
             maxSubscriptionFee
           )
