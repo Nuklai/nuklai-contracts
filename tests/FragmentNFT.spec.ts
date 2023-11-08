@@ -372,6 +372,18 @@ export default async function suite(): Promise<void> {
         .withArgs(fragmentIds_[0]);
     });
 
+    it('Should revert data set owner resolve fragment propose if fragment address is incorrect - AcceptManuallyVerifier', async function () {
+      const invalidFragmentAddress = await DatasetNFT_.fragmentImplementation();
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.datasetOwner).resolve(
+          invalidFragmentAddress,
+          fragmentIds_[0],
+          true
+        )
+      ).to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'INVALID_FRAGMENT_NFT');
+    });
+
     it('Should data set owner accept multiple fragments proposes', async function () {
       const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
       const DatasetFragment = await ethers.getContractAt('FragmentNFT', fragmentAddress);

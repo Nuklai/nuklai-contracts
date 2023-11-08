@@ -1,6 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { DeployFunction } from 'hardhat-deploy/types';
 import { DatasetFactory, DatasetNFT } from '@typechained';
+import { constants } from '../utils';
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployments, getNamedAccounts, ethers } = hre;
@@ -21,6 +22,24 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const subscriptionManager = await ethers.getContract('ERC20SubscriptionManager');
   const distributionManager = await ethers.getContract('DistributionManager');
   const verifierManager = await ethers.getContract('VerifierManager');
+
+  let grantedRole = await dataset.grantRole(
+    constants.WHITELISTED_MANAGER_ROLE,
+    await subscriptionManager.getAddress()
+  );
+  await grantedRole.wait();
+
+  grantedRole = await dataset.grantRole(
+    constants.WHITELISTED_MANAGER_ROLE,
+    await distributionManager.getAddress()
+  );
+  await grantedRole.wait();
+
+  grantedRole = await dataset.grantRole(
+    constants.WHITELISTED_MANAGER_ROLE,
+    await verifierManager.getAddress()
+  );
+  await grantedRole.wait();
 
   const datasetFactory: DatasetFactory = await ethers.getContractAtWithSignerAddress(
     'DatasetFactory',

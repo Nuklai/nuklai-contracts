@@ -21,6 +21,7 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
 
   error NOT_DATASET_OWNER(address account);
   error NOT_VERIFIER_MANAGER(address account);
+  error INVALID_FRAGMENT_NFT();
 
   event FragmentPending(address fragmentNFT, uint256 id);
   event FragmentResolved(address fragmentNFT, uint256 id, bool accept);
@@ -29,14 +30,22 @@ contract AcceptManuallyVerifier is IVerifier, ERC2771ContextExternalForwarderSou
   mapping(address fragmentNFT => EnumerableSet.UintSet) internal _pendingFragments;
 
   modifier onlyVerifierManager(address fragmentNFT) {
-    address verifierManager = dataset.verifierManager(IFragmentNFT(fragmentNFT).datasetId());
+    uint256 datasetId = IFragmentNFT(fragmentNFT).datasetId();
+    address fragmentNFT_ = dataset.fragmentNFT(datasetId);
+    if (fragmentNFT_ != address(fragmentNFT)) revert INVALID_FRAGMENT_NFT();
+
+    address verifierManager = dataset.verifierManager(datasetId);
     //We can use msg.sender here instead of _msgSender() because VerifierManager is always a smart-contract
     if (verifierManager != msg.sender) revert NOT_VERIFIER_MANAGER(msg.sender);
     _;
   }
 
   modifier onlyDatasetOwner(address fragmentNFT) {
-    address datasetOwner = dataset.ownerOf(IFragmentNFT(fragmentNFT).datasetId());
+    uint256 datasetId = IFragmentNFT(fragmentNFT).datasetId();
+    address fragmentNFT_ = dataset.fragmentNFT(datasetId);
+    if (fragmentNFT_ != address(fragmentNFT)) revert INVALID_FRAGMENT_NFT();
+
+    address datasetOwner = dataset.ownerOf(datasetId);
     address msgSender = _msgSender();
     if (datasetOwner != msgSender) revert NOT_DATASET_OWNER(msgSender);
     _;

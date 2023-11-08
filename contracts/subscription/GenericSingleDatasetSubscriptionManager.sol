@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
+import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {
+  ERC721EnumerableUpgradeable
+} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
-import {ERC721Enumerable} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import {ISubscriptionManager} from "../interfaces/ISubscriptionManager.sol";
 import {IDatasetNFT} from "../interfaces/IDatasetNFT.sol";
 import {
@@ -19,10 +23,11 @@ import {
  * have unique IDs which are the respective minted ERC721 tokens' IDs.
  */
 abstract contract GenericSingleDatasetSubscriptionManager is
-  ISubscriptionManager,
   Initializable,
-  ERC721Enumerable,
-  ERC2771ContextExternalForwarderSourceUpgradeable
+  ERC165Upgradeable,
+  ERC721EnumerableUpgradeable,
+  ERC2771ContextExternalForwarderSourceUpgradeable,
+  ISubscriptionManager
 {
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
@@ -81,6 +86,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   function __GenericSubscriptionManager_init(address dataset_, uint256 datasetId_) internal onlyInitializing {
     __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
     __GenericSubscriptionManager_init_unchained(dataset_, datasetId_);
+    __ERC721Enumerable_init_unchained();
   }
 
   /**
@@ -356,9 +362,6 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   ) internal {
     _requireMinted(subscription);
 
-    if (extraDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
-      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, extraDurationInDays);
-
     SubscriptionDetails storage sd = _subscriptions[subscription];
     uint256 newDurationInDays;
     uint256 newValidSince;
@@ -385,6 +388,10 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       newValidSince = block.timestamp;
       newDurationInDays = extraDurationInDays;
     }
+
+    if (newDurationInDays > MAX_SUBSCRIPTION_DURATION_IN_DAYS)
+      revert SUBSCRIPTION_DURATION_INVALID(1, MAX_SUBSCRIPTION_DURATION_IN_DAYS, newDurationInDays);
+
     uint256 newConsumers = sd.paidConsumers + extraConsumers;
     (, uint256 newFee) = _calculateFee(newDurationInDays, newConsumers);
     if (newFee <= currentFee) revert NOTHING_TO_PAY();
@@ -496,11 +503,23 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     if (datasetId != _datasetId) revert UNSUPPORTED_DATASET(_datasetId);
   }
 
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override(ERC165Upgradeable, ERC721EnumerableUpgradeable, IERC165Upgradeable) returns (bool) {
+    return interfaceId == type(ISubscriptionManager).interfaceId || super.supportsInterface(interfaceId);
+  }
+
   function _msgSender()
     internal
     view
     virtual
-    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
     returns (address sender)
   {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgSender();
@@ -510,7 +529,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     internal
     view
     virtual
-    override(Context, ERC2771ContextExternalForwarderSourceUpgradeable)
+    override(ContextUpgradeable, ERC2771ContextExternalForwarderSourceUpgradeable)
     returns (bytes calldata)
   {
     return ERC2771ContextExternalForwarderSourceUpgradeable._msgData();

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.18;
 
+import {ERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol";
+import {IERC165Upgradeable} from "@openzeppelin/contracts-upgradeable/interfaces/IERC165Upgradeable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -24,6 +26,7 @@ import {
  */
 contract DistributionManager is
   IDistributionManager,
+  ERC165Upgradeable,
   ReentrancyGuardUpgradeable,
   ERC2771ContextExternalForwarderSourceUpgradeable
 {
@@ -473,5 +476,17 @@ contract DistributionManager is
       ECDSA.toEthSignedMessageHash(
         abi.encodePacked(block.chainid, address(this), beneficiary, sigValidSince, sigValidTill)
       );
+  }
+
+  /**
+   * @notice Checks whether the interface ID provided is supported by this Contract
+   * @dev For more information, see `EIP-165`
+   * @param interfaceId The interface ID to check
+   * @return bool true if it is supported, false if it is not
+   */
+  function supportsInterface(
+    bytes4 interfaceId
+  ) public view virtual override(ERC165Upgradeable, IERC165Upgradeable) returns (bool) {
+    return interfaceId == type(IDistributionManager).interfaceId || super.supportsInterface(interfaceId);
   }
 }
