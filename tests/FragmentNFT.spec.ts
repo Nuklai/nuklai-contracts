@@ -468,6 +468,26 @@ export default async function suite(): Promise<void> {
         .withArgs(wrongFragmentId);
     });
 
+    it('Should revert accept/reject fragment resolve if sender is incorrect', async function () {
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(
+          fragmentIds_[0],
+          false
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
+        .withArgs(users_.datasetOwner.address);
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(
+          fragmentIds_[0],
+          true
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
+        .withArgs(users_.datasetOwner.address);
+    });
+
     it('Should revert accept/reject fragment propose if it is not data set owner', async function () {
       const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
 
