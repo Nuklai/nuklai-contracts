@@ -470,19 +470,13 @@ export default async function suite(): Promise<void> {
 
     it('Should revert accept/reject fragment resolve if sender is incorrect', async function () {
       await expect(
-        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(
-          fragmentIds_[0],
-          false
-        )
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(fragmentIds_[0], false)
       )
         .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
         .withArgs(users_.datasetOwner.address);
 
       await expect(
-        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(
-          fragmentIds_[0],
-          true
-        )
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(fragmentIds_[0], true)
       )
         .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
         .withArgs(users_.datasetOwner.address);
