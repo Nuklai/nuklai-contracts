@@ -363,9 +363,9 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should revert if someone tries to re-initialize contract', async function () {
-      await expect(
-        DatasetNFT_.initialize(users_.dtAdmin.address, ZeroAddress)
-      ).to.be.revertedWith("Initializable: contract is already initialized")
+      await expect(DatasetNFT_.initialize(users_.dtAdmin.address, ZeroAddress)).to.be.revertedWith(
+        'Initializable: contract is already initialized'
+      );
     });
 
     it('Should a data set owner mint dataset', async function () {

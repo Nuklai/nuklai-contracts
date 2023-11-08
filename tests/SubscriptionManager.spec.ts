@@ -193,12 +193,26 @@ export default async function suite(): Promise<void> {
       await ethers.provider.send('evm_revert', [snap]);
     });
 
+    it('Should dataset subscription name be set on deploy', async function () {
+      expect(await DatasetSubscriptionManager_.name()).to.equal('Data Tunnel Subscription');
+    });
+
+    it('Should dataset subscription symbol be set on deploy', async function () {
+      expect(await DatasetSubscriptionManager_.symbol()).to.equal('DTSUB');
+    });
+
     it('Should maximum subscription duration in days to be 365 days', async function () {
       expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_DURATION_IN_DAYS()).to.equal(365);
     });
 
     it('Should maximum subscription extension duration in days to be 30 days', async function () {
       expect(await DatasetSubscriptionManager_.MAX_SUBSCRIPTION_EXTENSION_IN_DAYS()).to.equal(30);
+    });
+
+    it('Should revert if someone tries to re-initialize contract', async function () {
+      await expect(
+        DatasetSubscriptionManager_.initialize(users_.dtAdmin.address, ZeroAddress)
+      ).to.be.revertedWith('Initializable: contract is already initialized');
     });
 
     it('Should data set owner set ERC-20 token fee amount for data set subscription', async function () {
@@ -923,6 +937,20 @@ export default async function suite(): Promise<void> {
             users_.secondConsumer.address
           )
         ).to.be.true;
+      });
+
+      it('Should revert subscription owner consumers replace if old consumers and new consumers does not match length', async () => {
+        await DatasetSubscriptionManager_.connect(users_.subscriber).addConsumers(subscriptionId_, [
+          users_.consumer.address,
+        ]);
+
+        await expect(
+          DatasetSubscriptionManager_.connect(users_.subscriber).replaceConsumers(
+            subscriptionId_,
+            [users_.user.address],
+            [users_.secondConsumer.address, users_.consumer.address]
+          )
+        ).to.be.revertedWithCustomError(DatasetSubscriptionManager_, 'ARRAY_LENGTH_MISMATCH');
       });
 
       it('Should revert subscription owner consumers replace if one consumer to replace is not found', async () => {
