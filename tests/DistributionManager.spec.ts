@@ -282,6 +282,17 @@ export default async function suite(): Promise<void> {
       expect((await DatasetDistributionManager_.getTagWeights(tags))[0]).equal(weights[0]);
     });
 
+    it('Should revert trying to call receivePayment() externally', async function () {
+      await expect(
+        DatasetDistributionManager_.connect(users_.user).receivePayment(
+          await users_.user.Token!.getAddress(),
+          parseUnits('1')
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetDistributionManager_, 'NOT_SUBSCRIPTION_MANAGER')
+        .withArgs(users_.user.address);
+    });
+
     it('Should data set owner claim revenue after locking period (two weeks)', async function () {
       const nextPendingFragmentId = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
 

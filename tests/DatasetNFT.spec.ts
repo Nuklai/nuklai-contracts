@@ -211,6 +211,14 @@ export default async function suite(): Promise<void> {
       expect(await DatasetNFT_.isSigner(users_.dtAdmin)).to.be.true;
     });
 
+    it('Should TestToken be approved', async function () {
+      const testToken = await ethers.getContract('TestToken');
+      const testTokenAddress = await testToken.getAddress();
+
+      await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+      expect(await DatasetNFT_.isApprovedToken(testTokenAddress)).to.be.true;
+    });
+
     it('Should DT admin set a forwarder address for meta transactions', async function () {
       await expect(DatasetNFT_.connect(users_.dtAdmin).setTrustedForwarder(users_.dtAdmin.address))
         .to.emit(DatasetNFT_, 'TrustedForwarderChanged')
@@ -254,6 +262,37 @@ export default async function suite(): Promise<void> {
           percentages
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'ARRAY_LENGTH_MISMATCH');
+    });
+
+    it('Should setDeployerFeeModelPercentages() revert if beneficiary is zero address', async () => {
+      const percentages = [parseUnits('0.1', 18), parseUnits('0.35', 18)];
+
+      await expect(
+        DatasetNFT_.connect(users_.dtAdmin).setDeployerFeeModelPercentages(
+          [
+            constants.DeployerFeeModel.DATASET_OWNER_STORAGE,
+            constants.DeployerFeeModel.DEPLOYER_STORAGE,
+            constants.DeployerFeeModel.NO_FEE,
+          ],
+          percentages
+        )
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'BENEFICIARY_ZERO_ADDRESS');
+    });
+
+    it('Should DT admin set proxy admin address', async function () {
+      const ProxyAdmin = await ethers.getContract('ProxyAdmin');
+
+      await expect(
+        DatasetNFT_.connect(users_.dtAdmin).setFragmentProxyAdminAddress(
+          await ProxyAdmin.getAddress()
+        )
+      ).to.not.be.reverted;
+    });
+
+    it('Should revert set proxy admin address if it is not a contract', async function () {
+      await expect(
+        DatasetNFT_.connect(users_.dtAdmin).setFragmentProxyAdminAddress(users_.user.address)
+      ).to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_PROXY_ADDRESS_INVALID');
     });
 
     it('Should DT admin set fee model percentage for deployer', async function () {
@@ -672,6 +711,12 @@ export default async function suite(): Promise<void> {
 
       afterEach(async () => {
         await ethers.provider.send('evm_revert', [snap]);
+      });
+
+      it('Should get deployer fee percentage by dataset id', async () => {
+        expect(
+          await DatasetNFT_.connect(users_.datasetOwner).deployerFeePercentage(datasetId_)
+        ).to.be.equal(0);
       });
 
       it('Should revert if non admin account tries to set deployer fee model for a dataset', async () => {
