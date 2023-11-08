@@ -18,6 +18,7 @@ import {
   IERC165_Interface_Id,
   IERC721_Interface_Id,
   IERC721Metadata_Interface_Id,
+  IVerifierManager_Interface_Id,
 } from './utils/selectors';
 import { APPROVED_TOKEN_ROLE } from './../utils/constants';
 import { BASE_URI, FRAGMENT_NFT_SUFFIX } from './utils/constants';
@@ -260,6 +261,20 @@ export default async function suite(): Promise<void> {
       );
     });
 
+    it('Should revert set verifiers for single tag if it is not dataset owner', async function () {
+      const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
+      const schemaRowsTag = encodeTag('dataset.schema.rows');
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setTagVerifier(
+          schemaRowsTag,
+          acceptManuallyVerifierAddress
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
+    });
+
     it('Should data set owner set verifiers for multiple tags', async function () {
       const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
 
@@ -286,6 +301,22 @@ export default async function suite(): Promise<void> {
       expect(await DatasetVerifierManager_.verifiers(schemaColsTag)).to.be.equal(
         acceptManuallyVerifierAddress
       );
+    });
+
+    it('Should revert set verifiers for multiple tags if it is not dataset owner', async function () {
+      const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
+
+      const schemaRowsTag = encodeTag('dataset.schema.rows');
+      const schemaColsTag = encodeTag('dataset.schema.cols');
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setTagVerifiers(
+          [schemaRowsTag, schemaColsTag],
+          [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should currentSnapshotId() return the correct index of Snapshots array', async () => {
@@ -741,6 +772,17 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should VerifierManager supportsInterface() return true if id provided is either IVerifierManager or IERC165', async () => {
+      expect(await DatasetVerifierManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetVerifierManager_.supportsInterface(IVerifierManager_Interface_Id)).to.be
+        .true;
+    });
+
+    it('Should VerifierManager supportsInterface() return false if provided id is not supported', async () => {
       const mockInterfaceId = '0xff123456';
       expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
     });
