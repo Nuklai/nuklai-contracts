@@ -22,5 +22,13 @@ export default async function suite(): Promise<void> {
         .to.emit(users.dtAdmin.Token, 'Transfer')
         .withArgs(ZeroAddress, users.user.address, parseUnits('100', 18));
     });
+
+    it('Should revert if normal user tries to mint tokens', async function () {
+      const { users } = await setup();
+
+      await expect(
+        users.user.Token!.mint(users.user.address, parseUnits('100', 18))
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
   });
 }
