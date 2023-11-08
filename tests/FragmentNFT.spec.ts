@@ -2,6 +2,8 @@ import {
   AcceptManuallyVerifier,
   DatasetFactory,
   DatasetNFT,
+  DistributionManager,
+  ERC20SubscriptionManager,
   FragmentNFT,
   VerifierManager,
 } from '@typechained';
@@ -19,6 +21,8 @@ import {
   IERC721_Interface_Id,
   IERC721Metadata_Interface_Id,
   IVerifierManager_Interface_Id,
+  ISubscriptionManager_Interface_Id,
+  IDistributionManager_Interface_Id,
 } from './utils/selectors';
 import { APPROVED_TOKEN_ROLE } from './../utils/constants';
 import { BASE_URI, FRAGMENT_NFT_SUFFIX } from './utils/constants';
@@ -137,6 +141,15 @@ const setup = async () => {
     fragmentIds,
     DatasetFragment,
     users,
+    DatasetSubscriptionManager: (await ethers.getContractAt(
+      'ERC20SubscriptionManager',
+      await contracts.DatasetNFT.subscriptionManager(datasetId)
+    )) as unknown as ERC20SubscriptionManager,
+    DatasetDistributionManager: (await ethers.getContractAt(
+      'DistributionManager',
+      await contracts.DatasetNFT.distributionManager(datasetId),
+      users.datasetOwner
+    )) as unknown as DistributionManager,
     DatasetVerifierManager: (await ethers.getContractAt(
       'VerifierManager',
       await contracts.DatasetNFT.verifierManager(datasetId),
@@ -153,6 +166,8 @@ export default async function suite(): Promise<void> {
     let DatasetNFT_: DatasetNFT;
     let FragmentNFTImplementation_: FragmentNFT;
     let AcceptManuallyVerifier_: AcceptManuallyVerifier;
+    let DatasetDistributionManager_: DistributionManager;
+    let DatasetSubscriptionManager_: ERC20SubscriptionManager;
     let DatasetVerifierManager_: VerifierManager;
     let DatasetFragment_: FragmentNFT;
     let users_: Record<string, Signer>;
@@ -165,6 +180,8 @@ export default async function suite(): Promise<void> {
         DatasetNFT,
         FragmentNFTImplementation,
         AcceptManuallyVerifier,
+        DatasetSubscriptionManager,
+        DatasetDistributionManager,
         DatasetVerifierManager,
         DatasetFragment,
         users,
@@ -176,6 +193,8 @@ export default async function suite(): Promise<void> {
       DatasetNFT_ = DatasetNFT;
       FragmentNFTImplementation_ = FragmentNFTImplementation;
       AcceptManuallyVerifier_ = AcceptManuallyVerifier;
+      DatasetSubscriptionManager_ = DatasetSubscriptionManager;
+      DatasetDistributionManager_ = DatasetDistributionManager;
       DatasetVerifierManager_ = DatasetVerifierManager;
       DatasetFragment_ = DatasetFragment;
       users_ = users;
@@ -784,7 +803,29 @@ export default async function suite(): Promise<void> {
 
     it('Should VerifierManager supportsInterface() return false if provided id is not supported', async () => {
       const mockInterfaceId = '0xff123456';
-      expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
+      expect(await DatasetVerifierManager_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should SubscriptionManager supportsInterface() return true if id provided is either ISubscriptionManager or IERC165', async () => {
+      expect(await DatasetSubscriptionManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetSubscriptionManager_.supportsInterface(ISubscriptionManager_Interface_Id))
+        .to.be.true;
+    });
+
+    it('Should SubscriptionManager supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetSubscriptionManager_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should DistributionManager supportsInterface() return true if id provided is either IDistributionManager or IERC165', async () => {
+      expect(await DatasetDistributionManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetDistributionManager_.supportsInterface(IDistributionManager_Interface_Id))
+        .to.be.true;
+    });
+
+    it('Should DistributionManager supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetDistributionManager_.supportsInterface(mockInterfaceId)).to.be.false;
     });
   });
 }
