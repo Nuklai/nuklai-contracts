@@ -70,6 +70,7 @@ const config: HardhatUserConfig = {
       '@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol',
       '@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol',
     ],
+    keep: true
   },
 };
 

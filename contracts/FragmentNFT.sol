@@ -106,7 +106,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function initialize(address dataset_, uint256 datasetId_) external initializer {
     __ERC721_init(_NAME, _SYMBOL);
-    __ERC2771ContextExternalForwarderSourceUpgradeable_init_unchained(dataset_);
+    __ERC2771ContextExternalForwarderSourceUpgradeable_init(dataset_);
     dataset = IDatasetNFT(dataset_);
     datasetId = datasetId_;
     _snapshots.push();

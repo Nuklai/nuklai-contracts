@@ -2,6 +2,8 @@ import {
   AcceptManuallyVerifier,
   DatasetFactory,
   DatasetNFT,
+  DistributionManager,
+  ERC20SubscriptionManager,
   FragmentNFT,
   VerifierManager,
 } from '@typechained';
@@ -18,6 +20,9 @@ import {
   IERC165_Interface_Id,
   IERC721_Interface_Id,
   IERC721Metadata_Interface_Id,
+  IVerifierManager_Interface_Id,
+  ISubscriptionManager_Interface_Id,
+  IDistributionManager_Interface_Id,
 } from './utils/selectors';
 import { APPROVED_TOKEN_ROLE } from './../utils/constants';
 import { BASE_URI, FRAGMENT_NFT_SUFFIX } from './utils/constants';
@@ -136,6 +141,15 @@ const setup = async () => {
     fragmentIds,
     DatasetFragment,
     users,
+    DatasetSubscriptionManager: (await ethers.getContractAt(
+      'ERC20SubscriptionManager',
+      await contracts.DatasetNFT.subscriptionManager(datasetId)
+    )) as unknown as ERC20SubscriptionManager,
+    DatasetDistributionManager: (await ethers.getContractAt(
+      'DistributionManager',
+      await contracts.DatasetNFT.distributionManager(datasetId),
+      users.datasetOwner
+    )) as unknown as DistributionManager,
     DatasetVerifierManager: (await ethers.getContractAt(
       'VerifierManager',
       await contracts.DatasetNFT.verifierManager(datasetId),
@@ -152,6 +166,8 @@ export default async function suite(): Promise<void> {
     let DatasetNFT_: DatasetNFT;
     let FragmentNFTImplementation_: FragmentNFT;
     let AcceptManuallyVerifier_: AcceptManuallyVerifier;
+    let DatasetDistributionManager_: DistributionManager;
+    let DatasetSubscriptionManager_: ERC20SubscriptionManager;
     let DatasetVerifierManager_: VerifierManager;
     let DatasetFragment_: FragmentNFT;
     let users_: Record<string, Signer>;
@@ -164,6 +180,8 @@ export default async function suite(): Promise<void> {
         DatasetNFT,
         FragmentNFTImplementation,
         AcceptManuallyVerifier,
+        DatasetSubscriptionManager,
+        DatasetDistributionManager,
         DatasetVerifierManager,
         DatasetFragment,
         users,
@@ -175,6 +193,8 @@ export default async function suite(): Promise<void> {
       DatasetNFT_ = DatasetNFT;
       FragmentNFTImplementation_ = FragmentNFTImplementation;
       AcceptManuallyVerifier_ = AcceptManuallyVerifier;
+      DatasetSubscriptionManager_ = DatasetSubscriptionManager;
+      DatasetDistributionManager_ = DatasetDistributionManager;
       DatasetVerifierManager_ = DatasetVerifierManager;
       DatasetFragment_ = DatasetFragment;
       users_ = users;
@@ -260,6 +280,20 @@ export default async function suite(): Promise<void> {
       );
     });
 
+    it('Should revert set verifiers for single tag if it is not dataset owner', async function () {
+      const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
+      const schemaRowsTag = encodeTag('dataset.schema.rows');
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setTagVerifier(
+          schemaRowsTag,
+          acceptManuallyVerifierAddress
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
+    });
+
     it('Should data set owner set verifiers for multiple tags', async function () {
       const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
 
@@ -286,6 +320,22 @@ export default async function suite(): Promise<void> {
       expect(await DatasetVerifierManager_.verifiers(schemaColsTag)).to.be.equal(
         acceptManuallyVerifierAddress
       );
+    });
+
+    it('Should revert set verifiers for multiple tags if it is not dataset owner', async function () {
+      const acceptManuallyVerifierAddress = await AcceptManuallyVerifier_.getAddress();
+
+      const schemaRowsTag = encodeTag('dataset.schema.rows');
+      const schemaColsTag = encodeTag('dataset.schema.cols');
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setTagVerifiers(
+          [schemaRowsTag, schemaColsTag],
+          [acceptManuallyVerifierAddress, acceptManuallyVerifierAddress]
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should currentSnapshotId() return the correct index of Snapshots array', async () => {
@@ -337,6 +387,16 @@ export default async function suite(): Promise<void> {
           [acceptManuallyVerifierAddress]
         )
       ).to.be.revertedWithCustomError(DatasetVerifierManager_, 'ARRAY_LENGTH_MISMATCH');
+    });
+
+    it('Should revert set default tag verifier if it is not data set owner', async function () {
+      await expect(
+        DatasetVerifierManager_.connect(users_.user).setDefaultVerifier(
+          await AcceptManuallyVerifier_.getAddress()
+        )
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should revert set default tag verifier if it is zero address', async function () {
@@ -456,6 +516,40 @@ export default async function suite(): Promise<void> {
       )
         .to.be.revertedWithCustomError(DatasetFragment_, 'NOT_PENDING_FRAGMENT')
         .withArgs(wrongFragmentId);
+    });
+
+    it('Should revert accept/reject fragment resolve if sender is incorrect', async function () {
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(fragmentIds_[0], false)
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
+        .withArgs(users_.datasetOwner.address);
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.datasetOwner).resolve(fragmentIds_[0], true)
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'VERIFIER_WRONG_SENDER')
+        .withArgs(users_.datasetOwner.address);
+    });
+
+    it('Should revert accept/reject fragment propose if it is not data set owner', async function () {
+      const fragmentAddress = await DatasetNFT_.fragments(datasetId_);
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.user).resolve(
+          fragmentAddress,
+          fragmentIds_[0],
+          false
+        )
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.user).resolve(fragmentAddress, fragmentIds_[0], true)
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_DATASET_OWNER')
+        .withArgs(users_.user.address);
     });
 
     it('Should data set owner remove a fragment', async function () {
@@ -583,6 +677,32 @@ export default async function suite(): Promise<void> {
       expect(numberOfApprovalsForEachTag[3]).to.equal(1);
     });
 
+    it('Should revert if someone tries to call propose() directly in AcceptManuallyVerifier', async () => {
+      const tag = utils.encodeTag('dataset.metadata');
+      const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+      await expect(
+        AcceptManuallyVerifier_.connect(users_.contributor).propose(
+          await DatasetFragment_.getAddress(),
+          lastFragmentPendingId + 1n,
+          tag
+        )
+      )
+        .to.be.revertedWithCustomError(AcceptManuallyVerifier_, 'NOT_VERIFIER_MANAGER')
+        .withArgs(users_.contributor.address);
+    });
+
+    it('Should revert if someone tries to call propose() directly in VerifierManager', async () => {
+      const tag = utils.encodeTag('dataset.metadata');
+      const lastFragmentPendingId = await DatasetFragment_.lastFragmentPendingId();
+
+      await expect(
+        DatasetVerifierManager_.connect(users_.contributor).propose(lastFragmentPendingId + 1n, tag)
+      )
+        .to.be.revertedWithCustomError(DatasetVerifierManager_, 'NOT_FRAGMENT_NFT')
+        .withArgs(users_.contributor.address);
+    });
+
     it('Should snapshot() revert if msgSender is not the configured DistributionManager', async () => {
       await expect(DatasetFragment_.connect(users_.dtAdmin).snapshot())
         .to.be.revertedWithCustomError(DatasetFragment_, 'NOT_DISTRIBUTION_MANAGER')
@@ -673,6 +793,39 @@ export default async function suite(): Promise<void> {
     it('Should supportsInterface() return false if provided id is not supported', async () => {
       const mockInterfaceId = '0xff123456';
       expect(await DatasetFragment_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should VerifierManager supportsInterface() return true if id provided is either IVerifierManager or IERC165', async () => {
+      expect(await DatasetVerifierManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetVerifierManager_.supportsInterface(IVerifierManager_Interface_Id)).to.be
+        .true;
+    });
+
+    it('Should VerifierManager supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetVerifierManager_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should SubscriptionManager supportsInterface() return true if id provided is either ISubscriptionManager or IERC165', async () => {
+      expect(await DatasetSubscriptionManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetSubscriptionManager_.supportsInterface(ISubscriptionManager_Interface_Id))
+        .to.be.true;
+    });
+
+    it('Should SubscriptionManager supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetSubscriptionManager_.supportsInterface(mockInterfaceId)).to.be.false;
+    });
+
+    it('Should DistributionManager supportsInterface() return true if id provided is either IDistributionManager or IERC165', async () => {
+      expect(await DatasetDistributionManager_.supportsInterface(IERC165_Interface_Id)).to.be.true;
+      expect(await DatasetDistributionManager_.supportsInterface(IDistributionManager_Interface_Id))
+        .to.be.true;
+    });
+
+    it('Should DistributionManager supportsInterface() return false if provided id is not supported', async () => {
+      const mockInterfaceId = '0xff123456';
+      expect(await DatasetDistributionManager_.supportsInterface(mockInterfaceId)).to.be.false;
     });
   });
 }

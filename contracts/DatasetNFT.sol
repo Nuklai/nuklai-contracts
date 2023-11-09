@@ -91,7 +91,7 @@ contract DatasetNFT is
   function initialize(address admin_, address trustedForwarder_) external initializer {
     if (admin_ == address(0)) revert ZERO_ADDRESS();
     __ERC721_init(_NAME, _SYMBOL);
-    __ERC2771ContextMutableForwarderUpgradeable_init_unchained(trustedForwarder_);
+    __ERC2771ContextMutableForwarderUpgradeable_init(trustedForwarder_);
     _grantRole(DEFAULT_ADMIN_ROLE, admin_);
   }
 
