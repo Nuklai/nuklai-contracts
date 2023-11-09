@@ -9,4 +9,5 @@ typechain-types
 # Hardhat files
 cache
 artifacts
+hardhat-dependency-compiler
 
