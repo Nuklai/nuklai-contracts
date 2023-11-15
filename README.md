@@ -104,7 +104,6 @@ yarn lint
 4. Push the branch (`git push origin feature/foo`)
 5. Create a new Pull Request
 
-
 ## Contracts Description
 
 |                Smart Contract                 |                                                                                                                         Description                                                                                                                          |
