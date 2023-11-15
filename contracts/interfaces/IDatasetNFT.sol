@@ -9,7 +9,7 @@ import {IERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC7
  * @dev Extends IERC721Upgradeable
  */
 interface IDatasetNFT is IERC721Upgradeable {
-  ///@dev Defines the model for the deployer (ALlianceblock/Nexera) fee
+  ///@dev Defines the model for the deployer (Nuklai) fee
   enum DeployerFeeModel {
     NO_FEE, // No Fee wii
     DATASET_OWNER_STORAGE, // Using Owner's Storage, 10% fee
