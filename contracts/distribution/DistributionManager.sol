@@ -359,7 +359,7 @@ contract DistributionManager is
     uint256 pendingFeeToken;
     for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
       collectToken = payments[i].token;
-      
+
       unchecked {
         i++;
       }
