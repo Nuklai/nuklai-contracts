@@ -6,7 +6,7 @@ import {VerifierManager} from "./VerifierManager.sol";
 
 /**
  * @title AcceptAllVerifier contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice This contract implements a verifier that accepts all proposals by default
  */
 contract AcceptAllVerifier is IVerifier {

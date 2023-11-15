@@ -8,7 +8,7 @@ import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSub
 
 /**
  * @title ERC20SubscriptionManager contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice This implementation contract handles Dataset subscription operations using ERC20 tokens as payments.
  *
  * It calculates subscription fees based on a 3rd degree polynomial formula f(x, y, z) where:
@@ -24,8 +24,8 @@ import {GenericSingleDatasetSubscriptionManager} from "./GenericSingleDatasetSub
 contract ERC20SubscriptionManager is GenericSingleDatasetSubscriptionManager {
   using SafeERC20 for IERC20;
 
-  string internal constant _NAME = "Data Tunnel Subscription";
-  string internal constant _SYMBOL = "DTSUB";
+  string internal constant _NAME = "Nuklai Subscription";
+  string internal constant _SYMBOL = "NAISUB";
 
   error NOT_APPROVED_TOKEN(address token);
   error UNSUPPORTED_NATIVE_CURRENCY();

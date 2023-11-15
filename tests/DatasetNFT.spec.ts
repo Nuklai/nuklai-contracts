@@ -172,11 +172,11 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should dataset name be set on deploy', async function () {
-      expect(await DatasetNFT_.name()).to.equal('Data Tunnel Dataset');
+      expect(await DatasetNFT_.name()).to.equal('Nuklai Dataset');
     });
 
     it('Should dataset symbol be set on deploy', async function () {
-      expect(await DatasetNFT_.symbol()).to.equal('DTDS');
+      expect(await DatasetNFT_.symbol()).to.equal('NAIDS');
     });
 
     it('Should dataset fragment implementation be set on deploy', async function () {

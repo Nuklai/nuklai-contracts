@@ -13,7 +13,7 @@ import {
 
 /**
  * @title VerifierManager contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice Configures and coordinates verifiers for Dataset's proposed contributions,
  * handling approval or rejection operations based on the configured verifiers.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated

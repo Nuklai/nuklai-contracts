@@ -12,7 +12,7 @@ import {
 
 /**
  * @title AcceptManuallyVerifier contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice This contract implements a verifier that enables Dataset Owners
  * to manually accept or reject contribution proposals.
  */
