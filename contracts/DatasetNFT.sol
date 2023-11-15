@@ -243,13 +243,13 @@ contract DatasetNFT is
     if (models.length != percentages.length) revert ARRAY_LENGTH_MISMATCH();
     uint256 totalModels = models.length;
     for (uint256 i; i < totalModels; ) {
-      DeployerFeeModel model = models[i];
       uint256 percentage = percentages[i];
+      if (percentage > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, percentage);
+      DeployerFeeModel model = models[i];
       unchecked {
         i++;
       }
       if (uint8(model) == 0) continue;
-      if (percentage > 1e18) revert PERCENTAGE_VALUE_INVALID(1e18, percentage);
       deployerFeeModelPercentage[model] = percentage;
     }
   }
