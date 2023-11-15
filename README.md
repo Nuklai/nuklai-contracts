@@ -28,7 +28,6 @@ Contributions are recorded on-chain as distinct ERC721 tokens called fragments, 
 - [Install](#install)
 - [Usage](#usage)
 - [Contributing](#contributing)
-- [Development Guidlines](#development-guidelines)
 - [Contracts Description](#contracts-description)
 
 </details>
@@ -105,9 +104,6 @@ yarn lint
 4. Push the branch (`git push origin feature/foo`)
 5. Create a new Pull Request
 
-## Development guidelines
-
-For best practices and guidelines, read more [here](https://allianceblock.io/).
 
 ## Contracts Description
 
