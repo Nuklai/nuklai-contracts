@@ -18,7 +18,7 @@ import {
 
 /**
  * @title DistributionManager contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice Manages the distribution of fees to Dataset owner and contributors, and
  * provides configuration options for fee distribution percentages among parties.
  * This is the implementation contract, and each Dataset (represented by a Dataset NFT token) is associated

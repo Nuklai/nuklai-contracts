@@ -9,9 +9,9 @@ import {ISubscriptionManager} from "./interfaces/ISubscriptionManager.sol";
 
 /**
  * @title DatasetFactory contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice This contract facilitates the streamlined integration and configuration of Datasets
- * in the Data Tunnel protocol in a single transaction.
+ * in the Nuklai protocol in a single transaction.
  * @dev Extends Ownable
  */
 contract DatasetFactory is Ownable {

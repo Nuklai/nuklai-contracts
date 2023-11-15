@@ -20,8 +20,8 @@ import {ERC2771ContextMutableForwarderUpgradeable} from "./utils/ERC2771ContextM
 
 /**
  * @title DatasetNFT contract
- * @author Data Tunnel
- * @notice This contract mints ERC721 tokens, each representing a unique Dataset integrated into the Data Tunnel Protocol.
+ * @author Nuklai
+ * @notice This contract mints ERC721 tokens, each representing a unique Dataset integrated into the Nuklai Protocol.
  * It enables the configuration of Datasets, including their monetization, and maintains a record of these configurations.
  */
 contract DatasetNFT is
@@ -32,8 +32,8 @@ contract DatasetNFT is
 {
   using Strings for uint256;
 
-  string private constant _NAME = "Data Tunnel Dataset";
-  string private constant _SYMBOL = "DTDS";
+  string private constant _NAME = "Nuklai Dataset";
+  string private constant _SYMBOL = "NAIDS";
 
   bytes32 public constant SIGNER_ROLE = keccak256("SIGNER_ROLE");
   bytes32 public constant APPROVED_TOKEN_ROLE = keccak256("APPROVED_TOKEN_ROLE");

@@ -17,7 +17,7 @@ import {
 
 /**
  * @title GenericSingleDatasetSubscriptionManager contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice Abstract contract serving as the foundation for managing single Dataset subscriptions and related operations.
  * Derived contracts mint ERC721 tokens that represent subscriptions to the managed Dataset, thus, subscriptions
  * have unique IDs which are the respective minted ERC721 tokens' IDs.

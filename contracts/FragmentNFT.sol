@@ -17,7 +17,7 @@ import {
 
 /**
  * @title FragmentNFT contract
- * @author Data Tunnel
+ * @author Nuklai
  * @notice This contract mints ERC721 tokens, called Fragments, to contributors,
  * and maintains a record of its state at each subscription payment event.
  * Each Fragment NFT represents an incorporated contribution to the linked Dataset and
@@ -30,8 +30,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   using Arrays for uint256[];
   using Strings for uint256;
 
-  string private constant _NAME = "Data Tunnel Fragment";
-  string private constant _SYMBOL = "DTF";
+  string private constant _NAME = "Nuklai Fragment";
+  string private constant _SYMBOL = "NAIF";
 
   event FragmentPending(uint256 id, bytes32 tag);
   event FragmentAccepted(uint256 id);

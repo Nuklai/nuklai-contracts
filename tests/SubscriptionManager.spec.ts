@@ -194,11 +194,11 @@ export default async function suite(): Promise<void> {
     });
 
     it('Should dataset subscription name be set on deploy', async function () {
-      expect(await DatasetSubscriptionManager_.name()).to.equal('Data Tunnel Subscription');
+      expect(await DatasetSubscriptionManager_.name()).to.equal('Nuklai Subscription');
     });
 
     it('Should dataset subscription symbol be set on deploy', async function () {
-      expect(await DatasetSubscriptionManager_.symbol()).to.equal('DTSUB');
+      expect(await DatasetSubscriptionManager_.symbol()).to.equal('NAISUB');
     });
 
     it('Should maximum subscription duration in days to be 365 days', async function () {
