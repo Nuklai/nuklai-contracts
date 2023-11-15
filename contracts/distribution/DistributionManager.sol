@@ -359,16 +359,17 @@ contract DistributionManager is
     uint256 pendingFeeToken;
     for (uint256 i = firstUnclaimedPayout; i < totalPayments; ) {
       collectToken = payments[i].token;
+      
+      unchecked {
+        i++;
+      }
+
       pendingFeeToken = pendingOwnerFee[collectToken];
 
       if (pendingFeeToken == 0) continue;
       delete pendingOwnerFee[collectToken];
 
       _sendPayout(collectToken, pendingFeeToken, _msgSender());
-
-      unchecked {
-        i++;
-      }
     }
   }
 
