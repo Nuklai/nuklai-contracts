@@ -2949,5 +2949,179 @@ export default async function suite(): Promise<void> {
         )
       ).to.equal(parseUnits('3020.976', 18));
     });
+
+    it('Should contributor not able to claim revenue if his contribution has not been approved', async function () {
+      const schemaTag = encodeTag('dataset.schema');
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.001', 18)
+      );
+
+      const tokenAddress = await users_.subscriber.Token!.getAddress();
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [schemaTag],
+        [parseUnits('1', 18)]
+      );
+
+      const feeAmount = parseUnits('864', 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
+
+      const nextPendingFragmentId = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+      const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+        signature.getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
+          nextPendingFragmentId,
+          users_.contributor.address,
+          schemaTag
+        )
+      );
+
+      // Contributor proposes a fragment
+      await DatasetNFT_.connect(users_.contributor).proposeFragment(
+        datasetId_,
+        users_.contributor.address,
+        schemaTag,
+        proposeSignatureSchemas
+      );
+
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('6048', 18)
+      );
+
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      // Someone subscribes to the dataset
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
+
+      const validSince =
+        Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
+      const validTill = validSince + constants.ONE_DAY;
+      const fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+        signature.getRevenueClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.contributor.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
+
+      // DS owner approves fragments after someone subscribes to dataset
+      const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      const AcceptManuallyVerifier = await ethers.getContract<AcceptManuallyVerifier>(
+        'AcceptManuallyVerifier'
+      );
+      await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+        datasetFragmentAddress,
+        nextPendingFragmentId,
+        true
+      );
+
+      await time.increase(constants.ONE_WEEK * 2);
+
+      await expect(
+        DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      )
+        .to.emit(DatasetDistributionManager_, 'PayoutSent')
+        .withArgs(users_.contributor.address, tokenAddress, 0n);
+    });
+
+    it('Should contributor payout calculation be 0 if contribution is approved after payment subscription', async function () {
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.001', 18)
+      );
+
+      const tokenAddress = await users_.subscriber.Token!.getAddress();
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [ZeroHash],
+        [parseUnits('1', 18)]
+      );
+
+      const feeAmount = parseUnits('864', 18); // totalSubscriptionFee for 1 week & 1 consumer :: 864 * 7 * 1 = 6048
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
+
+      const nextPendingFragmentId = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+
+      const proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+        signature.getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
+          nextPendingFragmentId,
+          users_.contributor.address,
+          ZeroHash
+        )
+      );
+
+      await DatasetNFT_.connect(users_.contributor).proposeFragment(
+        datasetId_,
+        users_.contributor.address,
+        ZeroHash,
+        proposeSignatureSchemas
+      );
+
+      const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
+
+      const AcceptManuallyVerifier = await ethers.getContract<AcceptManuallyVerifier>(
+        'AcceptManuallyVerifier'
+      );
+
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('6048', 18)
+      );
+
+      const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        7,
+        1
+      );
+
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        7,
+        1,
+        maxSubscriptionFee
+      );
+
+      await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+        datasetFragmentAddress,
+        nextPendingFragmentId,
+        true
+      );
+
+      expect(
+        await DatasetDistributionManager_.calculatePayoutByToken(
+          tokenAddress,
+          users_.contributor.address
+        )
+      ).to.equal(0n);
+    });
   });
 }
