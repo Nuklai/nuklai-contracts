@@ -158,6 +158,8 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @notice Creates a new snapshot and returns its index
    * @dev Snapshots are created each time a subscription payment event occurs
    * (see `SubscriptionManager` & `DistributionManager`)
+   * _currentSnapshotId() returns the index of `Snapshot` struct where data for next snapshot is stored.
+   * And we have to retutrn index of the Snapshot with current data, which will not be modified later
    * Only callable by `DistributionManager`
    * @return uint256 The index of the newly created snapshot
    */
