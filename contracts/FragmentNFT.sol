@@ -163,7 +163,7 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    */
   function snapshot() external onlyDistributionManager returns (uint256) {
     _snapshots.push();
-    return _currentSnapshotId();
+    return _currentSnapshotId() - 1;
   }
 
   /**
