@@ -28,9 +28,16 @@ export async function getTestTokenContract(
   return token.connect(beneficiary);
 }
 
+interface DistributionManagerPayment {
+  token: string;
+  distributionAmount: bigint;
+  snapshotId: bigint;
+  tagWeightsVersion: bigint;
+}
+
 export async function verifyContributionPayoutIntegrity(
   datasetId: bigint,
-  snapshotIds: bigint[],
+  payments: DistributionManagerPayment[],
   account: string,
   tags: string[],
   tokenAddress: string,
@@ -51,13 +58,12 @@ export async function verifyContributionPayoutIntegrity(
   let accountTagPercentageAtPayout = 0n;
 
   // get values from contracts
-  for (const snapshotId of snapshotIds) {
-    const payment = await DatasetDistributionManager.payments(snapshotId - 1n);
+  for (const payment of payments) {
     const weights = await DatasetDistributionManager.getTagWeights(tags);
-    const tagCount = await DatasetFragment.tagCountAt(snapshotId);
-    const accountTagCount = await DatasetFragment.accountTagCountAt(snapshotId, account);
+    const tagCount = await DatasetFragment.tagCountAt(payment.snapshotId);
+    const accountTagCount = await DatasetFragment.accountTagCountAt(payment.snapshotId, account);
     const accountTagPercentage = await DatasetFragment.accountTagPercentageAt(
-      snapshotId,
+      payment.snapshotId,
       account,
       tags
     );

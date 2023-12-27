@@ -3074,7 +3074,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [firstPayment.snapshotId],
+          [firstPayment],
           users_.contributor.address,
           tags,
           tokenAddress,
@@ -3170,7 +3170,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.contributor.address,
           tags,
           tokenAddress,
@@ -3215,7 +3215,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.user.address,
           tags,
           tokenAddress,
@@ -3255,7 +3255,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [firstPayment.snapshotId, secondPayment.snapshotId],
+          [firstPayment, secondPayment],
           users_.datasetOwner.address,
           tags,
           tokenAddress,
@@ -3468,7 +3468,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [firstPayment.snapshotId],
+          [firstPayment],
           users_.user.address,
           tags,
           tokenAddress,
@@ -3564,7 +3564,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.user.address,
           tags,
           tokenAddress,
@@ -3747,7 +3747,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [firstPayment.snapshotId],
+          [firstPayment],
           users_.contributor.address,
           [schemaTag],
           tokenAddress,
@@ -3787,7 +3787,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [firstPayment.snapshotId],
+          [firstPayment],
           users_.user.address,
           [schemaTag],
           tokenAddress,
@@ -3880,7 +3880,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.user.address,
           [schemaTag],
           tokenAddress,
@@ -3920,7 +3920,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.user.address,
           [schemaTag],
           tokenAddress,
@@ -3959,7 +3959,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.consumer.address,
           [schemaTag],
           tokenAddress,
@@ -4482,7 +4482,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [secondPayment.snapshotId],
+          [secondPayment],
           users_.contributor.address,
           [schemaTag],
           tokenAddress,
@@ -4560,7 +4560,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [thirdPayment.snapshotId],
+          [thirdPayment],
           users_.contributor.address,
           [schemaTag],
           tokenAddress,
@@ -4591,7 +4591,7 @@ export default async function suite(): Promise<void> {
       expect(
         await verifyContributionPayoutIntegrity(
           datasetId_,
-          [thirdPayment.snapshotId],
+          [thirdPayment],
           users_.user.address,
           [schemaTag],
           tokenAddress,
