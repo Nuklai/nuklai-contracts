@@ -8,7 +8,7 @@ import {
   TestToken,
   VerifierManager,
 } from '@typechained';
-import { ZeroHash, parseUnits, Contract, formatUnits } from 'ethers';
+import { ZeroHash, parseUnits } from 'ethers';
 import { deployments, ethers, network } from 'hardhat';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,7 +21,7 @@ import {
 import { time } from '@nomicfoundation/hardhat-network-helpers';
 import { getEvent } from './utils/events';
 import { setupUsers, Signer } from './utils/users';
-import { encodeTag, getUuidHash, getUint256FromBytes32 } from './utils/utils';
+import { encodeTag, getUuidHash } from './utils/utils';
 import { verifyContributionPayoutIntegrity } from './utils/contracts';
 
 const setup = async () => {
@@ -3034,6 +3034,265 @@ export default async function suite(): Promise<void> {
           users_.contributor.address
         )
       ).to.equal(contributorPayout);
+    });
+
+    it('Should 2 contributors be able to claim revenue from 2 subscription payments', async function () {
+      await DatasetNFT_.setDeployerFeeBeneficiary(users_.dtAdmin.address);
+      await DatasetNFT_.setDeployerFeeModelPercentages(
+        [DeployerFeeModel.DEPLOYER_STORAGE],
+        [parseUnits('0.35')]
+      );
+      await DatasetNFT_.setDeployerFeeModel(datasetId_, DeployerFeeModel.DEPLOYER_STORAGE);
+
+      const dataTag = encodeTag('data');
+      const metadataTag = encodeTag('metadata');
+      const tags = [dataTag, metadataTag];
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setDatasetOwnerPercentage(
+        ethers.parseUnits('0.5', 18)
+      );
+
+      const tokenAddress = await users_.datasetOwner.Token!.getAddress();
+
+      await DatasetDistributionManager_.connect(users_.datasetOwner).setTagWeights(
+        [dataTag, metadataTag],
+        [parseUnits('0.9', 18), parseUnits('0.1', 18)]
+      );
+
+      const feeAmount = parseUnits('100', 18);
+
+      await DatasetSubscriptionManager_.connect(users_.datasetOwner).setFee(
+        tokenAddress,
+        feeAmount
+      );
+
+      const datasetFragmentAddress = await DatasetNFT_.fragments(datasetId_);
+      const AcceptManuallyVerifier = await ethers.getContract<AcceptManuallyVerifier>(
+        'AcceptManuallyVerifier'
+      );
+
+      // Contributor 1: proposes a fragment
+      let nextPendingFragmentId = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+      let proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+        signature.getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
+          nextPendingFragmentId,
+          users_.contributor.address,
+          dataTag
+        )
+      );
+      await DatasetNFT_.connect(users_.contributor).proposeFragment(
+        datasetId_,
+        users_.contributor.address,
+        dataTag,
+        proposeSignatureSchemas
+      );
+
+      // Approval 1: DS owner approves fragment proposal from Contributor 1
+      let validSince =
+        Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
+      let validTill = validSince + constants.ONE_DAY;
+      let fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+        signature.getRevenueClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.contributor.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
+
+      await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+        datasetFragmentAddress,
+        nextPendingFragmentId,
+        true
+      );
+
+      // Subscription 1: someone subscribes to the dataset
+      await users_.subscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('3000', 18)
+      );
+      let [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+        datasetId_,
+        30,
+        1
+      );
+      await DatasetSubscriptionManager_.connect(users_.subscriber).subscribe(
+        datasetId_,
+        30,
+        1,
+        maxSubscriptionFee
+      );
+
+      // Contributor 1 should be able to claim some revenue
+      const firstPayment = await DatasetDistributionManager_.payments(0);
+      let contributorPayout = parseUnits('877.5', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.contributor.address,
+          tags,
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
+
+      await time.increase(constants.ONE_WEEK * 2);
+      await expect(
+        DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      )
+        .to.emit(DatasetDistributionManager_, 'PayoutSent')
+        .withArgs(users_.contributor.address, tokenAddress, contributorPayout);
+
+      await expect(
+        DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      ).to.not.emit(DatasetDistributionManager_, 'PayoutSent');
+
+      // Contributor 2: proposes a fragment
+      nextPendingFragmentId = (await DatasetFragment_.lastFragmentPendingId()) + 1n;
+      proposeSignatureSchemas = await users_.dtAdmin.signMessage(
+        signature.getDatasetFragmentProposeMessage(
+          network.config.chainId!,
+          await DatasetNFT_.getAddress(),
+          datasetId_,
+          nextPendingFragmentId,
+          users_.user.address,
+          dataTag
+        )
+      );
+      await DatasetNFT_.connect(users_.user).proposeFragment(
+        datasetId_,
+        users_.user.address,
+        dataTag,
+        proposeSignatureSchemas
+      );
+
+      // Approval 2: DS owner approves fragment proposal from Contributor 2 after someone subscribes to dataset
+      validSince =
+        Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
+      validTill = validSince + constants.ONE_DAY;
+      fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+        signature.getRevenueClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.user.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
+
+      await AcceptManuallyVerifier.connect(users_.datasetOwner).resolve(
+        datasetFragmentAddress,
+        nextPendingFragmentId,
+        true
+      );
+
+      // Subscription 2: someone subscribes to the dataset
+      await users_.secondSubscriber.Token!.approve(
+        await DatasetSubscriptionManager_.getAddress(),
+        parseUnits('3000', 18)
+      );
+      [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(datasetId_, 30, 1);
+      await DatasetSubscriptionManager_.connect(users_.secondSubscriber).subscribe(
+        datasetId_,
+        30,
+        1,
+        maxSubscriptionFee
+      );
+
+      const secondPayment = await DatasetDistributionManager_.payments(1);
+
+      // Contributor 1 should be able to claim some revenue again
+      fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+        signature.getRevenueClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.contributor.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
+
+      contributorPayout = parseUnits('438.75', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [secondPayment],
+          users_.contributor.address,
+          tags,
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
+
+      await time.increase(constants.ONE_WEEK * 2);
+      await expect(
+        DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      )
+        .to.emit(DatasetDistributionManager_, 'PayoutSent')
+        .withArgs(users_.contributor.address, tokenAddress, contributorPayout);
+
+      await expect(
+        DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      ).to.not.emit(DatasetDistributionManager_, 'PayoutSent');
+
+      // Contributor 2 should be able to claim some revenue
+      fragmentOwnerSignature = await users_.dtAdmin.signMessage(
+        signature.getRevenueClaimMessage(
+          network.config.chainId!,
+          await DatasetDistributionManager_.getAddress(),
+          users_.user.address,
+          BigInt(validSince),
+          BigInt(validTill)
+        )
+      );
+      contributorPayout = parseUnits('438.75', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [secondPayment],
+          users_.user.address,
+          tags,
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
+      await expect(
+        DatasetDistributionManager_.connect(users_.user).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      )
+        .to.emit(DatasetDistributionManager_, 'PayoutSent')
+        .withArgs(users_.user.address, tokenAddress, contributorPayout);
+
+      await expect(
+        DatasetDistributionManager_.connect(users_.user).claimPayouts(
+          validSince,
+          validTill,
+          fragmentOwnerSignature
+        )
+      ).to.not.emit(DatasetDistributionManager_, 'PayoutSent');
     });
 
     it('Should 2 contributors be able to claim revenue from 2 subscription payments, dataset owner claims revenue at the end', async function () {
