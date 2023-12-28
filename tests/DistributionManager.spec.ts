@@ -1088,6 +1088,8 @@ export default async function suite(): Promise<void> {
         maxSubscriptionFee
       );
 
+      const firstPayment = await DatasetDistributionManager_.payments(0);
+
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
 
@@ -1131,6 +1133,17 @@ export default async function suite(): Promise<void> {
       // dtOwner will get 4898.88/2 + 544.32 = 2449.44 + 544.32 = 2993.76
 
       // dtOwner should be able to claim the amount (2993.76) through `claimDatasetOwnerAndFragmentPayouts()`
+      let contributorPayout = parseUnits('2449.44', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.datasetOwner.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
       await expect(
         DatasetDistributionManager_.connect(
           users_.datasetOwner
@@ -1139,9 +1152,20 @@ export default async function suite(): Promise<void> {
         .to.emit(DatasetDistributionManager_, 'PayoutSent')
         .withArgs(users_.datasetOwner.address, tokenAddress, parseUnits('544.32', 18))
         .to.emit(DatasetDistributionManager_, 'PayoutSent')
-        .withArgs(users_.datasetOwner.address, tokenAddress, parseUnits('2449.44', 18));
+        .withArgs(users_.datasetOwner.address, tokenAddress, contributorPayout);
 
       // contributor should be able to claim his revenue
+      contributorPayout = parseUnits('2449.44', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.contributor.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
       await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
           validSince,
@@ -1222,6 +1246,8 @@ export default async function suite(): Promise<void> {
         maxSubscriptionFee
       );
 
+      const firstPayment = await DatasetDistributionManager_.payments(0);
+
       const validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
       const validTill = validSince + constants.ONE_DAY;
@@ -1244,6 +1270,18 @@ export default async function suite(): Promise<void> {
       // Contributor will take half since they have both proposed a fragment of the same tag, with tagWeight == 100%
       // Contributor Fee:: 6041.9520/2 == 3020.976
 
+      const contributorPayout = parseUnits('3020.976', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.contributor.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
+
       await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
           validSince,
@@ -1252,7 +1290,7 @@ export default async function suite(): Promise<void> {
         )
       )
         .to.emit(DatasetDistributionManager_, 'PayoutSent')
-        .withArgs(users_.contributor.address, tokenAddress, parseUnits('3020.976', 18));
+        .withArgs(users_.contributor.address, tokenAddress, contributorPayout);
     });
 
     it('Should revert contributor from claiming revenue if signature is wrong', async function () {
@@ -2035,6 +2073,8 @@ export default async function suite(): Promise<void> {
         maxSubscriptionFee
       );
 
+      const firstPayment = await DatasetDistributionManager_.payments(0);
+
       let validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
       let validTill = validSince + constants.ONE_DAY;
@@ -2050,6 +2090,17 @@ export default async function suite(): Promise<void> {
 
       await time.increase(constants.ONE_WEEK * 2);
 
+      let contributorPayout = parseUnits('302.0976', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.contributor.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
       await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
           validSince,
@@ -2058,7 +2109,7 @@ export default async function suite(): Promise<void> {
         )
       )
         .to.emit(DatasetDistributionManager_, 'PayoutSent')
-        .withArgs(users_.contributor.address, tokenAddress, parseUnits('302.0976', 18));
+        .withArgs(users_.contributor.address, tokenAddress, contributorPayout);
 
       await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
@@ -2110,6 +2161,8 @@ export default async function suite(): Promise<void> {
         maxSubscriptionFee
       );
 
+      const secondPayment = await DatasetDistributionManager_.payments(1);
+
       validSince =
         Number((await ethers.provider.getBlock('latest'))?.timestamp) + 1 + constants.ONE_WEEK * 2;
       validTill = validSince + constants.ONE_DAY;
@@ -2125,7 +2178,18 @@ export default async function suite(): Promise<void> {
 
       await time.increase(constants.ONE_WEEK * 2);
 
-      /* await expect(
+      contributorPayout = parseUnits('1208.3904', 18);
+      /* expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [secondPayment],
+          users_.contributor.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed'); */
+      await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
           validSince,
           validTill,
@@ -2133,7 +2197,7 @@ export default async function suite(): Promise<void> {
         )
       )
         .to.emit(DatasetDistributionManager_, 'PayoutSent')
-        .withArgs(users_.contributor.address, tokenAddress, parseUnits('1208.3904', 18));
+        .withArgs(users_.contributor.address, tokenAddress, contributorPayout);
 
       await expect(
         DatasetDistributionManager_.connect(users_.contributor).claimPayouts(
@@ -2141,7 +2205,7 @@ export default async function suite(): Promise<void> {
           validTill,
           fragmentOwnerSignature
         )
-      ).to.not.emit(DatasetDistributionManager_, 'PayoutSent'); */
+      ).to.not.emit(DatasetDistributionManager_, 'PayoutSent');
 
       claimableAmount = await DatasetDistributionManager_.pendingOwnerFee(tokenAddress);
 
@@ -2947,15 +3011,29 @@ export default async function suite(): Promise<void> {
         maxSubscriptionFee
       );
 
+      const firstPayment = await DatasetDistributionManager_.payments(0);
+
       // 2 contributors (dtOwner & contributor, thus payout for fragment owners will be split in half:
       // 6048(totalFee) - 6.048(ownerFee) = 6041.952 for contributors) ,two contributors thus, 6041.952/2 == 3020.976
+
+      const contributorPayout = parseUnits('3020.976', 18);
+      expect(
+        await verifyContributionPayoutIntegrity(
+          datasetId_,
+          [firstPayment],
+          users_.contributor.address,
+          [ZeroHash],
+          tokenAddress,
+          contributorPayout
+        )
+      ).to.equal('Success: checks passed');
 
       expect(
         await DatasetDistributionManager_.calculatePayoutByToken(
           tokenAddress,
           users_.contributor.address
         )
-      ).to.equal(parseUnits('3020.976', 18));
+      ).to.equal(contributorPayout);
     });
 
     it('Should 2 contributors be able to claim revenue from 2 subscription payments, dataset owner claims revenue at the end', async function () {

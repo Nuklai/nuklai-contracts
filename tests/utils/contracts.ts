@@ -59,6 +59,7 @@ export async function verifyContributionPayoutIntegrity(
 
   // get values from contracts
   for (const payment of payments) {
+    if (payment.token !== tokenAddress) continue;
     const weights = await DatasetDistributionManager.getTagWeights(tags);
     const tagCount = await DatasetFragment.tagCountAt(payment.snapshotId);
     const accountTagCount = await DatasetFragment.accountTagCountAt(payment.snapshotId, account);
@@ -132,7 +133,11 @@ function getPayoutUsingTagCountAt(
   const percentages: bigint[] = [];
 
   for (const tag of tags) {
-    percentages.push((parseUnits('1', 18) * (tagCount[tag] ?? 0n)) / totalTagsCount[tag]);
+    percentages.push(
+      totalTagsCount[tag] > 0n
+        ? (parseUnits('1', 18) * (tagCount[tag] ?? 0n)) / totalTagsCount[tag]
+        : 0n
+    );
   }
 
   return getPayoutUsingAccountTagPercentageAt(distributionAmount, weights, percentages);
