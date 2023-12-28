@@ -246,8 +246,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   ) external view returns (uint256[] memory percentages) {
     if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     uint256 totalTags = tags_.length;
+    uint256 latestTotalSnapshot = _findAccountSnapshotId(address(this), snapshotId);
     uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
-    EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestAccountSnapshot].totalTagCount;
+    EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestTotalSnapshot].totalTagCount;
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = _snapshots[latestAccountSnapshot].accountTagCount[account];
     percentages = new uint256[](totalTags);
 
