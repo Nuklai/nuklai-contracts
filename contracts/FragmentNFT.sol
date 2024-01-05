@@ -158,12 +158,14 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
    * @notice Creates a new snapshot and returns its index
    * @dev Snapshots are created each time a subscription payment event occurs
    * (see `SubscriptionManager` & `DistributionManager`)
+   * _currentSnapshotId() returns the index of `Snapshot` struct where data for next snapshot is stored.
+   * And we have to retutrn index of the Snapshot with current data, which will not be modified later
    * Only callable by `DistributionManager`
    * @return uint256 The index of the newly created snapshot
    */
   function snapshot() external onlyDistributionManager returns (uint256) {
     _snapshots.push();
-    return _currentSnapshotId();
+    return _currentSnapshotId() - 1;
   }
 
   /**
@@ -244,8 +246,9 @@ contract FragmentNFT is IFragmentNFT, ERC721Upgradeable, ERC2771ContextExternalF
   ) external view returns (uint256[] memory percentages) {
     if (snapshotId >= _snapshots.length) revert BAD_SNAPSHOT_ID(snapshotId, _snapshots.length);
     uint256 totalTags = tags_.length;
+    uint256 latestTotalSnapshot = _findAccountSnapshotId(address(this), snapshotId);
     uint256 latestAccountSnapshot = _findAccountSnapshotId(account, snapshotId);
-    EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestAccountSnapshot].totalTagCount;
+    EnumerableMap.Bytes32ToUintMap storage totalTagCount = _snapshots[latestTotalSnapshot].totalTagCount;
     EnumerableMap.Bytes32ToUintMap storage accountTagCount = _snapshots[latestAccountSnapshot].accountTagCount[account];
     percentages = new uint256[](totalTags);
 

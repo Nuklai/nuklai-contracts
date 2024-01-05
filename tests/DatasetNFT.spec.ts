@@ -32,6 +32,7 @@ import {
   IERC721Metadata_Interface_Id,
 } from './utils/selectors';
 import { BASE_URI, DATASET_NFT_SUFFIX } from './utils/constants';
+import { SIGNER_ROLE } from 'utils/constants';
 
 async function setup() {
   await deployments.fixture([
@@ -725,14 +726,16 @@ export default async function suite(): Promise<void> {
         ).to.be.equal(0);
       });
 
-      it('Should revert if non admin account tries to set deployer fee model for a dataset', async () => {
+      it('Should revert if non signer account tries to set deployer fee model for a dataset', async () => {
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setDeployerFeeModel(
             datasetId_,
             constants.DeployerFeeModel.DATASET_OWNER_STORAGE
           )
         ).to.be.revertedWith(
-          `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${ZeroHash}`
+          `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${
+            constants.SIGNER_ROLE
+          }`
         );
       });
 

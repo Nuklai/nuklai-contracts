@@ -227,7 +227,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   }
 
   /**
-   * @notice Extends a specific subscription with additional duration (in days) and/or consumers
+   * @notice Extends a specific subscription with additional duration (in days) and/or consumers to add later
    * @dev Subscriptions can only be extended duration-wise if remaining duration <= 30 days
    *
    * To extend a subscription only consumer-wise:
@@ -259,6 +259,45 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     uint256 maxExtraFee
   ) external payable {
     _extendSubscription(subscription, extraDurationInDays, extraConsumers, maxExtraFee);
+  }
+
+  /**
+   * @notice Extends a specific subscription with additional duration (in days) and/or add consumers
+   * @dev Subscriptions can only be extended duration-wise if remaining duration <= 30 days
+   *
+   * To extend a subscription only consumer-wise:
+   *
+   *  - `extraDurationInDays` should be 0
+   *  - `extraConsumers` should have at least one consumer
+   *
+   * To extend a subscription only duration-wise:
+   *
+   *  - `extraDurationInDays` should be greater than 0 and less than or equal to 365
+   *  - `extraConsumers` should be empty array
+   *
+   * To extend a subscription both duration-wise and consumer-wise:
+   *
+   *  -`extraDurationInDays` should be greater than 0 and less than or equal to 365
+   *  -`extraConsumers` should have at least one consumer
+   *
+   * Emits a {SubscriptionPaid} event.
+   * Emits a {ConsumerAdded} event.
+   *
+   * @param subscription ID of subscription (ID of the minted ERC721 token that represents the subscription)
+   * @param extraDurationInDays Days to extend the subscription by
+   * @param extraConsumers Addresses of extra consumers to add
+   * @param maxExtraFee Max amount sender id willing to pay for extending subscription. Using this prevents race condition with changing the fee while subcsribe tx is in the mempool
+   */
+  function extendSubscriptionAndAddExtraConsumers(
+    uint256 subscription,
+    uint256 extraDurationInDays,
+    address[] calldata extraConsumers,
+    uint256 maxExtraFee
+  ) external payable {
+    _extendSubscription(subscription, extraDurationInDays, extraConsumers.length, maxExtraFee);
+    if (extraConsumers.length > 0) {
+      _addConsumers(subscription, extraConsumers);
+    }
   }
 
   /**

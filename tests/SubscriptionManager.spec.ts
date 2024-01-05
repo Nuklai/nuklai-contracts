@@ -1028,6 +1028,35 @@ export default async function suite(): Promise<void> {
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
       });
 
+      it('Should subscriber extend his subscription and add consumers if expired', async () => {
+        await time.increase(constants.ONE_DAY * 3);
+
+        await users_.subscriber.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('1.4', 18) // oneweek and 1 subscriber :: 0.1 * 7 * 1 = 0.7
+        );
+
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          7,
+          2
+        );
+
+        await expect(
+          DatasetSubscriptionManager_.connect(
+            users_.subscriber
+          ).extendSubscriptionAndAddExtraConsumers(
+            subscriptionId_,
+            7,
+            [users_.secondSubscriber.address],
+            maxSubscriptionFee
+          )
+        )
+          .to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid')
+          .to.emit(DatasetSubscriptionManager_, 'ConsumerAdded')
+          .withArgs(subscriptionId_, users_.secondSubscriber.address);
+      });
+
       it('Should revert if subscriber tries to extend non expired subscription with extraDuration > 365 days', async () => {
         const remainingDuration = BigInt(1);
 
@@ -1156,6 +1185,63 @@ export default async function suite(): Promise<void> {
             subscriptionId_,
             7, // 7 days
             0,
+            maxSubscriptionFee
+          )
+        ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');
+      });
+
+      it('Should subscriber extends his subscription and add consumers in one function if not expired', async () => {
+        // Has 1 day left < 30 days thus he should be able to extend
+
+        // subscriptionFee for oneWeek and 2 consumer :: 0.1 * 7 * 2 = 1.4
+        await users_.subscriber.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('1.4')
+        );
+
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          7,
+          2
+        );
+
+        await expect(
+          DatasetSubscriptionManager_.connect(
+            users_.subscriber
+          ).extendSubscriptionAndAddExtraConsumers(
+            subscriptionId_,
+            7, // 7 days
+            [users_.secondSubscriber.address],
+            maxSubscriptionFee + parseUnits('0.1')
+          )
+        )
+          .to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid')
+          .to.emit(DatasetSubscriptionManager_, 'ConsumerAdded')
+          .withArgs(subscriptionId_, users_.secondSubscriber.address);
+      });
+
+      it('Should subscriber extends his subscription with extendSubscriptionAndAddExtraConsumers() if not expired', async () => {
+        // Has 1 day left < 30 days thus he should be able to extend
+
+        // subscriptionFee for oneWeek and 2 consumer :: 0.1 * 7 * 2 = 1.4
+        await users_.subscriber.Token!.approve(
+          await DatasetSubscriptionManager_.getAddress(),
+          parseUnits('1.4')
+        );
+
+        const [, maxSubscriptionFee] = await DatasetSubscriptionManager_.subscriptionFee(
+          datasetId_,
+          7,
+          1
+        );
+
+        await expect(
+          DatasetSubscriptionManager_.connect(
+            users_.subscriber
+          ).extendSubscriptionAndAddExtraConsumers(
+            subscriptionId_,
+            7, // 7 days
+            [],
             maxSubscriptionFee
           )
         ).to.emit(DatasetSubscriptionManager_, 'SubscriptionPaid');

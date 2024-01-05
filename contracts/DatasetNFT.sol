@@ -256,11 +256,11 @@ contract DatasetNFT is
 
   /**
    * @notice Sets the deployer fee model for a specific Dataset
-   * @dev Only callable by DatasetNFT ADMIN
+   * @dev Only callable by DatasetNFT SIGNER just after a dataset is created
    * @param datasetId The ID of the target Dataset NFT token
    * @param model The Deployer Fee Model to set
    */
-  function setDeployerFeeModel(uint256 datasetId, DeployerFeeModel model) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function setDeployerFeeModel(uint256 datasetId, DeployerFeeModel model) external onlyRole(SIGNER_ROLE) {
     deployerFeeModels[datasetId] = model;
   }
 
