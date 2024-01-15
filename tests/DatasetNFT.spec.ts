@@ -105,13 +105,13 @@ const setupOnMint = async () => {
     await DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
       uuidHash,
       users.datasetOwner.address,
-      signedMessage,
       defaultVerifierAddress,
       await users.datasetOwner.Token!.getAddress(),
       feeAmount,
       dsOwnerPercentage,
       [ZeroHash],
-      [parseUnits('1', 18)]
+      [parseUnits('1', 18)],
+      signedMessage
     )
   ).wait();
 
@@ -194,6 +194,7 @@ export default async function suite(): Promise<void> {
       const NewDatasetFactory = await deployments.deploy('DatasetFactory_new', {
         contract: 'DatasetFactory',
         from: users_.dtAdmin.address,
+        args: ["DatasetFactory", "1"],
       });
 
       await DatasetNFT_.connect(users_.dtAdmin).setDatasetFactory(NewDatasetFactory.address);
@@ -400,13 +401,13 @@ export default async function suite(): Promise<void> {
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMessage
         )
       )
         .to.emit(DatasetNFT_, 'ManagersConfigChange')
@@ -491,13 +492,13 @@ export default async function suite(): Promise<void> {
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMessage
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'DATASET_FACTORY_ZERO_ADDRESS');
     });
@@ -531,13 +532,13 @@ export default async function suite(): Promise<void> {
       await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
         uuidHash,
         users_.datasetOwner.address,
-        signedMessage,
         defaultVerifierAddress,
         await users_.datasetOwner.Token!.getAddress(),
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
-        [parseUnits('1', 18)]
+        [parseUnits('1', 18)],
+        signedMessage
       );
 
       // Same uuidHash used --> should revert since the same tokenId (uint256(uuidHash)) cannot be minted again
@@ -545,13 +546,13 @@ export default async function suite(): Promise<void> {
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMessage
         )
       ).to.be.revertedWith('ERC721: token already minted');
     });
@@ -573,13 +574,13 @@ export default async function suite(): Promise<void> {
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMessage
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
@@ -608,13 +609,13 @@ export default async function suite(): Promise<void> {
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMessage
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
@@ -844,13 +845,13 @@ export default async function suite(): Promise<void> {
         await DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMintMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMintMessage
         );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
@@ -900,13 +901,13 @@ export default async function suite(): Promise<void> {
         await DatasetFactory_.connect(users_.dtAdmin).mintAndConfigureDataset(
           uuidHash,
           users_.datasetOwner.address,
-          signedMintMessage,
           defaultVerifierAddress,
           await users_.datasetOwner.Token!.getAddress(),
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          signedMintMessage
         );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT

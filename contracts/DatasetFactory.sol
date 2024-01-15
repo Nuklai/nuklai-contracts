@@ -2,6 +2,8 @@
 pragma solidity =0.8.18;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {IDatasetNFT} from "./interfaces/IDatasetNFT.sol";
 import {IVerifierManager} from "./interfaces/IVerifierManager.sol";
 import {IDistributionManager} from "./interfaces/IDistributionManager.sol";
@@ -14,8 +16,11 @@ import {ISubscriptionManager} from "./interfaces/ISubscriptionManager.sol";
  * in the Nuklai protocol in a single transaction.
  * @dev Extends Ownable
  */
-contract DatasetFactory is Ownable {
+contract DatasetFactory is Ownable, EIP712 {
   error ZERO_ADDRESS(string reason);
+
+  bytes32 private constant MINT_AND_CONFIGURE_DATASET_TYPEHASH =
+    keccak256("MintAndConfigureDataset(bytes32 uuidHashed,address to,address defaultVerifier,address feeToken,uint256 feePerConsumerPerDay,uint256 dsOwnerFeePercentage,bytes32[] tags,uint256[] weights)");
 
   ///@dev address of the DatasetNFT contract
   IDatasetNFT public datasetNFT;
@@ -25,6 +30,8 @@ contract DatasetFactory is Ownable {
   address public distributionManagerImpl;
   ///@dev  address of deployed VerifierManager implementation contract
   address public verifierManagerImpl;
+
+  constructor (string memory name, string memory version) EIP712(name, version) { }
 
   /**
    * @notice Configures the Factory by setting the addresses of the Managers and DatasetNFT contracts
@@ -56,26 +63,42 @@ contract DatasetFactory is Ownable {
    * The sum of weights should be 100%, and 100% is encoded as 1e18.
    * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @param to The address of the beneficiary (Dataset owner)
-   * @param mintSignature Signature from a DT service confirming creation of Dataset
    * @param defaultVerifier The address of the Verifier contract to set as the Default Verifier
    * @param feeToken The address of the ERC20 token used for subscription payments, or zero address for native currency
    * @param feePerConsumerPerDay The daily subscription fee for a single consumer to set
    * @param dsOwnerFeePercentage The percentage of each subcription payment that should be sent to the Dataset Owner
    * @param tags The tags (labels for contribution types) participating in the payment distributions
    * @param weights The weights of the respective tags to set
+   * @param mintSignature Signature from a DT service confirming creation of Dataset
    */
   function mintAndConfigureDataset(
     bytes32 uuidHashed,
     address to,
-    bytes calldata mintSignature,
     address defaultVerifier,
     address feeToken,
     uint256 feePerConsumerPerDay,
     uint256 dsOwnerFeePercentage,
     bytes32[] calldata tags,
-    uint256[] calldata weights
+    uint256[] calldata weights,
+    bytes calldata mintSignature
   ) external {
-    uint256 id = datasetNFT.mintByFactory(uuidHashed, to, mintSignature);
+    bytes32 structHash = keccak256(abi.encode(
+      MINT_AND_CONFIGURE_DATASET_TYPEHASH,
+      uuidHashed,
+      to,
+      defaultVerifier,
+      feeToken,
+      feePerConsumerPerDay,
+      dsOwnerFeePercentage,
+      tags,
+      weights
+    ));
+
+    bytes32 msgHash = _hashTypedDataV4(structHash);
+
+    address signer = ECDSA.recover(msgHash, mintSignature);
+
+    uint256 id = datasetNFT.mintByFactory(uuidHashed, to, signer);
 
     _deployProxies(id);
     _configureVerifierManager(id, defaultVerifier);

@@ -15,6 +15,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployedDatasetFactory = await deploy('DatasetFactory', {
     from: dtAdmin,
+    args: ["DatasetFactory", "1"],
   });
 
   console.log('DatasetFactory deployed successfully at', deployedDatasetFactory.address);
