@@ -6,7 +6,6 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {Clones} from "@openzeppelin/contracts/proxy/Clones.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -45,7 +44,7 @@ contract DatasetNFT is
   error MANAGER_ZERO_ADDRESS();
   error NOT_OWNER(uint256 id, address account);
   error NOT_DATASET_FACTORY();
-  error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
+  error BAD_SIGNATURE(address recoveredSigner);
   error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
   error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
   error FRAGMENT_CREATION_DISABLED();
@@ -161,17 +160,14 @@ contract DatasetNFT is
    * @dev Emits a {Transfer} event
    * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
    * @param to Dataset owner
-   * @param signature Signature from a DT service confirming creation of Dataset
    * @return uin256 ID of the minted token
    */
-  function mintByFactory(bytes32 uuidHashed, address to, bytes calldata signature) external returns (uint256) {
+  function mintByFactory(bytes32 uuidHashed, address to, address signer) external returns (uint256) {
     if (datasetFactory == address(0)) revert DATASET_FACTORY_ZERO_ADDRESS();
     if (msg.sender != datasetFactory) revert NOT_DATASET_FACTORY();
     if (to == address(0)) revert ZERO_ADDRESS();
 
-    bytes32 msgHash = _mintMessageHash(uuidHashed, to);
-    address signer = ECDSA.recover(msgHash, signature);
-    if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(msgHash, signer);
+    if (!hasRole(SIGNER_ROLE, signer)) revert BAD_SIGNATURE(signer);
 
     uint256 id = uint256(uuidHashed);
 
@@ -475,17 +471,6 @@ contract DatasetNFT is
       datasetId
     );
     return address(new TransparentUpgradeableProxy(implementation, _fragmentProxyAdmin, intializePayload));
-  }
-
-  /**
-   * @notice Returns an Ethereum Signed Message hash for minting a Dataset NFT token
-   * @dev See `ECDSA.sol`
-   * @param uuidHashed The keccak256 hash of the off-chain generated UUID for the Dataset
-   * @param to Address of the Dataset owner, approved by off-chain service
-   * @return bytes32 The generated Ethereum signed message hash
-   */
-  function _mintMessageHash(bytes32 uuidHashed, address to) private view returns (bytes32) {
-    return ECDSA.toEthSignedMessageHash(abi.encodePacked(block.chainid, address(this), uuidHashed, to));
   }
 
   function _msgSender()

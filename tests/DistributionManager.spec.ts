@@ -67,13 +67,13 @@ const setup = async () => {
     await contracts.DatasetFactory.connect(users.datasetOwner).mintAndConfigureDataset(
       uuidHash,
       users.datasetOwner.address,
-      signedMessage,
       defaultVerifierAddress,
       await users.datasetOwner.Token!.getAddress(),
       feeAmount,
       dsOwnerPercentage,
       [ZeroHash],
-      [parseUnits('1', 18)]
+      [parseUnits('1', 18)],
+      signedMessage
     )
   ).wait();
 
