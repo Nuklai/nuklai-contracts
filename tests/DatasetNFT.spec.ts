@@ -95,6 +95,7 @@ const setupOnMint = async () => {
   const testTokenAddress = await testToken.getAddress();
 
   await DatasetNFT.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+  await DatasetNFT.setExtraFeePerPendingFragment(parseUnits('0.05'));
 
   const defaultVerifierAddress = await (
     await ethers.getContract('AcceptManuallyVerifier')
@@ -112,7 +113,8 @@ const setupOnMint = async () => {
       feeAmount,
       dsOwnerPercentage,
       [ZeroHash],
-      [parseUnits('1', 18)]
+      [parseUnits('1', 18)],
+      false
     )
   ).wait();
 
@@ -226,6 +228,13 @@ export default async function suite(): Promise<void> {
         .withArgs(users_.dtAdmin.address);
 
       expect(await DatasetNFT_.isTrustedForwarder(users_.dtAdmin.address)).to.be.true;
+    });
+
+    it('Should DT admin set extra fee per pending fragment feature', async function () {
+      const fee = parseUnits('0.05');
+      await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(fee);
+
+      expect(await DatasetNFT_.extraFeePerPendingFragment()).to.equal(fee);
     });
 
     it('Should DT admin set a deployer beneficiary for fees', async function () {
@@ -407,7 +416,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         )
       )
         .to.emit(DatasetNFT_, 'ManagersConfigChange')
@@ -498,7 +508,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'DATASET_FACTORY_ZERO_ADDRESS');
     });
@@ -538,7 +549,8 @@ export default async function suite(): Promise<void> {
         feeAmount,
         dsOwnerPercentage,
         [ZeroHash],
-        [parseUnits('1', 18)]
+        [parseUnits('1', 18)],
+        false
       );
 
       // Same uuidHash used --> should revert since the same tokenId (uint256(uuidHash)) cannot be minted again
@@ -552,7 +564,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         )
       ).to.be.revertedWith('ERC721: token already minted');
     });
@@ -580,7 +593,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
@@ -615,7 +629,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         )
       ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
     });
@@ -853,7 +868,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
@@ -909,7 +925,8 @@ export default async function suite(): Promise<void> {
           feeAmount,
           dsOwnerPercentage,
           [ZeroHash],
-          [parseUnits('1', 18)]
+          [parseUnits('1', 18)],
+          false
         );
 
         // Now datasetOwner should be the owner of 2nd dataSetNFT
@@ -1705,6 +1722,480 @@ export default async function suite(): Promise<void> {
             proposeSignature
           )
         ).to.be.revertedWithCustomError(DatasetNFT_, 'BAD_SIGNATURE');
+      });
+
+      it('Should charge extra fee on proposing a pending fragment', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const extraFeePerPendingFragment = parseUnits('0.05');
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(
+          extraFeePerPendingFragment
+        );
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          true
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tag = utils.encodeTag('dataset.schemas');
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            users_.contributor.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId,
+            users_.contributor.address,
+            tag,
+            proposeSignature,
+            { value: extraFeePerPendingFragment }
+          )
+        )
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tag)
+          .to.emit(DatasetNFT_, 'FragmentExtraFeeSent')
+          .withArgs(datasetId, users_.datasetOwner.address, extraFeePerPendingFragment);
+      });
+
+      it('Should not charge extra fee if extraFeePerPendingFragment is 0', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(0n);
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          true
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tag = utils.encodeTag('dataset.schemas');
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            users_.contributor.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId,
+            users_.contributor.address,
+            tag,
+            proposeSignature
+          )
+        )
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tag)
+          .to.not.emit(DatasetNFT_, 'FragmentExtraFeeSent');
+      });
+
+      it('Should not charge extra fee if dataset is not enabled for extra fee feature', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(parseUnits('0.05'));
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          false
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tag = utils.encodeTag('dataset.schemas');
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            users_.contributor.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId,
+            users_.contributor.address,
+            tag,
+            proposeSignature
+          )
+        )
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tag)
+          .to.not.emit(DatasetNFT_, 'FragmentExtraFeeSent');
+      });
+
+      it('Should revert if msg.value is different from extra fee per pending fragment', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        const extraFeePerPendingFragment = parseUnits('0.05');
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(
+          extraFeePerPendingFragment
+        );
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          true
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tag = utils.encodeTag('dataset.schemas');
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            users_.contributor.address,
+            tag
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId,
+            users_.contributor.address,
+            tag,
+            proposeSignature,
+            { value: extraFeePerPendingFragment + 1n }
+          )
+        )
+          .to.be.revertedWithCustomError(DatasetNFT_, 'FRAGMENT_EXTRA_FEE_INVALID')
+          .withArgs(extraFeePerPendingFragment, extraFeePerPendingFragment + 1n);
+      });
+
+      it('Should dataset owner be able to enable extra fee per pending fragment feature', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        const extraFeePerPendingFragment = parseUnits('0.05');
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(
+          extraFeePerPendingFragment
+        );
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          false
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tag = utils.encodeTag('dataset.schemas');
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            users_.contributor.address,
+            tag
+          )
+        );
+
+        await DatasetNFT_.connect(users_.datasetOwner).setPendingFragmentExtraFeeToDataset(
+          datasetId,
+          true
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeFragment(
+            datasetId,
+            users_.contributor.address,
+            tag,
+            proposeSignature,
+            { value: extraFeePerPendingFragment }
+          )
+        )
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tag)
+          .to.emit(DatasetNFT_, 'FragmentExtraFeeSent')
+          .withArgs(datasetId, users_.datasetOwner.address, extraFeePerPendingFragment);
+      });
+
+      it('Should charge extra fee on proposing multiple pending fragments', async function () {
+        const datasetUUID = uuidv4();
+
+        const uuidHash = getUuidHash(datasetUUID);
+        const datasetId = getUint256FromBytes32(uuidHash);
+
+        const datasetAddress = await DatasetNFT_.getAddress();
+        const signedMessage = await users_.dtAdmin.signMessage(
+          signature.getDatasetMintMessage(
+            network.config.chainId!,
+            datasetAddress,
+            uuidHash,
+            users_.datasetOwner.address
+          )
+        );
+
+        const testToken = await ethers.getContract('TestToken');
+        const testTokenAddress = await testToken.getAddress();
+
+        await DatasetNFT_.grantRole(constants.APPROVED_TOKEN_ROLE, testTokenAddress);
+
+        const extraFeePerPendingFragment = parseUnits('0.05');
+        await DatasetNFT_.connect(users_.dtAdmin).setExtraFeePerPendingFragment(
+          extraFeePerPendingFragment
+        );
+
+        const defaultVerifierAddress = await (
+          await ethers.getContract('AcceptManuallyVerifier')
+        ).getAddress();
+        const feeAmount = parseUnits('0.1', 18);
+        const dsOwnerPercentage = parseUnits('0.001', 18);
+
+        await DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
+          uuidHash,
+          users_.datasetOwner.address,
+          signedMessage,
+          defaultVerifierAddress,
+          await users_.datasetOwner.Token!.getAddress(),
+          feeAmount,
+          dsOwnerPercentage,
+          [ZeroHash],
+          [parseUnits('1', 18)],
+          true
+        );
+
+        const fragmentAddress = await DatasetNFT_.fragments(datasetId);
+        const DatasetFragment = (await ethers.getContractAt(
+          'FragmentNFT',
+          fragmentAddress
+        )) as unknown as FragmentNFT;
+
+        const tags = [utils.encodeTag('dataset.schemas'), utils.encodeTag('dataset.raws')];
+        const lastFragmentPendingId = await DatasetFragment.lastFragmentPendingId();
+        const proposeSignature = await users_.dtAdmin.signMessage(
+          signature.getDatasetFragmentProposeBatchMessage(
+            network.config.chainId!,
+            await DatasetNFT_.getAddress(),
+            datasetId,
+            lastFragmentPendingId + 1n,
+            lastFragmentPendingId + BigInt(tags.length),
+            [users_.contributor.address, users_.contributor.address],
+            tags
+          )
+        );
+
+        await expect(
+          DatasetNFT_.connect(users_.contributor).proposeManyFragments(
+            datasetId,
+            [users_.contributor.address, users_.contributor.address],
+            tags,
+            proposeSignature,
+            { value: extraFeePerPendingFragment * BigInt(tags.length) }
+          )
+        )
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 1n, tags[0])
+          .to.emit(DatasetFragment, 'FragmentPending')
+          .withArgs(lastFragmentPendingId + 2n, tags[1])
+          .to.emit(DatasetNFT_, 'FragmentExtraFeeSent')
+          .withArgs(
+            datasetId,
+            users_.datasetOwner.address,
+            extraFeePerPendingFragment * BigInt(tags.length)
+          );
       });
     });
   });
