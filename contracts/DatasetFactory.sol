@@ -73,7 +73,8 @@ contract DatasetFactory is Ownable {
     uint256 feePerConsumerPerDay,
     uint256 dsOwnerFeePercentage,
     bytes32[] calldata tags,
-    uint256[] calldata weights
+    uint256[] calldata weights,
+    bool hasExtraFeePerPendingFragment
   ) external {
     uint256 id = datasetNFT.mintByFactory(uuidHashed, to, mintSignature);
 
@@ -81,6 +82,8 @@ contract DatasetFactory is Ownable {
     _configureVerifierManager(id, defaultVerifier);
     _configureSubscriptionManager(id, feeToken, feePerConsumerPerDay);
     _configureDistributionManager(id, dsOwnerFeePercentage, tags, weights);
+
+    datasetNFT.setPendingFragmentExtraFeeToDataset(id, hasExtraFeePerPendingFragment);
 
     datasetNFT.safeTransferFrom(address(this), to, id);
   }

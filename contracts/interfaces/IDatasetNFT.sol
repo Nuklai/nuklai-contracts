@@ -58,6 +58,13 @@ interface IDatasetNFT is IERC721Upgradeable {
   function setManagers(uint256 id, ManagersConfig calldata config) external;
 
   /**
+   * @notice Enables/disables extra fee per fragment proposal feature by dataset
+   * @param datasetId The ID of the Dataset NFT token
+   * @param enabled Flag to indicate acceptance (`true`) or rejection (`false`)
+   */
+  function setPendingFragmentExtraFeeToDataset(uint256 datasetId, bool enabled) external;
+
+  /**
    * @notice Deploys a clone of the FragmentNFT implementation contract for a specific Dataset
    * @dev Emits a {FragmentInstanceDeployment} event
    * @param id The ID of the target Dataset NFT token
@@ -72,7 +79,7 @@ interface IDatasetNFT is IERC721Upgradeable {
    * @param tag The encoded label indicating the type of contribution
    * @param signature Signature from a DT service confirming the proposal request
    */
-  function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external;
+  function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external payable;
 
   /**
    * @notice Proposes multiple contributions for a specific Dataset
@@ -86,7 +93,7 @@ interface IDatasetNFT is IERC721Upgradeable {
     address[] memory owners,
     bytes32[] memory tags,
     bytes calldata signature
-  ) external;
+  ) external payable;
 
   /**
    * @notice Retrieves the address of the SubscriptionManager instance that is deployed for a specific Dataset

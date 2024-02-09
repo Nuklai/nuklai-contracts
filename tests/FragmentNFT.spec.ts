@@ -85,7 +85,8 @@ const setup = async () => {
       feeAmount,
       dsOwnerPercentage,
       [tag],
-      [parseUnits('1', 18)]
+      [parseUnits('1', 18)],
+      false
     )
   ).wait();
 

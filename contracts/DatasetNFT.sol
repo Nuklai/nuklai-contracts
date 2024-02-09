@@ -31,6 +31,7 @@ contract DatasetNFT is
   ERC2771ContextMutableForwarderUpgradeable
 {
   using Strings for uint256;
+  using Address for address payable;
 
   string private constant _NAME = "Nuklai Dataset";
   string private constant _SYMBOL = "NAIDS";
@@ -47,6 +48,7 @@ contract DatasetNFT is
   error NOT_DATASET_FACTORY();
   error BAD_SIGNATURE(bytes32 msgHash, address recoveredSigner);
   error PERCENTAGE_VALUE_INVALID(uint256 maximum, uint256 current);
+  error FRAGMENT_EXTRA_FEE_INVALID(uint256 target, uint256 current);
   error FRAGMENT_IMPLEMENTATION_INVALID(address fragment);
   error FRAGMENT_CREATION_DISABLED();
   error FRAGMENT_INSTANCE_ALREADY_DEPLOYED();
@@ -59,6 +61,7 @@ contract DatasetNFT is
 
   event ManagersConfigChange(uint256 id);
   event FragmentInstanceDeployment(uint256 id, address instance);
+  event FragmentExtraFeeSent(uint256 id, address owner, uint256 fee);
 
   string public baseURI;
   address private _fragmentProxyAdmin;
@@ -70,6 +73,8 @@ contract DatasetNFT is
   mapping(uint256 id => IFragmentNFT fragment) public fragments;
   mapping(DeployerFeeModel feeModel => uint256 feePercentage) public deployerFeeModelPercentage;
   mapping(uint256 id => DeployerFeeModel feeModel) public deployerFeeModels;
+  uint256 public extraFeePerPendingFragment;
+  mapping(uint256 id => bool enabled) public datasetIdToPendingFragmentExtraFeeEnabled;
 
   modifier onlyTokenOwner(uint256 id) {
     if (_ownerOf(id) != _msgSender()) revert NOT_OWNER(id, _msgSender());
@@ -275,6 +280,25 @@ contract DatasetNFT is
   }
 
   /**
+   * @notice Sets extra fee amount per fragment proposal
+   * @dev Only callable by DatasetNFT ADMIN
+   * @param fee The amount to be charged per fragment proposal
+   */
+  function setExtraFeePerPendingFragment(uint256 fee) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    extraFeePerPendingFragment = fee;
+  }
+
+  /**
+   * @notice Enables/disables extra fee per fragment proposal feature by dataset
+   * @dev Only callable by DatasetNFT OWNER
+   * @param datasetId The ID of the Dataset NFT token
+   * @param enabled Flag to indicate enabled (`true`) or disabled (`false`)
+   */
+  function setPendingFragmentExtraFeeToDataset(uint256 datasetId, bool enabled) external onlyTokenOwner(datasetId) {
+    datasetIdToPendingFragmentExtraFeeEnabled[datasetId] = enabled;
+  }
+
+  /**
    * @notice Sets the address of the FragmentProxyAdmin contract
    * @dev The FragmentProxyAdmin is the Admin of the TransparentUpgradeableProxy which is used for deployment
    * of FragmentNFT instances.
@@ -331,10 +355,14 @@ contract DatasetNFT is
    * @param tag The encoded label indicating the type of contribution
    * @param signature Signature from a DT service confirming the proposal request
    */
-  function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external {
+  function proposeFragment(uint256 datasetId, address to, bytes32 tag, bytes calldata signature) external payable {
     IFragmentNFT fragmentInstance = fragments[datasetId];
     if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.propose(to, tag, signature);
+
+    if (datasetIdToPendingFragmentExtraFeeEnabled[datasetId] && extraFeePerPendingFragment > 0) {
+      _transferExtraFee(datasetId, extraFeePerPendingFragment);
+    }
   }
 
   /**
@@ -349,10 +377,15 @@ contract DatasetNFT is
     address[] calldata owners,
     bytes32[] calldata tags,
     bytes calldata signature
-  ) external {
+  ) external payable {
     IFragmentNFT fragmentInstance = fragments[datasetId];
     if (address(fragmentInstance) == address(0)) revert FRAGMENT_INSTANCE_NOT_DEPLOYED();
     fragmentInstance.proposeMany(owners, tags, signature);
+
+    if (datasetIdToPendingFragmentExtraFeeEnabled[datasetId] && extraFeePerPendingFragment > 0) {
+      uint256 fee = extraFeePerPendingFragment * tags.length;
+      _transferExtraFee(datasetId, fee);
+    }
   }
 
   /**
@@ -439,6 +472,19 @@ contract DatasetNFT is
     bytes4 interfaceId
   ) public view virtual override(IERC165Upgradeable, ERC721Upgradeable, AccessControlUpgradeable) returns (bool) {
     return interfaceId == type(IDatasetNFT).interfaceId || super.supportsInterface(interfaceId);
+  }
+
+  /**
+   * @notice Transfer extra fee per pending fragment to dataset owner
+   * @param datasetId The ID of the Dataset NFT token
+   * @param fee The amount to be charged per fragment proposal
+   */
+  function _transferExtraFee(uint256 datasetId, uint256 fee) internal {
+    if (fee != msg.value) revert FRAGMENT_EXTRA_FEE_INVALID(fee, msg.value);
+    if (!_exists(datasetId)) revert TOKEN_ID_NOT_EXISTS(datasetId);
+    address datasetOwner = ownerOf(datasetId);
+    payable(datasetOwner).sendValue(fee);
+    emit FragmentExtraFeeSent(datasetId, datasetOwner, fee);
   }
 
   /**

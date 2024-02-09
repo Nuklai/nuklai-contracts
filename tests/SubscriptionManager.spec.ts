@@ -72,7 +72,8 @@ const setup = async () => {
       feeAmount,
       dsOwnerPercentage,
       [ZeroHash],
-      [parseUnits('1', 18)]
+      [parseUnits('1', 18)],
+      false
     )
   ).wait();
 
