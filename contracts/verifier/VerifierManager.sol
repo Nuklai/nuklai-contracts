@@ -27,9 +27,9 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
   error ARRAY_LENGTH_MISMATCH();
   error ZERO_ADDRESS();
 
-  event FragmentPending(uint256 indexed id);
-  event FragmentResolved(uint256 indexed id, bool accept);
-  event FragmentTagDefaultVerifierSet(address indexed verifier);
+  event FragmentPending(uint256 indexed id, uint256 datasetId);
+  event FragmentResolved(uint256 indexed id, uint256 datasetId, bool accept);
+  event FragmentTagDefaultVerifierSet(address indexed verifier, uint256 datasetId);
   event FragmentTagVerifierSet(address indexed verifier, bytes32 indexed tag);
 
   IDatasetNFT public dataset;
@@ -75,7 +75,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
   function setDefaultVerifier(address defaultVerifier_) external onlyDatasetOwner {
     if (defaultVerifier_ == address(0)) revert ZERO_ADDRESS();
     defaultVerifier = defaultVerifier_;
-    emit FragmentTagDefaultVerifierSet(defaultVerifier_);
+    emit FragmentTagDefaultVerifierSet(defaultVerifier_, datasetId);
   }
 
   /**
@@ -122,7 +122,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
 
     _pendingFragmentTags[id] = tag;
     IVerifier(verifier).propose(_msgSender(), id, tag);
-    emit FragmentPending(id);
+    emit FragmentPending(id, datasetId);
   }
 
   /**
@@ -137,15 +137,16 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
     address verifier = _verifierForTag(tag);
     // Here we use _msgSender() because we allow verifier to be EOA (for example - offchain service)
     address msgSender = _msgSender();
+    uint256 ds = datasetId;
     if (verifier != msgSender) revert VERIFIER_WRONG_SENDER(msgSender);
-    IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
+    IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(ds));
     delete _pendingFragmentTags[id];
     if (accept) {
       fragmentNFT.accept(id);
     } else {
       fragmentNFT.reject(id);
     }
-    emit FragmentResolved(id, accept);
+    emit FragmentResolved(id, ds, accept);
   }
 
   /**
