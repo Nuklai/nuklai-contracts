@@ -59,7 +59,7 @@ contract DatasetNFT is
   error ARRAY_LENGTH_MISMATCH();
   error BENEFICIARY_ZERO_ADDRESS();
 
-  event ManagersConfigChange(uint256 id);
+  event ManagersConfigChange(uint256 id, address distributionManager, address subscriptionManager, address verifierManager);
   event FragmentInstanceDeployment(uint256 id, address instance);
   event FragmentExtraFeeSent(uint256 id, address owner, uint256 fee);
 
@@ -218,7 +218,7 @@ contract DatasetNFT is
     }
     if (changed) {
       configurations[id] = config;
-      emit ManagersConfigChange(id);
+      emit ManagersConfigChange(id, currentProxie.distributionManager, currentProxie.subscriptionManager, currentProxie.verifierManager);
     }
   }
 

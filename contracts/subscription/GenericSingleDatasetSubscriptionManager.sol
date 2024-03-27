@@ -32,9 +32,9 @@ abstract contract GenericSingleDatasetSubscriptionManager is
   using EnumerableSet for EnumerableSet.AddressSet;
   using EnumerableSet for EnumerableSet.UintSet;
 
-  event SubscriptionPaid(uint256 indexed id, uint256 datasetId, uint256 validSince, uint256 validTill, uint256 paidConsumers);
-  event ConsumerAdded(uint256 indexed id, address indexed consumer, uint256 datasetId);
-  event ConsumerRemoved(uint256 indexed id, address indexed consumer, uint256 datasetId);
+  event SubscriptionPaid(uint256 indexed id, uint256 validSince, uint256 validTill, uint256 paidConsumers);
+  event ConsumerAdded(uint256 indexed id, address indexed consumer);
+  event ConsumerRemoved(uint256 indexed id, address indexed consumer);
 
   error UNSUPPORTED_DATASET(uint256 id);
   error CONSUMER_NOT_FOUND(uint256 subscription, address consumer);
@@ -380,7 +380,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     sd.validTill = block.timestamp + (durationInDays * 1 days);
     sd.paidConsumers = consumers;
     _safeMint(_msgSender(), sid);
-    emit SubscriptionPaid(sid, ds, sd.validSince, sd.validTill, sd.paidConsumers);
+    emit SubscriptionPaid(sid, sd.validSince, sd.validTill, sd.paidConsumers);
   }
 
   /**
@@ -444,7 +444,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
     sd.validSince = newValidSince;
     sd.validTill = newValidSince + (newDurationInDays * 1 days);
     sd.paidConsumers = newConsumers;
-    emit SubscriptionPaid(subscription, datasetId, sd.validSince, sd.validTill, sd.paidConsumers);
+    emit SubscriptionPaid(subscription, sd.validSince, sd.validTill, sd.paidConsumers);
   }
 
   /**
@@ -464,7 +464,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       bool added = sd.consumers.add(consumer);
       if (added) {
         _consumerSubscriptions[consumer].add(subscription);
-        emit ConsumerAdded(subscription, consumer,  datasetId);
+        emit ConsumerAdded(subscription, consumer);
       }
       unchecked {
         i++;
@@ -487,7 +487,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
         _consumerSubscriptions[consumer].remove(subscription);
-        emit ConsumerRemoved(subscription, consumer, datasetId);
+        emit ConsumerRemoved(subscription, consumer);
       }
       unchecked {
         i++;
@@ -516,7 +516,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       bool removed = sd.consumers.remove(consumer);
       if (removed) {
         _consumerSubscriptions[consumer].remove(subscription);
-        emit ConsumerRemoved(subscription, consumer,  datasetId);
+        emit ConsumerRemoved(subscription, consumer);
       } else {
         // Should revert because otherwise we can exeed paidConsumers limit
         revert CONSUMER_NOT_FOUND(subscription, consumer);
@@ -525,7 +525,7 @@ abstract contract GenericSingleDatasetSubscriptionManager is
       bool added = sd.consumers.add(consumer);
       if (added) {
         _consumerSubscriptions[consumer].add(subscription);
-        emit ConsumerAdded(subscription, consumer,  datasetId);
+        emit ConsumerAdded(subscription, consumer);
       }
       unchecked {
         i++;

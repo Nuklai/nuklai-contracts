@@ -27,9 +27,9 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
   error ARRAY_LENGTH_MISMATCH();
   error ZERO_ADDRESS();
 
-  event FragmentPending(uint256 indexed id, uint256 datasetId);
-  event FragmentResolved(uint256 indexed id, uint256 datasetId, bool accept);
-  event FragmentTagDefaultVerifierSet(address indexed verifier, uint256 datasetId);
+  event FragmentPending(uint256 indexed id);
+  event FragmentResolved(uint256 indexed id, bool accept);
+  event FragmentTagDefaultVerifierSet(address indexed verifier);
   event FragmentTagVerifierSet(address indexed verifier, bytes32 indexed tag);
 
   IDatasetNFT public dataset;
@@ -75,7 +75,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
   function setDefaultVerifier(address defaultVerifier_) external onlyDatasetOwner {
     if (defaultVerifier_ == address(0)) revert ZERO_ADDRESS();
     defaultVerifier = defaultVerifier_;
-    emit FragmentTagDefaultVerifierSet(defaultVerifier_, datasetId);
+    emit FragmentTagDefaultVerifierSet(defaultVerifier_);
   }
 
   /**
@@ -122,7 +122,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
 
     _pendingFragmentTags[id] = tag;
     IVerifier(verifier).propose(_msgSender(), id, tag);
-    emit FragmentPending(id, datasetId);
+    emit FragmentPending(id);
   }
 
   /**
@@ -146,7 +146,7 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
     } else {
       fragmentNFT.reject(id);
     }
-    emit FragmentResolved(id, ds, accept);
+    emit FragmentResolved(id, accept);
   }
 
   /**

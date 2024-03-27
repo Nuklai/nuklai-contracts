@@ -1175,7 +1175,7 @@ export default async function suite(): Promise<void> {
           })
         )
           .to.emit(DatasetNFT_, 'ManagersConfigChange')
-          .withArgs(datasetId_);
+          .withArgs(datasetId_, await DistributionManager.getAddress(), await SubscriptionManager.getAddress(), await VerifierManager.getAddress());
       });
 
       it('Should revert set dataset nft managers if data set does not exists', async function () {
