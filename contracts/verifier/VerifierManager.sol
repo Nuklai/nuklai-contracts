@@ -137,9 +137,8 @@ contract VerifierManager is IVerifierManager, ERC165Upgradeable, ERC2771ContextE
     address verifier = _verifierForTag(tag);
     // Here we use _msgSender() because we allow verifier to be EOA (for example - offchain service)
     address msgSender = _msgSender();
-    uint256 ds = datasetId;
     if (verifier != msgSender) revert VERIFIER_WRONG_SENDER(msgSender);
-    IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(ds));
+    IFragmentNFT fragmentNFT = IFragmentNFT(dataset.fragmentNFT(datasetId));
     delete _pendingFragmentTags[id];
     if (accept) {
       fragmentNFT.accept(id);
