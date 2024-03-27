@@ -1154,28 +1154,32 @@ export default async function suite(): Promise<void> {
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
+        const distributionManager = await DistributionManager.getAddress();
+        const subscriptionManager = await SubscriptionManager.getAddress();
+        const verifierManager = await VerifierManager.getAddress();
+
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          await SubscriptionManager.getAddress()
+          subscriptionManager
         );
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          await DistributionManager.getAddress()
+          distributionManager
         );
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          await VerifierManager.getAddress()
+          verifierManager
         );
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
-            subscriptionManager: await SubscriptionManager.getAddress(),
-            distributionManager: await DistributionManager.getAddress(),
-            verifierManager: await VerifierManager.getAddress(),
+            subscriptionManager,
+            distributionManager,
+            verifierManager,
           })
         )
           .to.emit(DatasetNFT_, 'ManagersConfigChange')
-          .withArgs(datasetId_, await DistributionManager.getAddress(), await SubscriptionManager.getAddress(), await VerifierManager.getAddress());
+          .withArgs(datasetId_, distributionManager, subscriptionManager, verifierManager);
       });
 
       it('Should revert set dataset nft managers if data set does not exists', async function () {
