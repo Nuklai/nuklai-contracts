@@ -406,6 +406,10 @@ export default async function suite(): Promise<void> {
       const feeAmount = parseUnits('0.1', 18);
       const dsOwnerPercentage = parseUnits('0.001', 18);
 
+      const DistributionManagerFactory = await ethers.getContractFactory('DistributionManager');
+      const ERC20SubscriptionManagerFactory = await ethers.getContractFactory('ERC20SubscriptionManager');
+      const VerifierManagerFactory = await ethers.getContractFactory('VerifierManager');
+
       await expect(
         DatasetFactory_.connect(users_.datasetOwner).mintAndConfigureDataset(
           uuidHash,
@@ -421,7 +425,7 @@ export default async function suite(): Promise<void> {
         )
       )
         .to.emit(DatasetNFT_, 'ManagersConfigChange')
-        .withArgs(dt_Id)
+        .withArgs(dt_Id, await DistributionManagerFactory.connect(users_.datasetOwner).deploy(), await ERC20SubscriptionManagerFactory.connect(users_.datasetOwner).deploy(), await VerifierManagerFactory.connect(users_.datasetOwner).deploy())
         .to.emit(DatasetNFT_, 'Transfer')
         .withArgs(ZeroAddress, await DatasetFactory_.getAddress(), dt_Id)
         .to.emit(DatasetNFT_, 'Transfer')
@@ -748,8 +752,7 @@ export default async function suite(): Promise<void> {
             constants.DeployerFeeModel.DATASET_OWNER_STORAGE
           )
         ).to.be.revertedWith(
-          `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${
-            constants.SIGNER_ROLE
+          `AccessControl: account ${users_.datasetOwner.address.toLowerCase()} is missing role ${constants.SIGNER_ROLE
           }`
         );
       });
@@ -1154,32 +1157,32 @@ export default async function suite(): Promise<void> {
         ).deploy();
         const VerifierManager = await VerifierManagerFactory_.connect(users_.datasetOwner).deploy();
 
-        const distributionManager = await DistributionManager.getAddress();
-        const subscriptionManager = await SubscriptionManager.getAddress();
-        const verifierManager = await VerifierManager.getAddress();
+        const distributionManagerAddr = await DistributionManager.getAddress();
+        const subscriptionManagerAddr = await SubscriptionManager.getAddress();
+        const verifierManagerAddr = await VerifierManager.getAddress();
 
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          subscriptionManager
+          subscriptionManagerAddr
         );
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          distributionManager
+          distributionManagerAddr
         );
         await DatasetNFT_.connect(users_.dtAdmin).grantRole(
           constants.WHITELISTED_MANAGER_ROLE,
-          verifierManager
+          verifierManagerAddr
         );
 
         await expect(
           DatasetNFT_.connect(users_.datasetOwner).setManagers(datasetId_, {
-            subscriptionManager,
-            distributionManager,
-            verifierManager,
+            subscriptionManager: subscriptionManagerAddr,
+            distributionManager: distributionManagerAddr,
+            verifierManager: verifierManagerAddr,
           })
         )
           .to.emit(DatasetNFT_, 'ManagersConfigChange')
-          .withArgs(datasetId_, distributionManager, subscriptionManager, verifierManager);
+          .withArgs(datasetId_, distributionManagerAddr, subscriptionManagerAddr, verifierManagerAddr);
       });
 
       it('Should revert set dataset nft managers if data set does not exists', async function () {
